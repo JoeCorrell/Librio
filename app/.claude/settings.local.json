@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(..gradlew.bat assembleDebug)",
+      "Bash(cmd /c \"cd /d c:\\\\Users\\\\Administrator\\\\Downloads\\\\Librio && gradlew.bat assembleDebug\")",
+      "Bash(cmd /c \"c:\\\\Users\\\\Administrator\\\\Downloads\\\\Librio\\\\gradlew.bat -p c:\\\\Users\\\\Administrator\\\\Downloads\\\\Librio assembleDebug\")",
+      "Bash(powershell -Command \"cd ''c:\\\\Users\\\\Administrator\\\\Downloads\\\\Librio''; .\\\\gradlew.bat assembleDebug\")"
+    ]
+  }
+}
