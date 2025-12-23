@@ -453,7 +453,7 @@ class MainActivity : ComponentActivity() {
                 if (!introComplete) return@LaunchedEffect
                 // Use lastActiveType for priority if available, otherwise fall back to playing state
                 val shouldRestoreMusic = lastMusicId != null && (
-                    lastActiveType == "MUSIC" ||
+                    lastActiveType == "MUSIC" || lastActiveType == "CREEPYPASTA" ||
                     (lastActiveType == null && (lastMusicPlaying || (!lastAudiobookPlaying && lastAudiobookId == null)))
                 )
                 if (!shouldRestoreMusic) return@LaunchedEffect
@@ -677,7 +677,7 @@ class MainActivity : ComponentActivity() {
                 lastActiveType == "AUDIOBOOK" && lastPlayedAudiobook != null -> {
                     buildAudiobookNowPlaying(lastPlayedAudiobook!!)
                 }
-                lastActiveType == "MUSIC" && lastPlayedMusic != null -> {
+                (lastActiveType == "MUSIC" || lastActiveType == "CREEPYPASTA") && lastPlayedMusic != null -> {
                     buildMusicNowPlaying(lastPlayedMusic!!)
                 }
                 // Priority 2: If audiobook is actively playing (service running)
@@ -1502,7 +1502,8 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onTrackChange = { newTrack ->
                                         lastPlayedMusic = newTrack
-                                        settingsViewModel.setLastActiveType("MUSIC")
+                                        val activeType = if (newTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                        settingsViewModel.setLastActiveType(activeType)
                                         if (currentMusicPlaylist.isEmpty()) {
                                             currentMusicPlaylist = activePlaylist
                                         }
@@ -1719,7 +1720,8 @@ class MainActivity : ComponentActivity() {
                                             player.pause()
                                         }
                                         lastPlayedMusic = track
-                                        settingsViewModel.setLastActiveType("MUSIC")
+                                        val activeType = if (track.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                        settingsViewModel.setLastActiveType(activeType)
                                         currentMusicPlaylist = tracks
                                         libraryViewModel.selectMusic(track)
                                         libraryViewModel.incrementMusicPlayCount(track.id)
@@ -1802,7 +1804,8 @@ class MainActivity : ComponentActivity() {
                                                         player.pause()
                                                     }
                                                     lastPlayedMusic = firstTrack
-                                                    settingsViewModel.setLastActiveType("MUSIC")
+                                                    val activeType = if (firstTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    settingsViewModel.setLastActiveType(activeType)
                                                     currentMusicPlaylist = seriesMusic
                                                     libraryViewModel.selectMusic(firstTrack)
                                                     libraryViewModel.incrementMusicPlayCount(firstTrack.id)
@@ -1867,7 +1870,8 @@ class MainActivity : ComponentActivity() {
                                                 if (currentIdx > 0) {
                                                     val prevTrack = seriesMusic[currentIdx - 1]
                                                     lastPlayedMusic = prevTrack
-                                                    settingsViewModel.setLastActiveType("MUSIC")
+                                                    val activeType = if (prevTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(prevTrack)
                                                     libraryViewModel.incrementMusicPlayCount(prevTrack.id)
                                                     musicExoPlayer.setMediaItem(buildMusicMediaItem(prevTrack))
@@ -1897,7 +1901,8 @@ class MainActivity : ComponentActivity() {
                                                 if (nextIdx >= 0 && nextIdx < seriesMusic.size) {
                                                     val nextTrack = seriesMusic[nextIdx]
                                                     lastPlayedMusic = nextTrack
-                                                    settingsViewModel.setLastActiveType("MUSIC")
+                                                    val activeType = if (nextTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(nextTrack)
                                                     libraryViewModel.incrementMusicPlayCount(nextTrack.id)
                                                     musicExoPlayer.setMediaItem(buildMusicMediaItem(nextTrack))
@@ -1952,12 +1957,15 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             },
                                             onNext = {
-                                                if (lastPlayedMusic != null && currentMusicPlaylist.isNotEmpty()) {
-                                                    val currentIndex = currentMusicPlaylist.indexOfFirst { it.id == lastPlayedMusic?.id }
-                                                    val nextIndex = if (currentIndex < currentMusicPlaylist.size - 1) currentIndex + 1 else 0
-                                                    val nextTrack = currentMusicPlaylist[nextIndex]
+                                                if (lastPlayedMusic != null) {
+                                                    val playlist = if (currentMusicPlaylist.isNotEmpty()) currentMusicPlaylist else filteredMusic
+                                                    if (playlist.isEmpty()) return@MiniPlayer
+                                                    val currentIndex = playlist.indexOfFirst { it.id == lastPlayedMusic?.id }
+                                                    val nextIndex = if (currentIndex < playlist.size - 1) currentIndex + 1 else 0
+                                                    val nextTrack = playlist[nextIndex]
                                                     lastPlayedMusic = nextTrack
-                                                    settingsViewModel.setLastActiveType("MUSIC")
+                                                    val activeType = if (nextTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(nextTrack)
                                                     libraryViewModel.incrementMusicPlayCount(nextTrack.id)
                                                     musicExoPlayer.setMediaItem(buildMusicMediaItem(nextTrack))
@@ -1968,12 +1976,15 @@ class MainActivity : ComponentActivity() {
                                                 }
                                             },
                                             onPrevious = {
-                                                if (lastPlayedMusic != null && currentMusicPlaylist.isNotEmpty()) {
-                                                    val currentIndex = currentMusicPlaylist.indexOfFirst { it.id == lastPlayedMusic?.id }
-                                                    val prevIndex = if (currentIndex > 0) currentIndex - 1 else currentMusicPlaylist.size - 1
-                                                    val prevTrack = currentMusicPlaylist[prevIndex]
+                                                if (lastPlayedMusic != null) {
+                                                    val playlist = if (currentMusicPlaylist.isNotEmpty()) currentMusicPlaylist else filteredMusic
+                                                    if (playlist.isEmpty()) return@MiniPlayer
+                                                    val currentIndex = playlist.indexOfFirst { it.id == lastPlayedMusic?.id }
+                                                    val prevIndex = if (currentIndex > 0) currentIndex - 1 else playlist.size - 1
+                                                    val prevTrack = playlist[prevIndex]
                                                     lastPlayedMusic = prevTrack
-                                                    settingsViewModel.setLastActiveType("MUSIC")
+                                                    val activeType = if (prevTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(prevTrack)
                                                     libraryViewModel.incrementMusicPlayCount(prevTrack.id)
                                                     musicExoPlayer.setMediaItem(buildMusicMediaItem(prevTrack))
