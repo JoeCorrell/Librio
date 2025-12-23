@@ -587,7 +587,7 @@ class AudiobookPlayer(private val context: Context) {
         positionUpdateJob = scope.launch {
             while (true) {
                 updatePlaybackState()
-                delay(200) // Update every 200ms
+                delay(500) // Update every 500ms to save battery
             }
         }
     }

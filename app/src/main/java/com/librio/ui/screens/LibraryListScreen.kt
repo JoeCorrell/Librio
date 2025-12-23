@@ -5128,7 +5128,7 @@ private fun AudiobookGridItem(
             )
             .padding(8.dp)
     ) {
-        // Cover art
+        // Cover art with progress bar overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -5137,34 +5137,31 @@ private fun AudiobookGridItem(
             CoverArt(
                 bitmap = audiobook.coverArt,
                 contentDescription = audiobook.title,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
                 cornerRadiusSize = 6.dp,
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && audiobook.coverArt == null,
                 fileExtension = audiobook.fileType,
                 contentType = CoverArtContentType.AUDIOBOOK
             )
-
-            // Progress indicator
-            if (audiobook.progress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                ) {
-                    LinearProgressIndicator(
-                        progress = audiobook.progress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp),
-                        color = palette.primary,
-                        trackColor = palette.primary.copy(alpha = 0.2f)
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Progress indicator - positioned under cover art
+        if (audiobook.progress > 0f) {
+            Spacer(modifier = Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = audiobook.progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(shape6),
+                color = palette.primary,
+                trackColor = palette.shade5.copy(alpha = 0.3f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Title
         Text(
@@ -5219,7 +5216,7 @@ private fun BookGridItem(
             )
             .padding(8.dp)
     ) {
-        // Cover art
+        // Cover art with progress bar overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -5228,34 +5225,31 @@ private fun BookGridItem(
             CoverArt(
                 bitmap = book.coverArt,
                 contentDescription = book.title,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
                 cornerRadiusSize = 6.dp,
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && book.coverArt == null,
                 fileExtension = book.fileType,
                 contentType = CoverArtContentType.EBOOK
             )
-
-            // Progress indicator
-            if (book.progress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                ) {
-                    LinearProgressIndicator(
-                        progress = book.progress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp),
-                        color = palette.primary,
-                        trackColor = palette.primary.copy(alpha = 0.2f)
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Progress indicator - positioned under cover art
+        if (book.progress > 0f) {
+            Spacer(modifier = Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = book.progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(shape6),
+                color = palette.primary,
+                trackColor = palette.shade5.copy(alpha = 0.3f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Title
         Text(
@@ -5310,7 +5304,7 @@ private fun MusicGridItem(
             )
             .padding(8.dp)
     ) {
-        // Cover art
+        // Cover art with progress bar overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -5319,34 +5313,31 @@ private fun MusicGridItem(
             CoverArt(
                 bitmap = music.coverArt,
                 contentDescription = music.title,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
                 cornerRadiusSize = 6.dp,
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && music.coverArt == null,
                 fileExtension = music.fileType,
                 contentType = CoverArtContentType.MUSIC
             )
-
-            // Progress indicator
-            if (music.progress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                ) {
-                    LinearProgressIndicator(
-                        progress = music.progress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp),
-                        color = palette.primary,
-                        trackColor = palette.primary.copy(alpha = 0.2f)
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Progress indicator - positioned under cover art
+        if (music.progress > 0f) {
+            Spacer(modifier = Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = music.progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(shape6),
+                color = palette.primary,
+                trackColor = palette.shade5.copy(alpha = 0.3f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Title
         Text(
@@ -5401,7 +5392,7 @@ private fun ComicGridItem(
             )
             .padding(8.dp)
     ) {
-        // Cover art
+        // Cover art with progress bar overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -5410,34 +5401,31 @@ private fun ComicGridItem(
             CoverArt(
                 bitmap = comic.coverArt,
                 contentDescription = comic.title,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
                 cornerRadiusSize = 6.dp,
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && comic.coverArt == null,
                 fileExtension = comic.fileType,
                 contentType = CoverArtContentType.COMICS
             )
-
-            // Progress indicator
-            if (comic.progress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                ) {
-                    LinearProgressIndicator(
-                        progress = comic.progress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp),
-                        color = palette.primary,
-                        trackColor = palette.primary.copy(alpha = 0.2f)
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Progress indicator - positioned under cover art
+        if (comic.progress > 0f) {
+            Spacer(modifier = Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = comic.progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(shape6),
+                color = palette.primary,
+                trackColor = palette.shade5.copy(alpha = 0.3f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Title
         Text(
@@ -5508,6 +5496,7 @@ private fun MovieGridItem(
             }
         }
 
+        // Cover art with progress bar overlay
         Box(
             modifier = Modifier
                 .fillMaxWidth()
@@ -5516,34 +5505,31 @@ private fun MovieGridItem(
             CoverArt(
                 bitmap = bitmap,
                 contentDescription = movie.title,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxSize(),
                 cornerRadiusSize = 6.dp,
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && bitmap == null,
                 fileExtension = movie.fileType,
                 contentType = CoverArtContentType.MOVIE
             )
-
-            // Progress indicator
-            if (movie.progress > 0f) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                ) {
-                    LinearProgressIndicator(
-                        progress = movie.progress,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp),
-                        color = palette.primary,
-                        trackColor = palette.primary.copy(alpha = 0.2f)
-                    )
-                }
-            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Progress indicator - positioned under cover art
+        if (movie.progress > 0f) {
+            Spacer(modifier = Modifier.height(4.dp))
+            LinearProgressIndicator(
+                progress = movie.progress,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(3.dp)
+                    .clip(shape6),
+                color = palette.primary,
+                trackColor = palette.shade5.copy(alpha = 0.3f)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+        } else {
+            Spacer(modifier = Modifier.height(8.dp))
+        }
 
         // Title
         Text(

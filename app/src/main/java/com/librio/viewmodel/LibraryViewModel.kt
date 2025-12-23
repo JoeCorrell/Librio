@@ -457,7 +457,7 @@ class LibraryViewModel : ViewModel() {
                     scanForComicFiles(context)
                     scanForMovieFiles(context)
                 }
-                delay(5_000) // Scan every 5 seconds
+                delay(10_000) // Scan every 10 seconds
             }
         }
     }
@@ -1621,16 +1621,20 @@ class LibraryViewModel : ViewModel() {
         super.onCleared()
         // Stop auto-refresh and save all library data when ViewModel is cleared
         stopAutoRefresh()
-        // Use runBlocking to ensure saves complete before ViewModel is destroyed
-        // viewModelScope gets cancelled when ViewModel is cleared, so we can't use it here
-        kotlinx.coroutines.runBlocking {
-            repository?.saveLibrary(_libraryState.value.audiobooks)
-            repository?.saveBooks(_libraryState.value.books)
-            repository?.saveMusic(_libraryState.value.music)
-            repository?.saveComics(_libraryState.value.comics)
-            repository?.saveMovies(_libraryState.value.movies)
-            repository?.saveCategories(_libraryState.value.categories)
-            repository?.saveSeries(_libraryState.value.series)
+        // Use a separate scope for saves to avoid blocking main thread
+        // Data is also saved periodically so this is just a final sync
+        kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+            try {
+                repository?.saveLibrary(_libraryState.value.audiobooks)
+                repository?.saveBooks(_libraryState.value.books)
+                repository?.saveMusic(_libraryState.value.music)
+                repository?.saveComics(_libraryState.value.comics)
+                repository?.saveMovies(_libraryState.value.movies)
+                repository?.saveCategories(_libraryState.value.categories)
+                repository?.saveSeries(_libraryState.value.series)
+            } catch (_: Exception) {
+                // Ignore save errors during cleanup
+            }
         }
     }
 

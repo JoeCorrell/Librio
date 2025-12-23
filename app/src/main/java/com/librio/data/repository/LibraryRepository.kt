@@ -81,7 +81,7 @@ class LibraryRepository(private val context: Context) {
             }
             jsonArray.put(jsonObject)
         }
-        prefs.edit().putString(getProfileKey(KEY_LIBRARY), jsonArray.toString()).commit()
+        prefs.edit().putString(getProfileKey(KEY_LIBRARY), jsonArray.toString()).apply()
     }
 
     /**
@@ -161,7 +161,7 @@ class LibraryRepository(private val context: Context) {
             }
             jsonArray.put(jsonObject)
         }
-        prefs.edit().putString(getProfileKey(KEY_CATEGORIES), jsonArray.toString()).commit()
+        prefs.edit().putString(getProfileKey(KEY_CATEGORIES), jsonArray.toString()).apply()
     }
 
     /**
@@ -214,7 +214,7 @@ class LibraryRepository(private val context: Context) {
             }
             jsonArray.put(jsonObject)
         }
-        prefs.edit().putString(getProfileKey(KEY_BOOKS), jsonArray.toString()).commit()
+        prefs.edit().putString(getProfileKey(KEY_BOOKS), jsonArray.toString()).apply()
     }
 
     /**
@@ -289,7 +289,7 @@ class LibraryRepository(private val context: Context) {
             }
             jsonArray.put(jsonObject)
         }
-        prefs.edit().putString(getProfileKey(KEY_MUSIC), jsonArray.toString()).commit()
+        prefs.edit().putString(getProfileKey(KEY_MUSIC), jsonArray.toString()).apply()
     }
 
     /**
@@ -367,7 +367,7 @@ class LibraryRepository(private val context: Context) {
             }
             jsonArray.put(jsonObject)
         }
-        prefs.edit().putString(getProfileKey(KEY_COMICS), jsonArray.toString()).commit()
+        prefs.edit().putString(getProfileKey(KEY_COMICS), jsonArray.toString()).apply()
     }
 
     /**
@@ -432,7 +432,7 @@ class LibraryRepository(private val context: Context) {
             }
             jsonArray.put(jsonObject)
         }
-        prefs.edit().putString(getProfileKey(KEY_MOVIES), jsonArray.toString()).commit()
+        prefs.edit().putString(getProfileKey(KEY_MOVIES), jsonArray.toString()).apply()
     }
 
     /**
@@ -489,7 +489,7 @@ class LibraryRepository(private val context: Context) {
             }
             jsonArray.put(jsonObject)
         }
-        prefs.edit().putString(getProfileKey(KEY_SERIES), jsonArray.toString()).commit()
+        prefs.edit().putString(getProfileKey(KEY_SERIES), jsonArray.toString()).apply()
     }
 
     /**
