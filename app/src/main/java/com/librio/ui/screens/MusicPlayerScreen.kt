@@ -111,7 +111,7 @@ fun MusicPlayerScreen(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    val headerContentHeight = 48.dp
+    val headerContentHeight = 40.dp
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -262,7 +262,6 @@ fun MusicPlayerScreen(
                             e.printStackTrace()
                         }
                     }
-                    exoPlayer.skipSilenceEnabled = false
                     applyCrossfade(exoPlayer, crossfadeDuration)
                 }
                 // Handle track ended - auto-play next based on shuffle/repeat mode
@@ -361,13 +360,11 @@ fun MusicPlayerScreen(
                 bassBoostLevel,
                 equalizerPreset
             )
-            exoPlayer.skipSilenceEnabled = false
             applyCrossfade(exoPlayer, crossfadeDuration)
         }
     } else {
         // Still apply crossfade + skip silence guards for the shared player
         LaunchedEffect(crossfadeDuration) {
-            exoPlayer.skipSilenceEnabled = false
             applyCrossfade(exoPlayer, crossfadeDuration)
         }
     }
@@ -422,10 +419,11 @@ fun MusicPlayerScreen(
                     .statusBarsPadding()
             ) {
                 Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .height(headerContentHeight)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .height(headerContentHeight),
+                    contentAlignment = Alignment.Center
                 ) {
                     if (showBackButton) {
                         val backInteractionSource = remember { MutableInteractionSource() }

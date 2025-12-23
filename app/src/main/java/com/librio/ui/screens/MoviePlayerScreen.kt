@@ -98,7 +98,7 @@ fun MoviePlayerScreen(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    val headerContentHeight = 48.dp
+    val headerContentHeight = 40.dp
     val context = LocalContext.current
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -354,8 +354,9 @@ fun MoviePlayerScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(horizontal = 16.dp, vertical = 16.dp)
-                            .height(headerContentHeight)
+                            .padding(horizontal = 12.dp, vertical = 8.dp)
+                            .height(headerContentHeight),
+                        contentAlignment = Alignment.Center
                     ) {
                         // Back button on the left
                         if (showBackButton) {

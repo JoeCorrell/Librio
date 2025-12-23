@@ -60,7 +60,6 @@ data class AudioSettings(
     val autoRewindSeconds: Int = 0,
     val volumeBoostEnabled: Boolean = false,
     val volumeBoostLevel: Float = 1.5f,
-    val skipSilence: Boolean = false,
     val normalizeAudio: Boolean = false,
     val bassBoostLevel: Float = 0f,
     val equalizerPreset: String = "DEFAULT",
@@ -242,8 +241,7 @@ data class SyncResult(
 )
 
 /**
- * File change detection result
- * Used by FileReloadManager to track which files changed externally
+ * File change detection result for tracking external modifications
  */
 data class ChangedFile(
     val path: String,

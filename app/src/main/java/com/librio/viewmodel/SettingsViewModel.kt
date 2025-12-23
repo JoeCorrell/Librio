@@ -157,9 +157,6 @@ class SettingsViewModel : ViewModel() {
         get() = repository?.comicShowControlsOnTap
 
     // Audio Enhancement settings
-    val skipSilence: StateFlow<Boolean>?
-        get() = repository?.skipSilence
-
     val normalizeAudio: StateFlow<Boolean>?
         get() = repository?.normalizeAudio
 
@@ -565,10 +562,6 @@ class SettingsViewModel : ViewModel() {
     }
 
     // Audio Enhancement setters
-    fun setSkipSilence(enabled: Boolean) {
-        repository?.setSkipSilence(enabled)
-    }
-
     fun setNormalizeAudio(enabled: Boolean) {
         repository?.setNormalizeAudio(enabled)
     }
@@ -713,10 +706,6 @@ class SettingsViewModel : ViewModel() {
 
     fun setProfileVolumeBoostLevel(level: Float) {
         repository?.setProfileVolumeBoostLevel(level)
-    }
-
-    fun setProfileSkipSilence(enabled: Boolean) {
-        repository?.setProfileSkipSilence(enabled)
     }
 
     fun setProfileNormalizeAudio(enabled: Boolean) {

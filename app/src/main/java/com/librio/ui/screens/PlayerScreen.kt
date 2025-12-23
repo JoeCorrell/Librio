@@ -128,7 +128,7 @@ fun PlayerScreen(
     headerTitle: String = "Librio",
 ) {
     val palette = currentPalette()
-    val headerContentHeight = 48.dp
+    val headerContentHeight = 40.dp
     val audiobook by player.currentAudiobook.collectAsState()
     val playbackState by player.playbackState.collectAsState()
     val scope = rememberCoroutineScope()
@@ -177,8 +177,9 @@ fun PlayerScreen(
                 Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .height(headerContentHeight)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .height(headerContentHeight),
+                contentAlignment = Alignment.Center
                 ) {
                     if (showBackButton) {
                         val backInteractionSource = remember { MutableInteractionSource() }

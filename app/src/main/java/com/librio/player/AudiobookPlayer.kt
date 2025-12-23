@@ -45,7 +45,6 @@ class AudiobookPlayer(private val context: Context) {
     private var volumeBoostEnabled: Boolean = false
     private var volumeBoostLevel: Float = 1.0f
     private var normalizeAudio: Boolean = false
-    private var skipSilence: Boolean = false
     private var bassBoostLevel: Float = 0f
     private var equalizerPreset: String = "DEFAULT"
     private val scope = CoroutineScope(Dispatchers.Main)
@@ -72,7 +71,6 @@ class AudiobookPlayer(private val context: Context) {
                             duration = player.duration
                         )
                         applyAudioEffects(player.audioSessionId)
-                        player.skipSilenceEnabled = skipSilence
                     }
                     Player.STATE_BUFFERING -> {
                         _playbackState.value = _playbackState.value.copy(isLoading = true)
@@ -466,11 +464,6 @@ class AudiobookPlayer(private val context: Context) {
         applyLoudness()
     }
 
-    fun setSkipSilence(enabled: Boolean) {
-        skipSilence = false
-        exoPlayer?.skipSilenceEnabled = false
-    }
-
     fun setVolumeBoost(enabled: Boolean, level: Float) {
         volumeBoostEnabled = enabled
         volumeBoostLevel = level
@@ -495,14 +488,12 @@ class AudiobookPlayer(private val context: Context) {
         newVolumeBoostEnabled: Boolean,
         newVolumeBoostLevel: Float,
         newNormalizeAudio: Boolean,
-        newSkipSilence: Boolean,
         newBassBoostLevel: Float,
         newEqualizerPreset: String
     ) {
         volumeBoostEnabled = newVolumeBoostEnabled
         volumeBoostLevel = newVolumeBoostLevel
         normalizeAudio = newNormalizeAudio
-        skipSilence = newSkipSilence
         bassBoostLevel = newBassBoostLevel.coerceIn(0f, 1f)
         equalizerPreset = normalizeEqPresetName(newEqualizerPreset)
 
@@ -510,7 +501,6 @@ class AudiobookPlayer(private val context: Context) {
         equalizer?.let { runCatching { applyEqualizerPreset(it, equalizerPreset) } }
         applyBassBoost()
         applyLoudness()
-        exoPlayer?.skipSilenceEnabled = false // Skip silence is disabled
     }
 
     /**

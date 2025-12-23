@@ -57,7 +57,6 @@ data class UserProfile(
     val skipBackDuration: Int = 10,
     val volumeBoostEnabled: Boolean = false,
     val volumeBoostLevel: Float = 1.0f,
-    val skipSilence: Boolean = false,
     val normalizeAudio: Boolean = false,
     val bassBoostLevel: Float = 0f,
     val equalizerPreset: String = "DEFAULT",

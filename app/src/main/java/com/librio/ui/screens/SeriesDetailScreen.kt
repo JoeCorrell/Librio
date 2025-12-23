@@ -38,10 +38,9 @@ import androidx.compose.ui.unit.sp
 import com.librio.model.*
 import com.librio.navigation.BottomNavItem
 import com.librio.ui.theme.AppIcons
-import com.librio.ui.theme.currentPalette
 import com.librio.ui.theme.coverArtGradient
+import com.librio.ui.theme.currentPalette
 import com.librio.ui.theme.headerGradient
-import com.librio.ui.theme.backgroundGradient
 
 /**
  * Generic series/playlist detail screen that works for all content types.
@@ -83,6 +82,9 @@ fun SeriesDetailScreen(
     onSkipPrevious: () -> Unit = {},
     onSkipNext: () -> Unit = {},
     onBack: () -> Unit = {},
+    // Edit and remove callbacks
+    onEditMusicMetadata: (LibraryMusic) -> Unit = {},
+    onRemoveMusicFromPlaylist: (LibraryMusic) -> Unit = {},
     // Navigation
     onNavigateToLibrary: () -> Unit = {},
     onNavigateToProfile: () -> Unit = {},
@@ -166,10 +168,10 @@ fun SeriesDetailScreen(
 
     // Responsive cover art size
     val coverArtSize = when {
-        screenWidth < 360.dp -> 180.dp
-        screenWidth < 400.dp -> 200.dp
-        screenWidth < 600.dp -> 220.dp
-        else -> 260.dp
+        screenWidth < 360.dp -> 220.dp
+        screenWidth < 400.dp -> 240.dp
+        screenWidth < 600.dp -> 280.dp
+        else -> 320.dp
     }
 
     // Responsive playback button sizes
@@ -224,13 +226,14 @@ fun SeriesDetailScreen(
                     .fillMaxWidth()
                     .background(palette.headerGradient())
             ) {
-                val headerContentHeight = 48.dp
+                val headerContentHeight = 40.dp
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                        .height(headerContentHeight)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .height(headerContentHeight),
+                    contentAlignment = Alignment.Center
                 ) {
                     // Back button on the left
                     if (showBackButton) {
@@ -362,7 +365,7 @@ fun SeriesDetailScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .background(palette.backgroundGradient())
+                .background(palette.background)
         ) {
             LazyColumn(
                 modifier = Modifier.fillMaxSize()
@@ -372,14 +375,7 @@ fun SeriesDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    palette.shade2,
-                                    palette.background
-                                )
-                            )
-                        )
+                        .background(palette.background)
                 ) {
                     Column(
                         modifier = Modifier
@@ -567,29 +563,29 @@ fun SeriesDetailScreen(
             // Content list based on type
             when (contentType) {
                 ContentType.MUSIC, ContentType.CREEPYPASTA -> {
-                    itemsIndexed(musicTracks, key = { _, track -> track.id }) { index, track ->
+                    itemsIndexed(musicTracks, key = { _, track -> track.id }) { _, track ->
                         SeriesTrackItem(
                             title = track.title,
                             subtitle = track.artist,
                             duration = track.formattedDuration,
-                            trackNumber = index + 1,
                             coverArt = track.coverArt,
                             isCurrentlyPlaying = track.id == currentlyPlayingId,
                             isPlaying = track.id == currentlyPlayingId && isPlaying,
                             progress = if (track.duration > 0) track.lastPosition.toFloat() / track.duration else null,
                             showProgress = track.lastPosition > 0,
                             icon = AppIcons.Music,
-                            onClick = { onMusicClick(track, musicTracks) }
+                            onClick = { onMusicClick(track, musicTracks) },
+                            onRemoveFromPlaylist = { onRemoveMusicFromPlaylist(track) },
+                            onEditMetadata = { onEditMusicMetadata(track) }
                         )
                     }
                 }
                 ContentType.AUDIOBOOK -> {
-                    itemsIndexed(audiobooks, key = { _, book -> book.id }) { index, audiobook ->
+                    itemsIndexed(audiobooks, key = { _, book -> book.id }) { _, audiobook ->
                         SeriesTrackItem(
                             title = audiobook.title,
                             subtitle = audiobook.author,
                             duration = audiobook.formattedDuration,
-                            trackNumber = index + 1,
                             coverArt = audiobook.coverArt,
                             isCurrentlyPlaying = audiobook.id == currentlyPlayingId,
                             isPlaying = audiobook.id == currentlyPlayingId && isPlaying,
@@ -601,12 +597,11 @@ fun SeriesDetailScreen(
                     }
                 }
                 ContentType.EBOOK -> {
-                    itemsIndexed(books, key = { _, book -> book.id }) { index, book ->
+                    itemsIndexed(books, key = { _, book -> book.id }) { _, book ->
                         SeriesTrackItem(
                             title = book.title,
                             subtitle = book.author,
                             duration = null,
-                            trackNumber = index + 1,
                             coverArt = book.coverArt,
                             isCurrentlyPlaying = false,
                             isPlaying = false,
@@ -618,12 +613,11 @@ fun SeriesDetailScreen(
                     }
                 }
                 ContentType.COMICS -> {
-                    itemsIndexed(comics, key = { _, comic -> comic.id }) { index, comic ->
+                    itemsIndexed(comics, key = { _, comic -> comic.id }) { _, comic ->
                         SeriesTrackItem(
                             title = comic.title,
                             subtitle = comic.author,
                             duration = "${comic.totalPages} pages",
-                            trackNumber = index + 1,
                             coverArt = comic.coverArt,
                             isCurrentlyPlaying = false,
                             isPlaying = false,
@@ -635,12 +629,11 @@ fun SeriesDetailScreen(
                     }
                 }
                 ContentType.MOVIE -> {
-                    itemsIndexed(movies, key = { _, movie -> movie.id }) { index, movie ->
+                    itemsIndexed(movies, key = { _, movie -> movie.id }) { _, movie ->
                         SeriesTrackItem(
                             title = movie.title,
                             subtitle = null,
                             duration = movie.formattedDuration,
-                            trackNumber = index + 1,
                             coverArt = null, // Movies use thumbnailUri, loaded separately
                             isCurrentlyPlaying = movie.id == currentlyPlayingId,
                             isPlaying = movie.id == currentlyPlayingId && isPlaying,
@@ -662,7 +655,6 @@ private fun SeriesTrackItem(
     title: String,
     subtitle: String?,
     duration: String?,
-    trackNumber: Int,
     coverArt: Bitmap?,
     isCurrentlyPlaying: Boolean,
     isPlaying: Boolean,
@@ -677,179 +669,152 @@ private fun SeriesTrackItem(
     var showMenu by remember { mutableStateOf(false) }
 
     // Highlight animation for currently playing
-    val alpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.15f else if (isCurrentlyPlaying) 0.1f else 0f,
+    val highlightAlpha by animateFloatAsState(
+        targetValue = if (isPlaying) 0.2f else if (isCurrentlyPlaying) 0.15f else 0f,
         animationSpec = tween(300),
         label = "playing_alpha"
     )
 
-    Column {
-        Row(
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(
+                if (isCurrentlyPlaying) palette.accent.copy(alpha = highlightAlpha)
+                else palette.surfaceDark.copy(alpha = 0.08f)
+            )
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Cover art thumbnail
+        Box(
             modifier = Modifier
-                .fillMaxWidth()
-                .defaultMinSize(minHeight = 72.dp)
-                .background(palette.accent.copy(alpha = alpha))
-                .clickable(onClick = onClick)
-                .padding(start = 16.dp, end = 8.dp, top = 10.dp, bottom = 10.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .size(56.dp)
+                .shadow(4.dp, RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .background(palette.coverArtGradient()),
+            contentAlignment = Alignment.Center
         ) {
-            // Track number or playing indicator
-            Box(
-                modifier = Modifier.width(28.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                if (isCurrentlyPlaying) {
-                    Icon(
-                        imageVector = if (isPlaying) AppIcons.VolumeUp else AppIcons.Pause,
-                        contentDescription = null,
-                        tint = palette.accent,
-                        modifier = Modifier.size(18.dp)
-                    )
-                } else {
-                    Text(
-                        text = trackNumber.toString(),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = palette.textMuted
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(8.dp))
-
-            // Cover art thumbnail
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(palette.coverArtGradient()),
-                contentAlignment = Alignment.Center
-            ) {
-                if (coverArt != null) {
-                    Image(
-                        bitmap = coverArt.asImageBitmap(),
-                        contentDescription = title,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = palette.shade7.copy(alpha = 0.95f),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
-            // Item info
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = if (isCurrentlyPlaying) FontWeight.SemiBold else FontWeight.Normal,
-                    color = if (isCurrentlyPlaying) palette.accent else palette.primary,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
+            if (coverArt != null) {
+                Image(
+                    bitmap = coverArt.asImageBitmap(),
+                    contentDescription = title,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Crop
                 )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (subtitle != null) {
-                        Text(
-                            text = subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.textMuted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.weight(1f, fill = false)
-                        )
-                    }
-                    if (duration != null && subtitle != null) {
-                        Text(
-                            text = " • ",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.textMuted
-                        )
-                    }
-                    if (duration != null) {
-                        Text(
-                            text = duration,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = palette.textMuted
-                        )
-                    }
-                }
-                // Progress indicator
-                if (showProgress && progress != null && progress > 0f) {
-                    Spacer(modifier = Modifier.height(4.dp))
-                    LinearProgressIndicator(
-                        progress = progress.coerceIn(0f, 1f),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(3.dp)
-                            .clip(RoundedCornerShape(2.dp)),
-                        color = palette.accent,
-                        trackColor = palette.shade3
-                    )
-                }
-            }
-
-            // 3-dots menu button
-            Box {
-                IconButton(
-                    onClick = { showMenu = true },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        imageVector = AppIcons.MoreVert,
-                        contentDescription = "More options",
-                        tint = palette.textMuted,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
-                DropdownMenu(
-                    expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("Edit") },
-                        onClick = {
-                            showMenu = false
-                            onEditMetadata()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                AppIcons.Edit,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text("Remove from playlist") },
-                        onClick = {
-                            showMenu = false
-                            onRemoveFromPlaylist()
-                        },
-                        leadingIcon = {
-                            Icon(
-                                AppIcons.Remove,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp)
-                            )
-                        }
-                    )
-                }
+            } else {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = palette.shade7.copy(alpha = 0.95f),
+                    modifier = Modifier.size(28.dp)
+                )
             }
         }
 
-        // Divider
-        Divider(
-            modifier = Modifier.padding(horizontal = 16.dp),
-            thickness = 1.dp,
-            color = palette.primaryLight.copy(alpha = 0.35f)
-        )
+        Spacer(modifier = Modifier.width(12.dp))
+
+        // Item info
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (isCurrentlyPlaying) FontWeight.SemiBold else FontWeight.SemiBold,
+                color = if (isCurrentlyPlaying) palette.accent else palette.primary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.primary.copy(alpha = 0.7f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                }
+                if (duration != null && subtitle != null) {
+                    Text(
+                        text = " • ",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.primary.copy(alpha = 0.5f)
+                    )
+                }
+                if (duration != null) {
+                    Text(
+                        text = duration,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.primary.copy(alpha = 0.5f)
+                    )
+                }
+            }
+            // Progress indicator
+            if (showProgress && progress != null && progress > 0f) {
+                Spacer(modifier = Modifier.height(4.dp))
+                LinearProgressIndicator(
+                    progress = progress.coerceIn(0f, 1f),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(3.dp)
+                        .clip(RoundedCornerShape(2.dp)),
+                    color = palette.accent,
+                    trackColor = palette.shade3
+                )
+            }
+        }
+
+        // 3-dots menu button
+        Box {
+            IconButton(
+                onClick = { showMenu = true },
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    imageVector = AppIcons.MoreVert,
+                    contentDescription = "More options",
+                    tint = palette.primary.copy(alpha = 0.5f),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Edit") },
+                    onClick = {
+                        showMenu = false
+                        onEditMetadata()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            AppIcons.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("Remove from playlist") },
+                    onClick = {
+                        showMenu = false
+                        onRemoveFromPlaylist()
+                    },
+                    leadingIcon = {
+                        Icon(
+                            AppIcons.Remove,
+                            contentDescription = null,
+                            modifier = Modifier.size(20.dp)
+                        )
+                    }
+                )
+            }
+        }
     }
 }

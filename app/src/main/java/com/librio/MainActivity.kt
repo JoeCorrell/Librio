@@ -204,7 +204,6 @@ class MainActivity : ComponentActivity() {
 
             // Apply profile audio effects to audiobook player
             LaunchedEffect(profileNormalizeAudio, profileBassBoost, profileVolumeBoost, profileVolumeBoostLevel, profileEqualizer) {
-                player.setSkipSilence(false)
                 player.setNormalizeAudio(profileNormalizeAudio)
                 player.setBassBoostLevel(profileBassBoost)
                 player.setVolumeBoost(profileVolumeBoost, profileVolumeBoostLevel)

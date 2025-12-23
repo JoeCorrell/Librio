@@ -269,7 +269,6 @@ class ProfileFileManager {
                 autoRewindSeconds = json.optInt("autoRewindSeconds", 0),
                 volumeBoostEnabled = json.optBoolean("volumeBoostEnabled", false),
                 volumeBoostLevel = json.optDouble("volumeBoostLevel", 1.5).toFloat(),
-                skipSilence = json.optBoolean("skipSilence", false),
                 normalizeAudio = json.optBoolean("normalizeAudio", false),
                 bassBoostLevel = json.optDouble("bassBoostLevel", 0.0).toFloat(),
                 equalizerPreset = json.optString("equalizerPreset", "DEFAULT"),
@@ -315,7 +314,6 @@ class ProfileFileManager {
                 put("autoRewindSeconds", settings.autoRewindSeconds)
                 put("volumeBoostEnabled", settings.volumeBoostEnabled)
                 put("volumeBoostLevel", settings.volumeBoostLevel.toDouble())
-                put("skipSilence", settings.skipSilence)
                 put("normalizeAudio", settings.normalizeAudio)
                 put("bassBoostLevel", settings.bassBoostLevel.toDouble())
                 put("equalizerPreset", settings.equalizerPreset)

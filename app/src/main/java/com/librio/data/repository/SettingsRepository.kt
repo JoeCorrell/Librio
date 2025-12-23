@@ -363,9 +363,6 @@ class SettingsRepository(private val context: Context) {
     val movieRememberPosition: StateFlow<Boolean> = _movieRememberPosition.asStateFlow()
 
     // Audio Enhancement settings
-    private val _skipSilence = MutableStateFlow(loadSkipSilence())
-    val skipSilence: StateFlow<Boolean> = _skipSilence.asStateFlow()
-
     private val _normalizeAudio = MutableStateFlow(loadNormalizeAudio())
     val normalizeAudio: StateFlow<Boolean> = _normalizeAudio.asStateFlow()
 
@@ -734,9 +731,6 @@ class SettingsRepository(private val context: Context) {
         val volumeBoostLevel = audioSettings?.optDouble("volumeBoostLevel", baseProfile?.volumeBoostLevel?.toDouble() ?: 1.0)?.toFloat()
             ?: baseProfile?.volumeBoostLevel
             ?: 1.0f
-        val skipSilence = audioSettings?.optBoolean("skipSilence", baseProfile?.skipSilence ?: false)
-            ?: baseProfile?.skipSilence
-            ?: false
         val normalizeAudio = audioSettings?.optBoolean("normalizeAudio", baseProfile?.normalizeAudio ?: false)
             ?: baseProfile?.normalizeAudio
             ?: false
@@ -762,7 +756,6 @@ class SettingsRepository(private val context: Context) {
             skipBackDuration = skipBackDuration,
             volumeBoostEnabled = volumeBoostEnabled,
             volumeBoostLevel = volumeBoostLevel,
-            skipSilence = skipSilence,
             normalizeAudio = normalizeAudio,
             bassBoostLevel = bassBoostLevel,
             equalizerPreset = equalizerPreset,
@@ -949,7 +942,6 @@ class SettingsRepository(private val context: Context) {
         _autoRewindSeconds.value = settings.autoRewindSeconds
         _volumeBoostEnabled.value = settings.volumeBoostEnabled
         _volumeBoostLevel.value = settings.volumeBoostLevel
-        _skipSilence.value = settings.skipSilence
         _normalizeAudio.value = settings.normalizeAudio
         _bassBoostLevel.value = settings.bassBoostLevel.toInt()
         _equalizerPreset.value = normalizeEqualizerPreset(settings.equalizerPreset)
@@ -1012,7 +1004,6 @@ class SettingsRepository(private val context: Context) {
             putInt(getProfileKey(KEY_AUTO_REWIND_SECONDS), settings.autoRewindSeconds)
             putBoolean(KEY_VOLUME_BOOST_ENABLED, settings.volumeBoostEnabled)
             putFloat(KEY_VOLUME_BOOST_LEVEL, settings.volumeBoostLevel)
-            putBoolean(KEY_SKIP_SILENCE, settings.skipSilence)
             putBoolean(KEY_NORMALIZE_AUDIO, settings.normalizeAudio)
             putInt(KEY_BASS_BOOST_LEVEL, settings.bassBoostLevel.toInt())
             putString(KEY_EQUALIZER_PRESET, normalizeEqualizerPreset(settings.equalizerPreset))
@@ -1222,7 +1213,6 @@ class SettingsRepository(private val context: Context) {
                 autoRewindSeconds = _autoRewindSeconds.value,
                 volumeBoostEnabled = _volumeBoostEnabled.value,
                 volumeBoostLevel = _volumeBoostLevel.value,
-                skipSilence = _skipSilence.value,
                 normalizeAudio = _normalizeAudio.value,
                 bassBoostLevel = _bassBoostLevel.value.toFloat(),
                 equalizerPreset = _equalizerPreset.value,
@@ -2068,15 +2058,6 @@ class SettingsRepository(private val context: Context) {
         saveProfiles(updatedProfiles)
     }
 
-    fun setProfileSkipSilence(enabled: Boolean) {
-        val activeId = _activeProfileId.value
-        val updatedProfiles = _profiles.value.map { profile ->
-            if (profile.id == activeId) profile.copy(skipSilence = false) else profile
-        }
-        _profiles.value = updatedProfiles
-        saveProfiles(updatedProfiles)
-    }
-
     fun setProfileNormalizeAudio(enabled: Boolean) {
         val activeId = _activeProfileId.value
         val updatedProfiles = _profiles.value.map { profile ->
@@ -2156,7 +2137,6 @@ class SettingsRepository(private val context: Context) {
                             skipBackDuration = parts[7].toIntOrNull() ?: 10,
                             volumeBoostEnabled = parts[8].toBooleanStrictOrNull() ?: false,
                             volumeBoostLevel = parts[9].toFloatOrNull() ?: 1.0f,
-                            skipSilence = false,
                             normalizeAudio = parts[11].toBooleanStrictOrNull() ?: false,
                             bassBoostLevel = parts[12].toFloatOrNull() ?: 0f,
                             equalizerPreset = normalizeEqualizerPreset(parts[13]),
@@ -2177,7 +2157,6 @@ class SettingsRepository(private val context: Context) {
                             skipBackDuration = parts[7].toIntOrNull() ?: 10,
                             volumeBoostEnabled = parts[8].toBooleanStrictOrNull() ?: false,
                             volumeBoostLevel = parts[9].toFloatOrNull() ?: 1.0f,
-                            skipSilence = false,
                             normalizeAudio = parts[11].toBooleanStrictOrNull() ?: false,
                             bassBoostLevel = parts[12].toFloatOrNull() ?: 0f,
                             equalizerPreset = normalizeEqualizerPreset(parts[13])
@@ -2237,11 +2216,11 @@ class SettingsRepository(private val context: Context) {
     }
 
     private fun saveProfiles(profiles: List<UserProfile>) {
-        // Format: id;name;theme;darkMode;profilePicture;playbackSpeed;skipForward;skipBack;volumeBoostEnabled;volumeBoostLevel;skipSilence;normalizeAudio;bassBoostLevel;equalizerPreset;sleepTimerMinutes
+        // Format: id;name;theme;darkMode;profilePicture;playbackSpeed;skipForward;skipBack;volumeBoostEnabled;volumeBoostLevel;normalizeAudio;bassBoostLevel;equalizerPreset;sleepTimerMinutes
         val profilesJson = profiles.joinToString("|") {
             "${it.id};${it.name};${it.theme};${it.darkMode};${it.profilePicture ?: ""};" +
             "${it.playbackSpeed};${it.skipForwardDuration};${it.skipBackDuration};" +
-            "${it.volumeBoostEnabled};${it.volumeBoostLevel};${it.skipSilence};" +
+            "${it.volumeBoostEnabled};${it.volumeBoostLevel};" +
             "${it.normalizeAudio};${it.bassBoostLevel};${it.equalizerPreset};${it.sleepTimerMinutes}"
         }
         // Use commit() to ensure data is saved before app exits
@@ -2346,7 +2325,6 @@ class SettingsRepository(private val context: Context) {
     private fun loadMovieRememberPosition(): Boolean = prefs.getBoolean(getProfileKey(KEY_MOVIE_REMEMBER_POSITION), true)
 
     // Audio Enhancement loaders
-    private fun loadSkipSilence(): Boolean = false
     private fun loadNormalizeAudio(): Boolean = prefs.getBoolean(KEY_NORMALIZE_AUDIO, false)
     private fun loadBassBoostLevel(): Int = prefs.getInt(KEY_BASS_BOOST_LEVEL, 0)
     private fun loadEqualizerPreset(): String = normalizeEqualizerPreset(prefs.getString(KEY_EQUALIZER_PRESET, "DEFAULT"))
@@ -2379,13 +2357,6 @@ class SettingsRepository(private val context: Context) {
     private fun loadShowSearchBar(): Boolean = prefs.getBoolean(getProfileKey(KEY_SHOW_SEARCH_BAR), true)
 
     // Audio Enhancement setters
-    fun setSkipSilence(enabled: Boolean) {
-        // Skip silence is intentionally disabled to avoid playback artifacts.
-        _skipSilence.value = false
-        prefs.edit().putBoolean(KEY_SKIP_SILENCE, false).apply()
-        saveAudioSettingsToFile()
-    }
-
     fun setNormalizeAudio(enabled: Boolean) {
         _normalizeAudio.value = enabled
         prefs.edit().putBoolean(KEY_NORMALIZE_AUDIO, enabled).apply()
@@ -2568,7 +2539,6 @@ class SettingsRepository(private val context: Context) {
         private const val KEY_SHOW_PLAYBACK_NOTIFICATION = "show_playback_notification"
 
         // Audio Enhancement keys
-        private const val KEY_SKIP_SILENCE = "skip_silence"
         private const val KEY_NORMALIZE_AUDIO = "normalize_audio"
         private const val KEY_BASS_BOOST_LEVEL = "bass_boost_level"
         private const val KEY_EQUALIZER_PRESET = "equalizer_preset"

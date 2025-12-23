@@ -237,13 +237,14 @@ fun MainScreen(
                     .fillMaxWidth()
                     .background(palette.headerGradient())
             ) {
-                val headerContentHeight = 48.dp
+                val headerContentHeight = 40.dp
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .statusBarsPadding()
-                        .padding(horizontal = 16.dp, vertical = 16.dp)
-                        .height(headerContentHeight)
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
+                        .height(headerContentHeight),
+                    contentAlignment = Alignment.Center
                 ) {
                     // Back button on the left - exits app if on LIBRARY, otherwise goes to LIBRARY
                     if (showBackButton) {

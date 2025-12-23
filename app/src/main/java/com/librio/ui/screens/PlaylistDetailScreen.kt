@@ -7,6 +7,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -34,7 +35,6 @@ import com.librio.model.LibraryMusic
 import com.librio.model.LibrarySeries
 import com.librio.ui.theme.AppIcons
 import com.librio.ui.theme.currentPalette
-import com.librio.ui.theme.coverArtGradient
 
 /**
  * Playlist detail screen showing:
@@ -124,14 +124,7 @@ fun PlaylistDetailScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    palette.shade2,
-                                    palette.background
-                                )
-                            )
-                        )
+                        .background(palette.background)
                 ) {
                     Column(
                         modifier = Modifier
@@ -143,9 +136,9 @@ fun PlaylistDetailScreen(
                         Box(
                             modifier = Modifier
                                 .size(coverArtSize)
-                                .shadow(16.dp, RoundedCornerShape(16.dp))
+                                .shadow(12.dp, RoundedCornerShape(16.dp))
                                 .clip(RoundedCornerShape(16.dp))
-                                .background(palette.coverArtGradient()),
+                                .background(palette.surfaceCard),
                             contentAlignment = Alignment.Center
                         ) {
                             // Show cover art if available, otherwise show placeholder
@@ -222,7 +215,7 @@ fun PlaylistDetailScreen(
                                     .clip(CircleShape)
                                     .background(
                                         if (isShuffleEnabled) palette.accent.copy(alpha = 0.2f)
-                                        else palette.surface
+                                        else palette.surfaceCard
                                     )
                                     .clickable { onShuffleClick() },
                                 contentAlignment = Alignment.Center
@@ -242,7 +235,7 @@ fun PlaylistDetailScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(CircleShape)
-                                    .background(palette.surface)
+                                    .background(palette.surfaceCard)
                                     .clickable { onSkipPrevious() },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -261,11 +254,7 @@ fun PlaylistDetailScreen(
                                 modifier = Modifier
                                     .size(64.dp)
                                     .clip(CircleShape)
-                                    .background(
-                                        Brush.linearGradient(
-                                            colors = listOf(palette.accent, palette.shade6)
-                                        )
-                                    )
+                                    .background(palette.accent)
                                     .clickable {
                                         if (currentlyPlayingId != null) {
                                             onPlayPause()
@@ -290,7 +279,7 @@ fun PlaylistDetailScreen(
                                 modifier = Modifier
                                     .size(48.dp)
                                     .clip(CircleShape)
-                                    .background(palette.surface)
+                                    .background(palette.surfaceCard)
                                     .clickable { onSkipNext() },
                                 contentAlignment = Alignment.Center
                             ) {
@@ -311,7 +300,7 @@ fun PlaylistDetailScreen(
                                     .clip(CircleShape)
                                     .background(
                                         if (isRepeatEnabled) palette.accent.copy(alpha = 0.2f)
-                                        else palette.surface
+                                        else palette.surfaceCard
                                     )
                                     .clickable { onRepeatClick() },
                                 contentAlignment = Alignment.Center
@@ -354,21 +343,23 @@ private fun PlaylistTrackItem(
 ) {
     val palette = currentPalette()
 
-    // Pulse animation for currently playing track
-    val alpha by animateFloatAsState(
-        targetValue = if (isPlaying) 0.15f else if (isCurrentlyPlaying) 0.1f else 0f,
-        animationSpec = tween(300),
-        label = "playing_alpha"
-    )
-
-    Row(
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .background(palette.accent.copy(alpha = alpha))
-            .clickable(onClick = onClick)
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(containerColor = palette.surfaceCard),
+        border = BorderStroke(
+            1.dp,
+            if (isCurrentlyPlaying) palette.accent.copy(alpha = 0.5f) else palette.surfaceDark.copy(alpha = 0.12f)
+        )
     ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
         // Track number or playing indicator
         Box(
             modifier = Modifier.width(32.dp),
@@ -395,9 +386,10 @@ private fun PlaylistTrackItem(
         // Cover art thumbnail
         Box(
             modifier = Modifier
-                .size(48.dp)
-                .clip(RoundedCornerShape(6.dp))
-                .background(palette.coverArtGradient()),
+                .size(56.dp)
+                .shadow(4.dp, RoundedCornerShape(8.dp))
+                .clip(RoundedCornerShape(8.dp))
+                .background(palette.surfaceCard),
             contentAlignment = Alignment.Center
         ) {
             // Show cover art if available, otherwise placeholder
@@ -412,8 +404,8 @@ private fun PlaylistTrackItem(
                 Icon(
                     imageVector = AppIcons.Music,
                     contentDescription = null,
-                    tint = palette.shade7.copy(alpha = 0.95f),
-                    modifier = Modifier.size(24.dp)
+                    tint = palette.accent,
+                    modifier = Modifier.size(28.dp)
                 )
             }
         }
@@ -433,7 +425,7 @@ private fun PlaylistTrackItem(
             Text(
                 text = track.artist,
                 style = MaterialTheme.typography.bodySmall,
-                color = palette.textMuted,
+                color = palette.primary.copy(alpha = 0.7f),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -447,5 +439,6 @@ private fun PlaylistTrackItem(
             style = MaterialTheme.typography.bodySmall,
             color = palette.textMuted
         )
+    }
     }
 }

@@ -378,7 +378,7 @@ fun ComicReaderScreen(
             }
         }
 
-        val headerContentHeight = 48.dp
+        val headerContentHeight = 40.dp
 
         // Header bar matching Library style
         Box(
@@ -391,8 +391,9 @@ fun ComicReaderScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp)
-                    .height(headerContentHeight)
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+                    .height(headerContentHeight),
+                contentAlignment = Alignment.Center
             ) {
                 // Back button
                 if (showBackButton) {
