@@ -52,6 +52,15 @@ fun cornerRadiusDp(dp: Dp): Dp {
     return if (useSquare) 0.dp else dp
 }
 
+/**
+ * Get corner radius for bottom sheets (only top corners rounded)
+ */
+@Composable
+fun cornerRadiusTop(dp: Dp): Shape {
+    val useSquare = LocalUseSquareCorners.current
+    return if (useSquare) RectangleShape else RoundedCornerShape(topStart = dp, topEnd = dp)
+}
+
 private fun createDarkColorScheme(palette: ThemePalette) = darkColorScheme(
     primary = palette.primary,
     onPrimary = Color.White,

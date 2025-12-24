@@ -962,31 +962,15 @@ private fun ControlPill(
 ) {
     val palette = currentPalette()
     val shape12 = cornerRadius(12.dp)
-    // Both states use similar gradient design, but active uses accent colors
-    val backgroundBrush = if (isActive) {
-        Brush.horizontalGradient(
-            colors = listOf(
-                palette.accent.copy(alpha = 0.2f),
-                palette.accent.copy(alpha = 0.15f),
-                palette.accent.copy(alpha = 0.2f)
-            )
-        )
-    } else {
-        Brush.horizontalGradient(
-            colors = listOf(
-                palette.shade4.copy(alpha = 0.3f),
-                palette.shade5.copy(alpha = 0.25f),
-                palette.shade4.copy(alpha = 0.3f)
-            )
-        )
-    }
-    val contentColor = if (isActive) palette.accent else palette.shade2
-    val iconColor = if (isActive) palette.accent else palette.shade3
+    // Material You tonal surfaces - solid colors
+    val backgroundColor = if (isActive) palette.shade4 else palette.shade9
+    val contentColor = if (isActive) palette.shade11 else palette.shade2
+    val iconColor = if (isActive) palette.shade11 else palette.shade3
 
     Box(
         modifier = modifier
             .clip(shape12)
-            .background(backgroundBrush)
+            .background(backgroundColor)
             .clickable(onClick = onClick)
     ) {
         Row(

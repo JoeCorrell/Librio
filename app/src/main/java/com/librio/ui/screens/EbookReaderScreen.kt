@@ -811,7 +811,7 @@ fun EbookReaderScreen(
         ) {
             Surface(
                 color = palette.surface,
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                shape = cornerRadiusTop(16.dp),
                 shadowElevation = 12.dp,
                 modifier = Modifier
                     .fillMaxWidth()

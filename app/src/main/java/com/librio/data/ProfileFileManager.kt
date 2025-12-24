@@ -173,6 +173,7 @@ class ProfileFileManager {
                 animationSpeed = json.optString("animationSpeed", "Normal"),
                 hapticFeedback = json.optBoolean("hapticFeedback", true),
                 confirmBeforeDelete = json.optBoolean("confirmBeforeDelete", true),
+                useSquareCorners = json.optBoolean("useSquareCorners", false),
                 collapsedSeries = json.optJSONArray("collapsedSeries")?.let { arr ->
                     (0 until arr.length()).map { arr.getString(it) }
                 } ?: emptyList(),
@@ -228,6 +229,7 @@ class ProfileFileManager {
                 put("animationSpeed", settings.animationSpeed)
                 put("hapticFeedback", settings.hapticFeedback)
                 put("confirmBeforeDelete", settings.confirmBeforeDelete)
+                put("useSquareCorners", settings.useSquareCorners)
                 put("collapsedSeries", JSONArray(settings.collapsedSeries))
                 put("collapsedPlaylists", JSONArray(settings.collapsedPlaylists))
                 put("selectedContentType", settings.selectedContentType)

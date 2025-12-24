@@ -3,7 +3,9 @@ package com.librio.ui.theme
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.TileMode
+import androidx.compose.ui.graphics.compositeOver
 
 /**
  * App Theme Color Palettes
@@ -1271,120 +1273,98 @@ fun createShadesFromColor(baseColor: Color): List<Color> {
 }
 
 /**
- * Returns a vibrant horizontal gradient using saturated theme shades
- * Rich color-to-color transition without fading to white
+ * Returns a solid accent color - Material You style
  */
 fun ThemePalette.accentGradient(): Brush {
-    return Brush.horizontalGradient(
-        colors = listOf(shade1, shade3, shade4, shade5, shade6)
-    )
+    return SolidColor(shade3)
 }
 
 /**
- * Returns a vibrant vertical gradient using saturated theme shades
+ * Returns a solid accent color for vertical layouts
  */
 fun ThemePalette.accentGradientVertical(): Brush {
-    return Brush.verticalGradient(
-        colors = listOf(shade1, shade3, shade4, shade5, shade6)
-    )
+    return SolidColor(shade3)
 }
 
 /**
- * Returns a rich radial gradient using saturated theme shades
+ * Returns a solid accent color for radial layouts
  */
 fun ThemePalette.accentGradientRadial(): Brush {
-    return Brush.radialGradient(
-        colors = listOf(shade6, shade5, shade4, shade3, shade1)
-    )
+    return SolidColor(shade4)
 }
 
 /**
- * Returns a light background gradient with subtle theme tint
+ * Returns a solid background color with subtle theme tint
  */
 fun ThemePalette.backgroundGradient(): Brush {
-    return Brush.verticalGradient(
-        colors = listOf(shade11, shade12, shade12)
-    )
+    return SolidColor(shade11)
 }
 
 /**
- * Returns a solid-ish gradient for headers (base theme color)
+ * Returns a solid header color (base theme color)
  */
 fun ThemePalette.headerGradient(): Brush {
-    return Brush.verticalGradient(
-        colors = listOf(shade4, shade4, shade5)
-    )
+    return SolidColor(shade4)
 }
 
 /**
- * Returns a navigation bar gradient that matches the header
+ * Returns a solid navigation bar color
  */
 fun ThemePalette.navBarGradient(): Brush {
-    return Brush.verticalGradient(
-        colors = listOf(shade5, shade4, shade4)
-    )
+    return SolidColor(shade5)
 }
 
 /**
- * Returns a soft tinted gradient for cards and surfaces
+ * Returns a solid tinted color for cards and surfaces
  */
 fun ThemePalette.cardGradient(): Brush {
-    return Brush.linearGradient(
-        colors = listOf(shade8, shade9),
-        start = Offset(0f, 0f),
-        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-    )
+    return SolidColor(shade9)
 }
 
 /**
- * Returns a rich gradient for placeholder cover art
+ * Returns a solid color for placeholder cover art background
  */
 fun ThemePalette.coverArtGradient(): Brush {
-    return Brush.linearGradient(
-        colors = listOf(shade1, shade2, shade3, shade5),
-        start = Offset(0f, 0f),
-        end = Offset(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY)
-    )
+    return SolidColor(shade6)
 }
 
 /**
- * Returns a vibrant gradient for buttons - eye-catching and interactive
+ * Returns a solid color for thumbnail backgrounds in list items
+ */
+fun ThemePalette.thumbnailGradient(): Brush {
+    return SolidColor(shade6)
+}
+
+/**
+ * Returns a solid color for buttons
  */
 fun ThemePalette.buttonGradient(): Brush {
-    return Brush.horizontalGradient(
-        colors = listOf(shade1, shade2, shade4)
-    )
+    return SolidColor(shade3)
 }
 
 /**
- * Returns a rich gradient for progress indicators
+ * Returns a gradient for progress indicators (kept for visual feedback)
  */
 fun ThemePalette.progressGradient(): Brush {
     return Brush.horizontalGradient(
-        colors = listOf(shade1, shade3, shade5, shade7)
+        colors = listOf(shade2, shade3, shade4)
     )
 }
 
 /**
- * Returns a premium shimmer gradient for special UI elements
+ * Returns a shimmer gradient for loading animations (kept for animation)
  */
 fun ThemePalette.shimmerGradient(): Brush {
     return Brush.horizontalGradient(
-        colors = listOf(shade2, shade4, shade6, shade4, shade2)
+        colors = listOf(shade4, shade5, shade6, shade5, shade4)
     )
 }
 
 /**
- * Returns a glass-like overlay gradient
+ * Returns a solid glass-like overlay color
  */
 fun ThemePalette.glassGradient(): Brush {
-    return Brush.verticalGradient(
-        colors = listOf(
-            shade6.copy(alpha = 0.8f),
-            shade7.copy(alpha = 0.6f),
-            shade8.copy(alpha = 0.4f)
-        )
-    )
+    return SolidColor(shade8.copy(alpha = 0.85f))
 }
 
 // Legacy color names for compatibility - these will use the current theme

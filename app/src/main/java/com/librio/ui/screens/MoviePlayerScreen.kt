@@ -582,8 +582,7 @@ fun MoviePlayerScreen(
                             Brush.verticalGradient(
                                 colors = listOf(
                                     Color.Transparent,
-                                    palette.shade9.copy(alpha = 0.95f),
-                                    palette.shade10.copy(alpha = 0.98f)
+                                    Color.Black.copy(alpha = 0.7f)
                                 )
                             )
                         )
@@ -602,7 +601,7 @@ fun MoviePlayerScreen(
                                 text = movie.title,
                                 style = MaterialTheme.typography.titleSmall,
                                 fontWeight = FontWeight.SemiBold,
-                                color = palette.shade1,
+                                color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier.weight(1f)
@@ -612,7 +611,7 @@ fun MoviePlayerScreen(
                                 modifier = Modifier
                                     .size(32.dp)
                                     .clip(CircleShape)
-                                    .background(palette.accent.copy(alpha = 0.2f))
+                                    .background(Color.White.copy(alpha = 0.2f))
                                     .clickable {
                                         isFullscreen = !isFullscreen
                                         manualFullscreenOverride = true
@@ -622,7 +621,7 @@ fun MoviePlayerScreen(
                                 Icon(
                                     imageVector = if (isFullscreen) AppIcons.FullscreenExit else AppIcons.Fullscreen,
                                     contentDescription = if (isFullscreen) "Exit Fullscreen" else "Fullscreen",
-                                    tint = palette.accent,
+                                    tint = Color.White,
                                     modifier = Modifier.size(18.dp)
                                 )
                             }
@@ -640,22 +639,14 @@ fun MoviePlayerScreen(
                                 .fillMaxWidth()
                                 .height(3.dp)
                                 .clip(shape3)
-                                .background(palette.shade6.copy(alpha = 0.4f))
+                                .background(Color.White.copy(alpha = 0.3f))
                         ) {
                             Box(
                                 modifier = Modifier
                                     .fillMaxWidth(progress)
                                     .height(3.dp)
                                     .clip(shape3)
-                                    .background(
-                                        Brush.horizontalGradient(
-                                            colors = listOf(
-                                                palette.shade2,
-                                                palette.accent,
-                                                palette.shade3
-                                            )
-                                        )
-                                    )
+                                    .background(Color.White)
                             )
                         }
 
@@ -821,7 +812,7 @@ fun MoviePlayerScreen(
         ) {
             Surface(
                 color = palette.surface,
-                shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                shape = cornerRadiusTop(16.dp),
                 shadowElevation = 12.dp,
                 modifier = Modifier
                     .fillMaxWidth()

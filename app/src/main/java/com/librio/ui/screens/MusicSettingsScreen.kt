@@ -112,7 +112,7 @@ fun MusicSettingsScreen(
                 .fillMaxWidth()
                 .heightIn(min = 320.dp, max = panelMaxHeight)
                 .padding(bottom = 96.dp),
-            shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+            shape = cornerRadiusTop(16.dp),
             color = palette.surfaceMedium,
             tonalElevation = 6.dp,
             shadowElevation = 10.dp

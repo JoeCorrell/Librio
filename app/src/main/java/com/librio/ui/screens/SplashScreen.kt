@@ -108,9 +108,9 @@ fun SplashScreen(
             .background(
                 brush = Brush.verticalGradient(
                     colors = listOf(
+                        palette.shade1,
                         palette.shade2,
-                        palette.shade4,
-                        palette.shade5
+                        palette.shade3
                     )
                 )
             )
@@ -126,45 +126,45 @@ fun SplashScreen(
                 .alpha(barAlpha),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // App name - simple and clean
+            // App name - clean with accent color
             Text(
                 text = "LIBRIO",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Light,
                     letterSpacing = 6.sp
                 ),
-                color = palette.shade11.copy(alpha = 0.9f)
+                color = palette.textPrimary
             )
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Loading bar with glow effect
+            // Loading bar with visible track
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(6.dp)
+                    .height(8.dp)
             ) {
 
-                // Track background
+                // Track background - more visible
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(6.dp)
+                        .height(8.dp)
                         .clip(shape3)
-                        .background(palette.shade11.copy(alpha = 0.1f))
+                        .background(palette.shade6)
                 )
 
                 // Progress fill with shimmer
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(loadingProgress)
-                        .height(6.dp)
+                        .height(8.dp)
                         .clip(shape3)
                         .background(
                             brush = Brush.horizontalGradient(
                                 colors = listOf(
                                     palette.accent,
-                                    palette.accent.copy(alpha = 0.8f),
+                                    palette.accent.copy(alpha = 0.85f),
                                     palette.accent
                                 ),
                                 startX = shimmerOffset * 300f,
@@ -176,14 +176,14 @@ fun SplashScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Loading text - subtle and minimal
+            // Loading text - more visible
             Text(
                 text = loadingText,
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontWeight = FontWeight.Normal,
                     letterSpacing = 0.5.sp
                 ),
-                color = palette.shade11.copy(alpha = 0.5f)
+                color = palette.textSecondary
             )
         }
     }

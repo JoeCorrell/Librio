@@ -199,15 +199,7 @@ fun MiniPlayer(
                             }
                         }
                     }
-                    .background(
-                        Brush.horizontalGradient(
-                            colors = listOf(
-                                palette.shade8.copy(alpha = 0.95f),
-                                palette.shade10.copy(alpha = 0.95f),
-                                palette.shade8.copy(alpha = 0.95f)
-                            )
-                        )
-                    )
+                    .background(palette.shade9)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,

@@ -417,7 +417,7 @@ fun LibraryListScreen(
                 showAddCategoryDialog = false
                 newCategoryName = ""
             },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = {
                 Text("Add Category", color = palette.primary)
             },
@@ -463,7 +463,7 @@ fun LibraryListScreen(
     showDeleteDialog?.let { audiobook ->
         AlertDialog(
             onDismissRequest = { showDeleteDialog = null },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Remove Audiobook", color = palette.primary) },
             text = { Text("Remove \"${audiobook.title}\" from your library?", color = palette.primary.copy(alpha = 0.7f)) },
             confirmButton = {
@@ -488,7 +488,7 @@ fun LibraryListScreen(
     showDeleteBookDialog?.let { book ->
         AlertDialog(
             onDismissRequest = { showDeleteBookDialog = null },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Remove Book", color = palette.primary) },
             text = { Text("Remove \"${book.title}\" from your library?", color = palette.primary.copy(alpha = 0.7f)) },
             confirmButton = {
@@ -774,13 +774,6 @@ fun LibraryListScreen(
                                         showPlayingIndicator = audiobook.lastPlayed > 0 && !audiobook.isCompleted,
                                         showPlaceholderIcons = showPlaceholderIcons
                                     )
-                                    Divider(
-                                        color = palette.primaryLight.copy(alpha = 0.35f),
-                                        thickness = 1.dp,
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .clip(shape50)
-                                    )
                                 }
 
                                 item {
@@ -879,13 +872,6 @@ fun LibraryListScreen(
                                         onClick = { onSelectBook(book) },
                                         onLongClick = { showEditBookDialog = book },
                                         showPlaceholderIcons = showPlaceholderIcons
-                                    )
-                                    Divider(
-                                        color = palette.primaryLight.copy(alpha = 0.35f),
-                                        thickness = 1.dp,
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .clip(shape50)
                                     )
                                 }
 
@@ -988,13 +974,6 @@ fun LibraryListScreen(
                                         modifier = Modifier
                                             .animateItemPlacement()
                                     )
-                                    Divider(
-                                        color = palette.primaryLight.copy(alpha = 0.35f),
-                                        thickness = 1.dp,
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .clip(shape50)
-                                    )
                                 }
 
                                 item {
@@ -1095,13 +1074,6 @@ fun LibraryListScreen(
                                         modifier = Modifier
                                             .animateItemPlacement()
                                     )
-                                    Divider(
-                                        color = palette.primaryLight.copy(alpha = 0.35f),
-                                        thickness = 1.dp,
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .clip(shape50)
-                                    )
                                 }
 
                                 item {
@@ -1200,13 +1172,6 @@ fun LibraryListScreen(
                                         showPlaceholderIcons = showPlaceholderIcons,
                                         modifier = Modifier.animateItemPlacement()
                                     )
-                                    Divider(
-                                        color = palette.primaryLight.copy(alpha = 0.35f),
-                                        thickness = 1.dp,
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .clip(shape50)
-                                    )
                                 }
                                 item {
                                     Spacer(modifier = Modifier.height(100.dp))
@@ -1303,13 +1268,6 @@ fun LibraryListScreen(
                                         onLongClick = { showEditMovieDialog = movieItem },
                                         showPlaceholderIcons = showPlaceholderIcons,
                                         modifier = Modifier.animateItemPlacement()
-                                    )
-                                    Divider(
-                                        color = palette.primaryLight.copy(alpha = 0.35f),
-                                        thickness = 1.dp,
-                                        modifier = Modifier
-                                            .padding(horizontal = 16.dp)
-                                            .clip(shape50)
                                     )
                                 }
                                 item {
@@ -1646,7 +1604,7 @@ private fun ContentTypeTabs(
                         ContentType.MOVIE -> AppIcons.Movie
                     }
 
-                    // Category tab with gradient backgrounds
+                    // Category tab with tonal surfaces
                     Box(
                         modifier = Modifier
                             .width(itemWidth)
@@ -1654,14 +1612,8 @@ private fun ContentTypeTabs(
                             .scale(scale)
                             .clip(shape12)
                             .background(
-                                if (isSelected) palette.accentGradient()
-                                else Brush.horizontalGradient(
-                                    colors = listOf(
-                                        palette.shade7.copy(alpha = 0.6f),
-                                        palette.shade8.copy(alpha = 0.5f),
-                                        palette.shade7.copy(alpha = 0.6f)
-                                    )
-                                )
+                                if (isSelected) palette.shade4
+                                else palette.shade10
                             )
                             .clickable {
                                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
@@ -1678,7 +1630,7 @@ private fun ContentTypeTabs(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (isSelected) palette.shade9 else palette.shade2,
+                                tint = if (isSelected) palette.shade11 else palette.shade3,
                                 modifier = Modifier.size(iconSizeTab)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
@@ -1688,7 +1640,7 @@ private fun ContentTypeTabs(
                                     fontSize = fontSize * 0.9f
                                 ),
                                 fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                color = if (isSelected) palette.shade9 else palette.shade2,
+                                color = if (isSelected) palette.shade11 else palette.shade3,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -1789,7 +1741,6 @@ fun AudiobookListItem(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    val shape3 = cornerRadius(3.dp)
     val shape4 = cornerRadius(4.dp)
     val shape8 = cornerRadius(8.dp)
     val shape12 = cornerRadius(12.dp)
@@ -1820,152 +1771,139 @@ fun AudiobookListItem(
         label = "pressScale"
     )
 
-    Row(
+    ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 100.dp)
-            .scale(scale)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(shape12)
-            .background(palette.surfaceDark.copy(alpha = 0.08f))
-            .combinedClickable(
-                onClick = {
-                    isPressed = true
-                    onClick()
-                },
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .scale(scale),
+        shape = shape12,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = palette.shade10)
     ) {
-        // Cover Art with shadow and gradient
-        Box(
+        Row(
             modifier = Modifier
-                .size(thumbnailSize)
-                .shadow(4.dp, shape8)
-                .clip(shape8)
-                .background(palette.coverArtGradient()),
-            contentAlignment = Alignment.Center
-        ) {
-            val usePlaceholder = showPlaceholderIcons || audiobook.coverArt == null
-            if (usePlaceholder) {
-                // Placeholder with headphones icon and file type
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Icon(
-                        AppIcons.Audiobook,
-                        contentDescription = null,
-                        tint = palette.shade7.copy(alpha = 0.95f),
-                        modifier = Modifier.size(iconSize)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = audiobook.fileType.uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = palette.shade7.copy(alpha = 0.9f)
-                    )
-                }
-            } else {
-                Image(
-                    bitmap = audiobook.coverArt!!.asImageBitmap(),
-                    contentDescription = audiobook.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 88.dp)
+                .combinedClickable(
+                    onClick = {
+                        isPressed = true
+                        onClick()
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
                 )
-            }
-
-            // File type badge
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Cover Art with shadow
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp)
-                    .background(palette.accentGradient(), shape4)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .size(thumbnailSize)
+                    .shadow(4.dp, shape8)
+                    .clip(shape8)
+                    .background(palette.thumbnailGradient()),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = audiobook.fileType.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onPrimary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Book info
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = audiobook.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = palette.primary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = audiobook.author,
-                style = MaterialTheme.typography.bodyMedium,
-                color = palette.primary.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (audiobook.duration > 0) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = formatDurationHoursMinutes(audiobook.duration),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.primary.copy(alpha = 0.5f)
-                )
-            }
-
-            // Progress bar for audiobooks
-            if (audiobook.duration > 0 && audiobook.lastPosition > 0) {
-                val progress = (audiobook.lastPosition.toFloat() / audiobook.duration).coerceIn(0f, 1f)
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    LinearProgressIndicator(
-                        progress = progress,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                            .clip(shape3),
-                        color = palette.accent,
-                        trackColor = palette.accent.copy(alpha = 0.2f)
-                    )
-                    Text(
-                        text = "${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.accent.copy(alpha = 0.7f)
+                val usePlaceholder = showPlaceholderIcons || audiobook.coverArt == null
+                if (usePlaceholder) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Icon(
+                            AppIcons.Audiobook,
+                            contentDescription = null,
+                            tint = palette.shade2,
+                            modifier = Modifier.size(iconSize)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = audiobook.fileType.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = palette.accent
+                        )
+                    }
+                } else {
+                    Image(
+                        bitmap = audiobook.coverArt!!.asImageBitmap(),
+                        contentDescription = audiobook.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
-        }
 
-        // Playing indicator
-        if (showPlayingIndicator) {
-            IconButton(onClick = onClick) {
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Book info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = audiobook.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = audiobook.author,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (audiobook.duration > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = formatDurationHoursMinutes(audiobook.duration),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = palette.textMuted
+                    )
+                }
+
+                // Progress bar
+                if (audiobook.duration > 0 && audiobook.lastPosition > 0) {
+                    val progress = (audiobook.lastPosition.toFloat() / audiobook.duration).coerceIn(0f, 1f)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(4.dp)
+                                .clip(shape4),
+                            color = palette.accent,
+                            trackColor = palette.accent.copy(alpha = 0.2f)
+                        )
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.accent.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
+            // Playing indicator
+            if (showPlayingIndicator) {
                 Icon(
                     AppIcons.VolumeUp,
                     contentDescription = "Currently playing",
-                    tint = palette.primary,
-                    modifier = Modifier.size(24.dp)
+                    tint = palette.accent,
+                    modifier = Modifier.size(20.dp)
                 )
             }
         }
@@ -2004,7 +1942,7 @@ private fun EditMetadataDialog(
     showDeleteSeriesConfirm?.let { seriesToDelete ->
         AlertDialog(
             onDismissRequest = { showDeleteSeriesConfirm = null },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Delete Series", color = palette.primary) },
             text = {
                 Text(
@@ -2038,7 +1976,7 @@ private fun EditMetadataDialog(
                 showAddSeriesDialog = false
                 newSeriesName = ""
             },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("New Series", color = palette.primary) },
             text = {
                 OutlinedTextField(
@@ -2085,7 +2023,7 @@ private fun EditMetadataDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Remove Audiobook", color = palette.primary) },
             text = { Text("Remove \"${audiobook.title}\" from your library?", color = palette.primary.copy(alpha = 0.7f)) },
             confirmButton = {
@@ -2106,7 +2044,7 @@ private fun EditMetadataDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -2367,8 +2305,170 @@ fun BookListItem(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    val shape3 = cornerRadius(3.dp)
     val shape4 = cornerRadius(4.dp)
+    val shape8 = cornerRadius(8.dp)
+    val shape12 = cornerRadius(12.dp)
+    val haptic = LocalHapticFeedback.current
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+
+    val thumbnailSize = when {
+        screenWidth < 360.dp -> 56.dp
+        screenWidth < 400.dp -> 64.dp
+        screenWidth < 600.dp -> 72.dp
+        else -> 80.dp
+    }
+    val iconSize = when {
+        screenWidth < 400.dp -> 24.dp
+        else -> 28.dp
+    }
+
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "bookPressScale"
+    )
+
+    ElevatedCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .scale(scale),
+        shape = shape12,
+        elevation = CardDefaults.elevatedCardElevation(defaultElevation = 0.dp),
+        colors = CardDefaults.elevatedCardColors(containerColor = palette.shade10)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 88.dp)
+                .combinedClickable(
+                    onClick = {
+                        isPressed = true
+                        onClick()
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
+                )
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(thumbnailSize)
+                    .shadow(4.dp, shape8)
+                    .clip(shape8)
+                    .background(palette.thumbnailGradient()),
+                contentAlignment = Alignment.Center
+            ) {
+                val usePlaceholder = showPlaceholderIcons || book.coverArt == null
+                if (usePlaceholder) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Icon(
+                            AppIcons.Book,
+                            contentDescription = null,
+                            tint = palette.shade2,
+                            modifier = Modifier.size(iconSize)
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = book.fileType.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 8.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = palette.accent
+                        )
+                    }
+                } else {
+                    Image(
+                        bitmap = book.coverArt!!.asImageBitmap(),
+                        contentDescription = book.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = book.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = book.author,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = palette.textSecondary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (book.totalPages > 0 && book.currentPage > 0) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = book.progress,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(4.dp)
+                                .clip(shape4),
+                            color = palette.accent,
+                            trackColor = palette.accent.copy(alpha = 0.2f)
+                        )
+                        Text(
+                            text = "${(book.progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.accent.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
+            if (book.lastRead > 0 && !book.isCompleted) {
+                Icon(
+                    AppIcons.AutoStories,
+                    contentDescription = "Reading",
+                    tint = palette.accent,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+        }
+    }
+}
+
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+@Composable
+fun MusicListItem(
+    music: LibraryMusic,
+    onClick: () -> Unit,
+    onLongClick: () -> Unit = {},
+    showPlaceholderIcons: Boolean = true,
+    modifier: Modifier = Modifier
+) {
+    val palette = currentPalette()
+    val shape3 = cornerRadius(3.dp)
     val shape8 = cornerRadius(8.dp)
     val shape12 = cornerRadius(12.dp)
     val haptic = LocalHapticFeedback.current
@@ -2395,314 +2495,141 @@ fun BookListItem(
             dampingRatio = Spring.DampingRatioMediumBouncy,
             stiffness = Spring.StiffnessHigh
         ),
-        label = "bookPressScale"
+        label = "pressScale"
     )
 
-    Row(
+    ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 100.dp)
-            .scale(scale)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(shape12)
-            .background(palette.surfaceDark.copy(alpha = 0.08f))
-            .combinedClickable(
-                onClick = {
-                    isPressed = true
-                    onClick()
-                },
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .scale(scale),
+        shape = shape12,
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 4.dp
+        ),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = palette.shade10
+        )
     ) {
-        // Book Cover placeholder with gradient and file type badge
-        Box(
+        Row(
             modifier = Modifier
-                .size(thumbnailSize)
-                .shadow(4.dp, shape8)
-                .clip(shape8)
-                .background(palette.coverArtGradient()),
-            contentAlignment = Alignment.Center
-        ) {
-            val usePlaceholder = showPlaceholderIcons || book.coverArt == null
-            if (usePlaceholder) {
-                // Placeholder with book icon and file type
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Icon(
-                        AppIcons.Book,
-                        contentDescription = null,
-                        tint = palette.shade7.copy(alpha = 0.95f),
-                        modifier = Modifier.size(iconSize)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = book.fileType.uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = palette.shade7.copy(alpha = 0.9f)
-                    )
-                }
-            } else {
-                Image(
-                    bitmap = book.coverArt!!.asImageBitmap(),
-                    contentDescription = book.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 88.dp)
+                .combinedClickable(
+                    onClick = {
+                        isPressed = true
+                        onClick()
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
                 )
-            }
-
-            // File type badge
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Cover placeholder with music icon
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp)
-                    .background(palette.accentGradient(), shape4)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .size(thumbnailSize)
+                    .shadow(4.dp, shape8)
+                    .clip(shape8)
+                    .background(palette.thumbnailGradient()),
+                contentAlignment = Alignment.Center
             ) {
+                val usePlaceholder = showPlaceholderIcons || music.coverArt == null
+                if (usePlaceholder) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Icon(
+                            AppIcons.Music,
+                            contentDescription = null,
+                            tint = palette.shade2,
+                            modifier = Modifier.size(iconSize)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = music.fileType.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = palette.accent
+                        )
+                    }
+                } else {
+                    Image(
+                        bitmap = music.coverArt!!.asImageBitmap(),
+                        contentDescription = music.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Music info
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = book.fileType.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onPrimary
+                    text = music.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
                 )
-            }
-        }
 
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Book info
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = book.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = palette.primary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = book.author,
-                style = MaterialTheme.typography.bodyMedium,
-                color = palette.primary.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            // Reading progress
-            if (book.totalPages > 0 && book.currentPage > 0) {
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    LinearProgressIndicator(
-                        progress = book.progress,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                            .clip(shape3),
-                        color = palette.primary,
-                        trackColor = palette.primary.copy(alpha = 0.2f)
-                    )
-                    Text(
-                        text = "${(book.progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.primary.copy(alpha = 0.5f)
-                    )
-                }
-            }
-        }
-
-        // Chevron or reading indicator
-        if (book.lastRead > 0 && !book.isCompleted) {
-            Icon(
-                AppIcons.AutoStories,
-                contentDescription = "Reading",
-                tint = palette.primary,
-                modifier = Modifier.size(24.dp)
-            )
-        }
-    }
-}
-
-@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
-@Composable
-fun MusicListItem(
-    music: LibraryMusic,
-    onClick: () -> Unit,
-    onLongClick: () -> Unit = {},
-    showPlaceholderIcons: Boolean = true,
-    modifier: Modifier = Modifier
-) {
-    val palette = currentPalette()
-    val shape3 = cornerRadius(3.dp)
-    val shape4 = cornerRadius(4.dp)
-    val shape8 = cornerRadius(8.dp)
-    val shape12 = cornerRadius(12.dp)
-    val haptic = LocalHapticFeedback.current
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
-
-    // Responsive thumbnail size
-    val thumbnailSize = when {
-        screenWidth < 360.dp -> 56.dp
-        screenWidth < 400.dp -> 64.dp
-        screenWidth < 600.dp -> 72.dp
-        else -> 80.dp
-    }
-    val iconSize = when {
-        screenWidth < 400.dp -> 24.dp
-        else -> 28.dp
-    }
-
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = 100.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(shape12)
-            .background(palette.surfaceDark.copy(alpha = 0.08f))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Cover placeholder with gradient and music icon
-        Box(
-            modifier = Modifier
-                .size(thumbnailSize)
-                .shadow(4.dp, shape8)
-                .clip(shape8)
-                .background(palette.coverArtGradient()),
-            contentAlignment = Alignment.Center
-        ) {
-            val usePlaceholder = showPlaceholderIcons || music.coverArt == null
-            if (usePlaceholder) {
-                // Placeholder with music icon and file type
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Icon(
-                        AppIcons.Music,
-                        contentDescription = null,
-                        tint = palette.shade7.copy(alpha = 0.95f),
-                        modifier = Modifier.size(iconSize)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = music.fileType.uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = palette.shade7.copy(alpha = 0.9f)
-                    )
-                }
-            } else {
-                Image(
-                    bitmap = music.coverArt!!.asImageBitmap(),
-                    contentDescription = music.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
-
-            // File type badge
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp)
-                    .background(palette.accentGradient(), shape4)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
-            ) {
-                Text(
-                    text = music.fileType.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onPrimary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Music info
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = music.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = palette.primary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            Spacer(modifier = Modifier.height(2.dp))
-
-            Text(
-                text = music.artist,
-                style = MaterialTheme.typography.bodyMedium,
-                color = palette.primary.copy(alpha = 0.7f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (music.album != null) {
                 Spacer(modifier = Modifier.height(2.dp))
+
                 Text(
-                    text = music.album,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.primary.copy(alpha = 0.5f),
+                    text = music.artist,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = palette.textSecondary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-            }
 
-            if (music.duration > 0) {
-                Spacer(modifier = Modifier.height(2.dp))
+                if (music.album != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = music.album,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (music.duration > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = formatDurationHoursMinutes(music.duration),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textMuted
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(6.dp))
                 Text(
-                    text = formatDurationHoursMinutes(music.duration),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.primary.copy(alpha = 0.5f)
+                    text = "Times listened: ${music.timesListened}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = palette.textSecondary
                 )
             }
 
-            Spacer(modifier = Modifier.height(6.dp))
-            Text(
-                text = "Times listened: ${music.timesListened}",
-                style = MaterialTheme.typography.labelSmall,
-                color = palette.primary
-            )
-        }
-
-        // Playing indicator
-        if (music.lastPlayed > 0 && !music.isCompleted) {
-            Icon(
-                AppIcons.PlayCircle,
-                contentDescription = "Last played",
-                tint = palette.primary,
-                modifier = Modifier.size(24.dp)
-            )
+            // Playing indicator
+            if (music.lastPlayed > 0 && !music.isCompleted) {
+                Icon(
+                    AppIcons.PlayCircle,
+                    contentDescription = "Last played",
+                    tint = palette.accent,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -2737,7 +2664,7 @@ private fun EditBookMetadataDialog(
     showDeleteSeriesConfirm?.let { seriesToDelete ->
         AlertDialog(
             onDismissRequest = { showDeleteSeriesConfirm = null },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Delete Series", color = palette.primary) },
             text = {
                 Text(
@@ -2771,7 +2698,7 @@ private fun EditBookMetadataDialog(
                 showAddSeriesDialog = false
                 newSeriesName = ""
             },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("New Series", color = palette.primary) },
             text = {
                 OutlinedTextField(
@@ -2818,7 +2745,7 @@ private fun EditBookMetadataDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Remove Book", color = palette.primary) },
             text = { Text("Remove \"${book.title}\" from your library?", color = palette.primary.copy(alpha = 0.7f)) },
             confirmButton = {
@@ -2839,7 +2766,7 @@ private fun EditBookMetadataDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -3042,7 +2969,6 @@ fun ComicListItem(
 ) {
     val palette = currentPalette()
     val shape3 = cornerRadius(3.dp)
-    val shape4 = cornerRadius(4.dp)
     val shape8 = cornerRadius(8.dp)
     val shape12 = cornerRadius(12.dp)
     val haptic = LocalHapticFeedback.current
@@ -3061,148 +2987,157 @@ fun ComicListItem(
         else -> 28.dp
     }
 
-    Row(
+    // Press animation
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "pressScale"
+    )
+
+    ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 100.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(shape12)
-            .background(palette.surfaceDark.copy(alpha = 0.08f))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .scale(scale),
+        shape = shape12,
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 4.dp
+        ),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = palette.shade10
+        )
     ) {
-        // Cover placeholder with gradient and comic icon
-        Box(
+        Row(
             modifier = Modifier
-                .size(thumbnailSize)
-                .shadow(4.dp, shape8)
-                .clip(shape8)
-                .background(palette.coverArtGradient()),
-            contentAlignment = Alignment.Center
-        ) {
-            val usePlaceholder = showPlaceholderIcons || comic.coverArt == null
-            if (usePlaceholder) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center,
-                    modifier = Modifier.padding(4.dp)
-                ) {
-                    Icon(
-                        AppIcons.Comic,
-                        contentDescription = null,
-                        tint = palette.shade7.copy(alpha = 0.95f),
-                        modifier = Modifier.size(iconSize)
-                    )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = comic.fileType.uppercase(),
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = palette.shade7.copy(alpha = 0.9f)
-                    )
-                }
-            } else {
-                Image(
-                    bitmap = comic.coverArt!!.asImageBitmap(),
-                    contentDescription = comic.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 88.dp)
+                .combinedClickable(
+                    onClick = {
+                        isPressed = true
+                        onClick()
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
                 )
-            }
-
-            // File type badge
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Cover placeholder with comic icon
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp)
-                    .background(palette.accentGradient(), shape4)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .size(thumbnailSize)
+                    .shadow(4.dp, shape8)
+                    .clip(shape8)
+                    .background(palette.thumbnailGradient()),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = comic.fileType.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onPrimary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Comic info
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = comic.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = palette.primary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (comic.series != null) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = comic.series,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = palette.primary.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            if (comic.totalPages > 0) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${comic.totalPages} pages",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.primary.copy(alpha = 0.5f)
-                )
-            }
-
-            // Progress bar for comics
-            if (comic.totalPages > 0 && comic.currentPage > 0) {
-                val progress = (comic.currentPage.toFloat() / comic.totalPages).coerceIn(0f, 1f)
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    LinearProgressIndicator(
-                        progress = progress,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                            .clip(shape3),
-                        color = palette.accent,
-                        trackColor = palette.accent.copy(alpha = 0.2f)
-                    )
-                    Text(
-                        text = "${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.accent.copy(alpha = 0.7f)
+                val usePlaceholder = showPlaceholderIcons || comic.coverArt == null
+                if (usePlaceholder) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                        modifier = Modifier.padding(4.dp)
+                    ) {
+                        Icon(
+                            AppIcons.Comic,
+                            contentDescription = null,
+                            tint = palette.shade2,
+                            modifier = Modifier.size(iconSize)
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = comic.fileType.uppercase(),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = palette.accent
+                        )
+                    }
+                } else {
+                    Image(
+                        bitmap = comic.coverArt!!.asImageBitmap(),
+                        contentDescription = comic.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
                     )
                 }
             }
-        }
 
-        // Reading indicator
-        if (comic.currentPage > 0) {
-            Icon(
-                AppIcons.AutoStories,
-                contentDescription = "In progress",
-                tint = palette.primary,
-                modifier = Modifier.size(24.dp)
-            )
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Comic info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = comic.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (comic.series != null) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = comic.series,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = palette.textSecondary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                if (comic.totalPages > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = "${comic.totalPages} pages",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textMuted
+                    )
+                }
+
+                // Progress bar for comics
+                if (comic.totalPages > 0 && comic.currentPage > 0) {
+                    val progress = (comic.currentPage.toFloat() / comic.totalPages).coerceIn(0f, 1f)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(shape3),
+                            color = palette.accent,
+                            trackColor = palette.accent.copy(alpha = 0.2f)
+                        )
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.accent.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
+            // Reading indicator
+            if (comic.currentPage > 0) {
+                Icon(
+                    AppIcons.AutoStories,
+                    contentDescription = "In progress",
+                    tint = palette.accent,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -3218,7 +3153,6 @@ fun MovieListItem(
 ) {
     val palette = currentPalette()
     val shape3 = cornerRadius(3.dp)
-    val shape4 = cornerRadius(4.dp)
     val shape8 = cornerRadius(8.dp)
     val shape12 = cornerRadius(12.dp)
     val haptic = LocalHapticFeedback.current
@@ -3237,127 +3171,136 @@ fun MovieListItem(
         else -> 28.dp
     }
 
-    Row(
+    // Press animation
+    var isPressed by remember { mutableStateOf(false) }
+    val scale by animateFloatAsState(
+        targetValue = if (isPressed) 0.98f else 1f,
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
+        label = "pressScale"
+    )
+
+    ElevatedCard(
         modifier = modifier
             .fillMaxWidth()
-            .defaultMinSize(minHeight = 100.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .clip(shape12)
-            .background(palette.surfaceDark.copy(alpha = 0.08f))
-            .combinedClickable(
-                onClick = onClick,
-                onLongClick = {
-                    haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                    onLongClick()
-                }
-            )
-            .padding(horizontal = 12.dp, vertical = 10.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = 16.dp, vertical = 6.dp)
+            .scale(scale),
+        shape = shape12,
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 4.dp
+        ),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = palette.shade10
+        )
     ) {
-        // Cover placeholder with gradient and movie icon
-        Box(
+        Row(
             modifier = Modifier
-                .size(thumbnailSize)
-                .shadow(4.dp, shape8)
-                .clip(shape8)
-                .background(palette.coverArtGradient()),
-            contentAlignment = Alignment.Center
+                .fillMaxWidth()
+                .defaultMinSize(minHeight = 88.dp)
+                .combinedClickable(
+                    onClick = {
+                        isPressed = true
+                        onClick()
+                    },
+                    onLongClick = {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        onLongClick()
+                    }
+                )
+                .padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-                modifier = Modifier.padding(4.dp)
-            ) {
-                Icon(
-                    AppIcons.Movie,
-                    contentDescription = null,
-                    tint = palette.shade7.copy(alpha = 0.95f),
-                    modifier = Modifier.size(iconSize)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = movie.fileType.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(
-                        fontSize = 9.sp,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = palette.shade7.copy(alpha = 0.9f)
-                )
-            }
-
-            // File type badge
+            // Cover placeholder with movie icon
             Box(
                 modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(4.dp)
-                    .background(palette.accentGradient(), shape4)
-                    .padding(horizontal = 4.dp, vertical = 2.dp)
+                    .size(thumbnailSize)
+                    .shadow(4.dp, shape8)
+                    .clip(shape8)
+                    .background(palette.thumbnailGradient()),
+                contentAlignment = Alignment.Center
             ) {
-                Text(
-                    text = movie.fileType.uppercase(),
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp),
-                    fontWeight = FontWeight.Bold,
-                    color = palette.onPrimary
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // Movie info
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = movie.title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                color = palette.primary,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
-
-            if (movie.duration > 0) {
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = formatDurationHoursMinutes(movie.duration),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = palette.primary.copy(alpha = 0.5f)
-                )
-            }
-
-            // Progress bar for movies
-            if (movie.duration > 0 && movie.lastPosition > 0) {
-                val progress = (movie.lastPosition.toFloat() / movie.duration).coerceIn(0f, 1f)
-                Spacer(modifier = Modifier.height(6.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center,
+                    modifier = Modifier.padding(4.dp)
                 ) {
-                    LinearProgressIndicator(
-                        progress = progress,
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(6.dp)
-                            .clip(shape3),
-                        color = palette.accent,
-                        trackColor = palette.accent.copy(alpha = 0.2f)
+                    Icon(
+                        AppIcons.Movie,
+                        contentDescription = null,
+                        tint = palette.shade2,
+                        modifier = Modifier.size(iconSize)
                     )
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "${(progress * 100).toInt()}%",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.accent.copy(alpha = 0.7f)
+                        text = movie.fileType.uppercase(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = 9.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = palette.accent
                     )
                 }
             }
-        }
 
-        // Watch indicator
-        if (movie.lastPosition > 0 && movie.lastPosition < movie.duration) {
-            Icon(
-                AppIcons.PlayCircle,
-                contentDescription = "In progress",
-                tint = palette.primary,
-                modifier = Modifier.size(24.dp)
-            )
+            Spacer(modifier = Modifier.width(16.dp))
+
+            // Movie info
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = movie.title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = palette.textPrimary,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                if (movie.duration > 0) {
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = formatDurationHoursMinutes(movie.duration),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.textMuted
+                    )
+                }
+
+                // Progress bar for movies
+                if (movie.duration > 0 && movie.lastPosition > 0) {
+                    val progress = (movie.lastPosition.toFloat() / movie.duration).coerceIn(0f, 1f)
+                    Spacer(modifier = Modifier.height(6.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        LinearProgressIndicator(
+                            progress = progress,
+                            modifier = Modifier
+                                .weight(1f)
+                                .height(6.dp)
+                                .clip(shape3),
+                            color = palette.accent,
+                            trackColor = palette.accent.copy(alpha = 0.2f)
+                        )
+                        Text(
+                            text = "${(progress * 100).toInt()}%",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = palette.accent.copy(alpha = 0.8f)
+                        )
+                    }
+                }
+            }
+
+            // Watch indicator
+            if (movie.lastPosition > 0 && movie.lastPosition < movie.duration) {
+                Icon(
+                    AppIcons.PlayCircle,
+                    contentDescription = "In progress",
+                    tint = palette.accent,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }
@@ -3380,7 +3323,7 @@ fun SortMenuDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         shape = shape8,
         title = {
             Text(
@@ -3641,7 +3584,7 @@ private fun EditMusicMetadataDialog(
     showDeleteSeriesConfirm?.let { seriesToDelete ->
         AlertDialog(
             onDismissRequest = { showDeleteSeriesConfirm = null },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Delete Playlist", color = palette.primary) },
             text = {
                 Text(
@@ -3675,7 +3618,7 @@ private fun EditMusicMetadataDialog(
                 showAddSeriesDialog = false
                 newSeriesName = ""
             },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("New Playlist", color = palette.primary) },
             text = {
                 OutlinedTextField(
@@ -3722,7 +3665,7 @@ private fun EditMusicMetadataDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Remove Music", color = palette.primary) },
             text = { Text("Remove \"${music.title}\" from your library?", color = palette.primary.copy(alpha = 0.7f)) },
             confirmButton = {
@@ -3743,7 +3686,7 @@ private fun EditMusicMetadataDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -3967,7 +3910,7 @@ private fun EditComicMetadataDialog(
     showDeleteSeriesConfirm?.let { seriesToDelete ->
         AlertDialog(
             onDismissRequest = { showDeleteSeriesConfirm = null },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Delete Collection", color = palette.primary) },
             text = {
                 Text(
@@ -4001,7 +3944,7 @@ private fun EditComicMetadataDialog(
                 showAddSeriesDialog = false
                 newSeriesName = ""
             },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("New Collection", color = palette.primary) },
             text = {
                 OutlinedTextField(
@@ -4048,7 +3991,7 @@ private fun EditComicMetadataDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Remove Comic", color = palette.primary) },
             text = { Text("Remove \"${comic.title}\" from your library?", color = palette.primary.copy(alpha = 0.7f)) },
             confirmButton = {
@@ -4069,7 +4012,7 @@ private fun EditComicMetadataDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -4292,7 +4235,7 @@ private fun EditMovieMetadataDialog(
     showDeleteSeriesConfirm?.let { seriesToDelete ->
         AlertDialog(
             onDismissRequest = { showDeleteSeriesConfirm = null },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Delete Playlist", color = palette.primary) },
             text = {
                 Text(
@@ -4326,7 +4269,7 @@ private fun EditMovieMetadataDialog(
                 showAddSeriesDialog = false
                 newSeriesName = ""
             },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("New Playlist", color = palette.primary) },
             text = {
                 OutlinedTextField(
@@ -4373,7 +4316,7 @@ private fun EditMovieMetadataDialog(
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            containerColor = palette.surface,
+            containerColor = palette.shade10,
             title = { Text("Remove Movie", color = palette.primary) },
             text = { Text("Remove \"${movie.title}\" from your library?", color = palette.primary.copy(alpha = 0.7f)) },
             confirmButton = {
@@ -4394,7 +4337,7 @@ private fun EditMovieMetadataDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         title = {
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -4816,7 +4759,7 @@ fun AddSeriesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         shape = shape12,
         title = {
             Text(
@@ -4877,7 +4820,7 @@ fun RenameSeriesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         shape = shape12,
         title = {
             Text(
@@ -4937,7 +4880,7 @@ fun DeleteSeriesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         shape = shape12,
         title = {
             Text(
@@ -4983,7 +4926,7 @@ fun AssignSeriesDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        containerColor = palette.surface,
+        containerColor = palette.shade10,
         shape = shape12,
         title = {
             Text(

@@ -509,29 +509,38 @@ private fun AudiobookCard(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    // Remember shapes for performance
     val shape12 = cornerRadius(12.dp)
-    val shape16 = cornerRadius(16.dp)
 
     var isPressed by remember { mutableStateOf(false) }
     val cardScale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 10000f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
         label = "cardScale"
     )
 
-    Card(
+    ElevatedCard(
         modifier = modifier
             .width(cardWidth)
             .scale(cardScale)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
-                onClick = onClick,
+                onClick = {
+                    isPressed = true
+                    onClick()
+                },
                 onClickLabel = "Play ${audiobook.title}"
             ),
-        shape = shape16,
-        colors = CardDefaults.cardColors(containerColor = palette.surfaceCard)
+        shape = shape12,
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 4.dp
+        ),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = palette.shade10
+        )
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
             Box(
@@ -539,7 +548,7 @@ private fun AudiobookCard(
                     .fillMaxWidth()
                     .aspectRatio(1f)
                     .clip(shape12)
-                    .background(palette.coverArtGradient()),
+                    .background(palette.thumbnailGradient()),
                 contentAlignment = Alignment.Center
             ) {
                 val usePlaceholder = showPlaceholderIcons || audiobook.coverArt == null
@@ -548,7 +557,7 @@ private fun AudiobookCard(
                         imageVector = AppIcons.Audiobook,
                         contentDescription = null,
                         modifier = Modifier.size(40.dp),
-                        tint = palette.shade7.copy(alpha = 0.95f)
+                        tint = palette.shade2
                     )
                 } else {
                     Image(
@@ -565,13 +574,13 @@ private fun AudiobookCard(
                             .fillMaxWidth()
                             .height(3.dp)
                             .align(Alignment.BottomCenter)
-                            .background(palette.shade6)
+                            .background(palette.shade5.copy(alpha = 0.3f))
                     ) {
                         Box(
                             modifier = Modifier
                                 .fillMaxWidth(audiobook.progress)
                                 .fillMaxHeight()
-                                .background(palette.progressGradient())
+                                .background(palette.accent)
                         )
                     }
                 }
@@ -583,7 +592,7 @@ private fun AudiobookCard(
                 text = audiobook.title,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = palette.primary,
+                color = palette.textPrimary,
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 lineHeight = 18.sp
@@ -594,7 +603,7 @@ private fun AudiobookCard(
             Text(
                 text = audiobook.author,
                 style = MaterialTheme.typography.bodySmall,
-                color = palette.primary.copy(alpha = 0.5f),
+                color = palette.textSecondary,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
@@ -620,108 +629,126 @@ private fun AudiobookGridItem(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    // Remember shape for performance
     val shape12 = cornerRadius(12.dp)
 
     var isPressed by remember { mutableStateOf(false) }
     val cardScale by animateFloatAsState(
         targetValue = if (isPressed) 0.97f else 1f,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioNoBouncy, stiffness = 10000f),
+        animationSpec = spring(
+            dampingRatio = Spring.DampingRatioMediumBouncy,
+            stiffness = Spring.StiffnessHigh
+        ),
         label = "cardScale"
     )
 
-    Column(
+    ElevatedCard(
         modifier = modifier
-            .scale(cardScale)
-            .clickable(
-                interactionSource = remember { MutableInteractionSource() },
-                indication = null,
-                onClick = onClick
-            )
+            .fillMaxWidth()
+            .scale(cardScale),
+        shape = shape12,
+        elevation = CardDefaults.elevatedCardElevation(
+            defaultElevation = 4.dp
+        ),
+        colors = CardDefaults.elevatedCardColors(
+            containerColor = palette.shade10
+        )
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .aspectRatio(1f)
-                .shadow(8.dp, shape12)
-                .clip(shape12)
-                .background(palette.coverArtGradient()),
-            contentAlignment = Alignment.Center
+                .clickable(
+                    interactionSource = remember { MutableInteractionSource() },
+                    indication = null,
+                    onClick = {
+                        isPressed = true
+                        onClick()
+                    }
+                )
+                .padding(8.dp)
         ) {
-            val usePlaceholder = showPlaceholderIcons || audiobook.coverArt == null
-            if (usePlaceholder) {
-                Icon(
-                    imageVector = AppIcons.Audiobook,
-                    contentDescription = null,
-                    modifier = Modifier.size(36.dp),
-                    tint = palette.shade7.copy(alpha = 0.95f)
-                )
-            } else {
-                Image(
-                    bitmap = audiobook.coverArt!!.asImageBitmap(),
-                    contentDescription = audiobook.title,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            }
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(1f)
+                    .clip(shape12)
+                    .background(palette.thumbnailGradient()),
+                contentAlignment = Alignment.Center
+            ) {
+                val usePlaceholder = showPlaceholderIcons || audiobook.coverArt == null
+                if (usePlaceholder) {
+                    Icon(
+                        imageVector = AppIcons.Audiobook,
+                        contentDescription = null,
+                        modifier = Modifier.size(36.dp),
+                        tint = palette.shade2
+                    )
+                } else {
+                    Image(
+                        bitmap = audiobook.coverArt!!.asImageBitmap(),
+                        contentDescription = audiobook.title,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                }
 
-            // Progress indicator
-            if (audiobook.progress > 0 && !audiobook.isCompleted) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .align(Alignment.BottomCenter)
-                        .background(palette.shade6)
-                ) {
+                // Progress indicator
+                if (audiobook.progress > 0 && !audiobook.isCompleted) {
                     Box(
                         modifier = Modifier
-                            .fillMaxWidth(audiobook.progress)
-                            .fillMaxHeight()
-                            .background(palette.progressGradient())
-                    )
+                            .fillMaxWidth()
+                            .height(3.dp)
+                            .align(Alignment.BottomCenter)
+                            .background(palette.shade5.copy(alpha = 0.3f))
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth(audiobook.progress)
+                                .fillMaxHeight()
+                                .background(palette.accent)
+                        )
+                    }
+                }
+
+                // Completed badge
+                if (audiobook.isCompleted) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(6.dp)
+                            .size(24.dp)
+                            .background(palette.accent, CircleShape),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            AppIcons.Check,
+                            contentDescription = "Completed",
+                            tint = palette.surfaceDark,
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
                 }
             }
 
-            // Completed badge
-            if (audiobook.isCompleted) {
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(6.dp)
-                        .size(24.dp)
-                        .background(palette.accentGradient(), CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        AppIcons.Check,
-                        contentDescription = "Completed",
-                        tint = palette.surfaceDark,
-                        modifier = Modifier.size(16.dp)
-                    )
-                }
-            }
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
+                text = audiobook.title,
+                style = MaterialTheme.typography.bodySmall,
+                fontWeight = FontWeight.SemiBold,
+                color = palette.textPrimary,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                lineHeight = 16.sp
+            )
+
+            Text(
+                text = audiobook.author,
+                style = MaterialTheme.typography.labelSmall,
+                color = palette.textSecondary,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
         }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        Text(
-            text = audiobook.title,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.Medium,
-            color = palette.primary,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            lineHeight = 16.sp
-        )
-
-        Text(
-            text = audiobook.author,
-            style = MaterialTheme.typography.labelSmall,
-            color = palette.primary.copy(alpha = 0.5f),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }
 
