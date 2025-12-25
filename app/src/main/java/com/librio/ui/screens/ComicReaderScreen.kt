@@ -83,8 +83,6 @@ fun ComicReaderScreen(
     onPageFitModeChange: (String) -> Unit = {},
     pageGap: Int = 4,
     onPageGapChange: (Int) -> Unit = {},
-    backgroundColor: String = "theme",
-    onBackgroundColorChange: (String) -> Unit = {},
     showPageIndicators: Boolean = true,
     onShowPageIndicatorsChange: (Boolean) -> Unit = {},
     enableDoubleTapZoom: Boolean = true,
@@ -128,14 +126,8 @@ fun ComicReaderScreen(
         else -> showTwoPages
     }
 
-    // Background color - follows theme by default
-    val bgColor = when (backgroundColor) {
-        "dark" -> Color(0xFF1A1A1A)
-        "light" -> Color.White
-        "sepia" -> Color(0xFFF5E6D3)
-        "amoled" -> Color.Black
-        else -> palette.background
-    }
+    // Background color - follows theme
+    val bgColor = palette.background
 
     // Calculate page pairs for 2-page mode
     val pagePairs = remember(pages, effectiveTwoPageMode) {
@@ -632,7 +624,6 @@ fun ComicReaderScreen(
         val settingsPadding = if (screenWidth < 400) 12.dp else 16.dp
         val settingsIconSize = if (screenWidth < 400) 14.dp else 16.dp
         val settingsButtonHeight = if (screenWidth < 400) 32.dp else 36.dp
-        val settingsColorSize = if (screenWidth < 400) 30.dp else 36.dp
         val settingsFontSize = if (screenWidth < 400) 10.sp else 12.sp
         val settingsMaxHeight = (screenHeight * 0.6f).dp
 
@@ -730,53 +721,6 @@ fun ComicReaderScreen(
                                     fontWeight = FontWeight.SemiBold,
                                     color = palette.textPrimary
                                 )
-                            }
-
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            Text(
-                                "Background",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = palette.textMuted
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                listOf(
-                                    "dark" to Color(0xFF1A1A1A),
-                                    "light" to Color.White,
-                                    "sepia" to Color(0xFFF5E6D3),
-                                    "amoled" to Color.Black,
-                                    "theme" to palette.primary
-                                ).forEach { (name, color) ->
-                                    val isSelected = backgroundColor == name
-                                    Box(
-                                        modifier = Modifier
-                                            .size(settingsColorSize)
-                                            .clip(CircleShape)
-                                            .background(if (name == "theme") palette.primary else color)
-                                            .border(
-                                                width = if (isSelected) 2.dp else 1.dp,
-                                                color = if (isSelected) palette.accent else palette.shade4,
-                                                shape = CircleShape
-                                            )
-                                            .clickable { onBackgroundColorChange(name) },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (name == "theme" && !isSelected) {
-                                            Text("T", color = palette.onPrimary, fontWeight = FontWeight.Bold, fontSize = settingsFontSize)
-                                        } else if (isSelected) {
-                                            Icon(
-                                                AppIcons.Check,
-                                                contentDescription = null,
-                                                tint = if (name == "light" || name == "sepia") palette.primary else Color.White,
-                                                modifier = Modifier.size(settingsIconSize)
-                                            )
-                                        }
-                                    }
-                                }
                             }
 
                             Spacer(modifier = Modifier.height(10.dp))

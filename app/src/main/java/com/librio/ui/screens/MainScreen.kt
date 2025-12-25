@@ -167,8 +167,6 @@ fun MainScreen(
     onBassBoostLevelChange: (Int) -> Unit = {},
     equalizerPreset: String = "DEFAULT",
     onEqualizerPresetChange: (String) -> Unit = {},
-    crossfadeDuration: Int = 0,
-    onCrossfadeDurationChange: (Int) -> Unit = {},
     showFileSize: Boolean = true,
     onShowFileSizeChange: (Boolean) -> Unit = {},
     showDuration: Boolean = true,

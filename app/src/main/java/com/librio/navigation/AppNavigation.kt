@@ -8,6 +8,7 @@ import com.librio.ui.theme.AppIcons
  */
 sealed class Screen(val route: String) {
     object Splash : Screen("splash")
+    object Onboarding : Screen("onboarding")
     object Main : Screen("main/{initialTab}") {
         fun createRoute(initialTab: String = "library"): String = "main/$initialTab"
     }

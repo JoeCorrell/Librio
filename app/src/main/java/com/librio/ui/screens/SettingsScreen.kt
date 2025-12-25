@@ -275,43 +275,73 @@ fun SettingsScreen(
                         )
 
                         // Library View Mode selector
-                        Text(
-                            text = "Library View",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Medium,
-                            color = palette.textPrimary,
-                            modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
+                        Divider(
+                            color = palette.divider,
+                            modifier = Modifier.padding(vertical = 8.dp)
                         )
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            FilterChip(
-                                selected = defaultLibraryView == "LIST",
-                                onClick = { onDefaultLibraryViewChange("LIST") },
-                                label = { Text("List") },
-                                leadingIcon = if (defaultLibraryView == "LIST") {
-                                    { Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                } else null,
-                                modifier = Modifier.weight(1f),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = palette.accent.copy(alpha = 0.2f),
-                                    selectedLabelColor = palette.accent
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Default view",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.Medium,
+                                    color = palette.textPrimary
                                 )
-                            )
-                            FilterChip(
-                                selected = defaultLibraryView == "GRID_2",
-                                onClick = { onDefaultLibraryViewChange("GRID_2") },
-                                label = { Text("Grid (2 columns)") },
-                                leadingIcon = if (defaultLibraryView == "GRID_2") {
-                                    { Icon(AppIcons.Check, contentDescription = null, modifier = Modifier.size(18.dp)) }
-                                } else null,
-                                modifier = Modifier.weight(1f),
-                                colors = FilterChipDefaults.filterChipColors(
-                                    selectedContainerColor = palette.accent.copy(alpha = 0.2f),
-                                    selectedLabelColor = palette.accent
+                                Text(
+                                    text = "Choose how your library is displayed",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = palette.textMuted
                                 )
-                            )
+                            }
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                // List view button
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(cornerRadius(10.dp))
+                                        .background(
+                                            if (defaultLibraryView == "LIST") palette.accent
+                                            else palette.surfaceLight
+                                        )
+                                        .clickable { onDefaultLibraryViewChange("LIST") },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        AppIcons.ListView,
+                                        contentDescription = "List view",
+                                        tint = if (defaultLibraryView == "LIST") palette.onPrimary
+                                               else palette.textSecondary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                                // Grid view button
+                                Box(
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .clip(cornerRadius(10.dp))
+                                        .background(
+                                            if (defaultLibraryView == "GRID_2") palette.accent
+                                            else palette.surfaceLight
+                                        )
+                                        .clickable { onDefaultLibraryViewChange("GRID_2") },
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        AppIcons.GridView,
+                                        contentDescription = "Grid view",
+                                        tint = if (defaultLibraryView == "GRID_2") palette.onPrimary
+                                               else palette.textSecondary,
+                                        modifier = Modifier.size(22.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }

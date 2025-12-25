@@ -363,10 +363,16 @@ fun ProfileScreen(
                         "Are you sure you want to delete \"${profile.name}\"?",
                         color = palette.primary.copy(alpha = 0.7f)
                     )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        "Warning: This will permanently delete all media files in this profile's folders (audiobooks, ebooks, music, comics, and movies).",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall
+                    )
                     if (profile.isActive) {
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(4.dp))
                         Text(
-                            "Warning: This is the active profile. You will be switched to Default.",
+                            "You will be switched to the Default profile.",
                             color = MaterialTheme.colorScheme.error,
                             style = MaterialTheme.typography.bodySmall
                         )
@@ -1131,6 +1137,168 @@ fun ProfileScreen(
                                 tint = palette.textMuted,
                                 modifier = Modifier.size(24.dp)
                             )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Dark Mode Toggle Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = palette.surfaceMedium),
+                        shape = shape16,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onDarkModeChange(!darkMode) }
+                                .padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(shape12)
+                                    .background(palette.accent.copy(alpha = 0.15f)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = if (darkMode) AppIcons.DarkMode else AppIcons.LightMode,
+                                    contentDescription = null,
+                                    tint = palette.accent,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = "Dark Mode",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = palette.primary
+                                )
+                                Text(
+                                    text = if (darkMode) "On" else "Off",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = palette.accent,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                            Switch(
+                                checked = darkMode,
+                                onCheckedChange = onDarkModeChange,
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = palette.onPrimary,
+                                    checkedTrackColor = palette.accent,
+                                    uncheckedThumbColor = palette.shade5,
+                                    uncheckedTrackColor = palette.surfaceLight
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Background Theme Card
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = palette.surfaceMedium),
+                        shape = shape16,
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .clip(shape12)
+                                        .background(palette.accent.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = AppIcons.Image,
+                                        contentDescription = null,
+                                        tint = palette.accent,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(16.dp))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Background",
+                                        style = MaterialTheme.typography.titleMedium,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = palette.primary
+                                    )
+                                    Text(
+                                        text = backgroundTheme.displayName,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = palette.accent,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(12.dp))
+                            // Background theme options in a horizontal scrollable row
+                            LazyRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                items(BackgroundTheme.entries.toList()) { bgTheme ->
+                                    val isSelected = backgroundTheme == bgTheme
+                                    val bgColor = when (bgTheme) {
+                                        BackgroundTheme.WHITE -> Color(0xFFFFFFFF)
+                                        BackgroundTheme.CREAM -> Color(0xFFFFFBF0)
+                                        BackgroundTheme.LIGHT_GRAY -> Color(0xFFF5F5F5)
+                                        BackgroundTheme.WARM_WHITE -> Color(0xFFFFFAF5)
+                                        BackgroundTheme.COOL_GRAY -> Color(0xFFF0F4F8)
+                                        BackgroundTheme.PAPER -> Color(0xFFFAF8F5)
+                                        BackgroundTheme.SOFT_BLUE -> Color(0xFFE8F0F8)
+                                        BackgroundTheme.MINT -> Color(0xFFE8F8F0)
+                                        BackgroundTheme.LAVENDER -> Color(0xFFF0E8F8)
+                                        BackgroundTheme.PEACH -> Color(0xFFFFF0E8)
+                                        BackgroundTheme.SLATE -> Color(0xFF3A4A5A)
+                                        BackgroundTheme.CHARCOAL -> Color(0xFF1F1F1F)
+                                        BackgroundTheme.DARK_BLUE -> Color(0xFF1A1F3C)
+                                        BackgroundTheme.FOREST -> Color(0xFF1A2F1A)
+                                        BackgroundTheme.SEPIA -> Color(0xFFE8D5B5)
+                                        BackgroundTheme.ROSE -> Color(0xFFFFF0F5)
+                                    }
+                                    Box(
+                                        modifier = Modifier
+                                            .size(40.dp)
+                                            .clip(shape8)
+                                            .background(bgColor)
+                                            .border(
+                                                width = if (isSelected) 2.dp else 1.dp,
+                                                color = if (isSelected) palette.accent else palette.shade4,
+                                                shape = shape8
+                                            )
+                                            .clickable { onBackgroundThemeChange(bgTheme) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        if (isSelected) {
+                                            val isDarkBg = bgTheme == BackgroundTheme.SLATE ||
+                                                           bgTheme == BackgroundTheme.CHARCOAL ||
+                                                           bgTheme == BackgroundTheme.DARK_BLUE ||
+                                                           bgTheme == BackgroundTheme.FOREST
+                                            Icon(
+                                                AppIcons.Check,
+                                                contentDescription = "Selected",
+                                                tint = if (isDarkBg) Color.White else palette.accent,
+                                                modifier = Modifier.size(16.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 

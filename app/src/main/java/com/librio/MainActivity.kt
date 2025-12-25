@@ -48,6 +48,7 @@ import com.librio.ui.screens.SeriesDetailScreen
 import com.librio.ui.screens.SettingsScreen
 import com.librio.ui.screens.SplashScreen
 import com.librio.ui.screens.UserProfile
+import com.librio.ui.screens.OnboardingScreen
 import com.librio.player.applyEqualizerPreset
 import com.librio.player.normalizeEqPresetName
 import com.librio.ui.theme.AppTheme
@@ -132,6 +133,7 @@ class MainActivity : ComponentActivity() {
             val lastActiveType by settingsViewModel.lastActiveType?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
             val musicShuffleEnabled by settingsViewModel.musicShuffleEnabled?.collectAsState() ?: remember { mutableStateOf(false) }
             val musicRepeatMode by settingsViewModel.musicRepeatMode?.collectAsState() ?: remember { mutableStateOf(0) }
+            val showOnboarding by settingsViewModel.showOnboarding.collectAsState()
 
             // Get active profile for audio settings
             val activeProfile = profiles.find { it.isActive }
@@ -177,7 +179,6 @@ class MainActivity : ComponentActivity() {
             val readerBrightness by settingsViewModel.readerBrightness?.collectAsState() ?: remember { mutableStateOf(1f) }
             val readerBoldText by settingsViewModel.readerBoldText?.collectAsState() ?: remember { mutableStateOf(false) }
             val readerWordSpacing by settingsViewModel.readerWordSpacing?.collectAsState() ?: remember { mutableStateOf(0) }
-            val readerTheme by settingsViewModel.readerTheme?.collectAsState() ?: remember { mutableStateOf("light") }
             val readerPageFitMode by settingsViewModel.readerPageFitMode?.collectAsState() ?: remember { mutableStateOf("fit") }
             val readerPageGap by settingsViewModel.readerPageGap?.collectAsState() ?: remember { mutableStateOf(4) }
             val readerForceTwoPage by settingsViewModel.readerForceTwoPage?.collectAsState() ?: remember { mutableStateOf(false) }
@@ -189,7 +190,6 @@ class MainActivity : ComponentActivity() {
             val comicReadingDirection by settingsViewModel.comicReadingDirection?.collectAsState() ?: remember { mutableStateOf("ltr") }
             val comicPageFitMode by settingsViewModel.comicPageFitMode?.collectAsState() ?: remember { mutableStateOf("fit") }
             val comicPageGap by settingsViewModel.comicPageGap?.collectAsState() ?: remember { mutableStateOf(4) }
-            val comicBackgroundColor by settingsViewModel.comicBackgroundColor?.collectAsState() ?: remember { mutableStateOf("theme") }
             val comicShowPageIndicators by settingsViewModel.comicShowPageIndicators?.collectAsState() ?: remember { mutableStateOf(true) }
             val comicEnableDoubleTapZoom by settingsViewModel.comicEnableDoubleTapZoom?.collectAsState() ?: remember { mutableStateOf(true) }
             val comicShowControlsOnTap by settingsViewModel.comicShowControlsOnTap?.collectAsState() ?: remember { mutableStateOf(true) }
@@ -806,8 +806,37 @@ class MainActivity : ComponentActivity() {
                             SplashScreen(
                                 onSplashComplete = {
                                     introComplete = true
+                                    // Check if onboarding is needed
+                                    if (showOnboarding) {
+                                        navController.navigate(Screen.Onboarding.route) {
+                                            popUpTo(Screen.Splash.route) { inclusive = true }
+                                        }
+                                    } else {
+                                        navController.navigate(Screen.Main.createRoute("library")) {
+                                            popUpTo(Screen.Splash.route) { inclusive = true }
+                                        }
+                                    }
+                                }
+                            )
+                        }
+
+                        // Onboarding screen (first launch)
+                        composable(Screen.Onboarding.route) {
+                            OnboardingScreen(
+                                currentProfile = activeProfile,
+                                onRenameProfile = { profile, newName ->
+                                    val oldName = profile.name
+                                    settingsViewModel.renameProfile(profile, newName)
+                                    // Notify LibraryViewModel so it updates its profile name reference
+                                    libraryViewModel.renameActiveProfile(oldName, newName)
+                                },
+                                onSetProfilePicture = { profile, uri ->
+                                    settingsViewModel.setProfilePicture(profile, uri)
+                                },
+                                onComplete = {
+                                    settingsViewModel.completeOnboarding()
                                     navController.navigate(Screen.Main.createRoute("library")) {
-                                        popUpTo(Screen.Splash.route) { inclusive = true }
+                                        popUpTo(Screen.Onboarding.route) { inclusive = true }
                                     }
                                 }
                             )
@@ -1070,7 +1099,10 @@ class MainActivity : ComponentActivity() {
                                 onAddProfile = { settingsViewModel.addProfile(it) },
                                 onDeleteProfile = { settingsViewModel.deleteProfile(it) },
                                 onRenameProfile = { profile, newName ->
+                                    val oldName = profile.name
                                     settingsViewModel.renameProfile(profile, newName)
+                                    // Notify LibraryViewModel so it updates its profile name reference
+                                    libraryViewModel.renameActiveProfile(oldName, newName)
                                 },
                                 onSetProfilePicture = { profile, pictureUri ->
                                     settingsViewModel.setProfilePicture(profile, pictureUri)
@@ -1451,7 +1483,6 @@ class MainActivity : ComponentActivity() {
                                     initialBrightness = readerBrightness,
                                     initialBoldText = readerBoldText,
                                     initialWordSpacing = readerWordSpacing,
-                                    initialBackgroundColor = readerTheme,
                                     initialPageFitMode = readerPageFitMode,
                                     initialPageGap = readerPageGap,
                                     initialForceTwoPage = readerForceTwoPage,
@@ -1466,7 +1497,6 @@ class MainActivity : ComponentActivity() {
                                     onBrightnessChange = { settingsViewModel.setReaderBrightness(it) },
                                     onBoldTextChange = { settingsViewModel.setReaderBoldText(it) },
                                     onWordSpacingChange = { settingsViewModel.setReaderWordSpacing(it) },
-                                    onBackgroundColorChange = { settingsViewModel.setReaderTheme(it) },
                                     onPageFitModeChange = { settingsViewModel.setReaderPageFitMode(it) },
                                     onPageGapChange = { settingsViewModel.setReaderPageGap(it) },
                                     onForceTwoPageChange = { settingsViewModel.setReaderForceTwoPage(it) },
@@ -1632,8 +1662,6 @@ class MainActivity : ComponentActivity() {
                                     onPageFitModeChange = { settingsViewModel.setComicPageFitMode(it) },
                                     pageGap = comicPageGap,
                                     onPageGapChange = { settingsViewModel.setComicPageGap(it) },
-                                    backgroundColor = comicBackgroundColor,
-                                    onBackgroundColorChange = { settingsViewModel.setComicBackgroundColor(it) },
                                     showPageIndicators = comicShowPageIndicators,
                                     onShowPageIndicatorsChange = { settingsViewModel.setComicShowPageIndicators(it) },
                                     enableDoubleTapZoom = comicEnableDoubleTapZoom,

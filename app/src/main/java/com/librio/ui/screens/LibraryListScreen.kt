@@ -134,13 +134,7 @@ fun LibraryListScreen(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    val shape3 = cornerRadius(3.dp)
-    val shape4 = cornerRadius(4.dp)
-    val shape6 = cornerRadius(6.dp)
-    val shape8 = cornerRadius(8.dp)
-    val shape10 = cornerRadius(10.dp)
     val shape12 = cornerRadius(12.dp)
-    val shape50 = cornerRadius(50.dp)
     var showEditDialog by remember { mutableStateOf<LibraryAudiobook?>(null) }
     var showDeleteDialog by remember { mutableStateOf<LibraryAudiobook?>(null) }
     var showEditBookDialog by remember { mutableStateOf<LibraryBook?>(null) }
@@ -262,14 +256,6 @@ fun LibraryListScreen(
             imagePickerLauncher.launch("image/*")
         }
     }
-
-    // Tab animation
-    val tabIndicatorOffset by animateDpAsState(
-        targetValue = if (selectedContentType == ContentType.AUDIOBOOK) 0.dp else 1.dp,
-        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-        label = "tabOffset"
-    )
-
 
     // Edit audiobook dialog
     showEditDialog?.let { audiobook ->
@@ -533,13 +519,7 @@ fun LibraryListScreen(
         // Content Type Tabs - Audiobooks / Books switcher
         ContentTypeTabs(
             selectedContentType = selectedContentType,
-            onContentTypeChange = onContentTypeChange,
-            audiobookCount = audiobooks.size,
-            bookCount = books.size,
-            musicCount = music.count { it.contentType == ContentType.MUSIC },
-            creepypastaCount = music.count { it.contentType == ContentType.CREEPYPASTA },
-            comicsCount = comics.size,
-            movieCount = movies.size
+            onContentTypeChange = onContentTypeChange
         )
 
         // Search bar (if visible)
@@ -745,7 +725,7 @@ fun LibraryListScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                itemsIndexed(filteredAudiobooks, key = { _, item -> item.id }) { index, audiobook ->
+                                itemsIndexed(filteredAudiobooks, key = { _, item -> item.id }) { _, audiobook ->
                                     AudiobookGridItem(
                                         audiobook = audiobook,
                                         onClick = { onSelectAudiobook(audiobook) },
@@ -846,7 +826,7 @@ fun LibraryListScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                itemsIndexed(filteredBooks, key = { _, item -> item.id }) { index, book ->
+                                itemsIndexed(filteredBooks, key = { _, item -> item.id }) { _, book ->
                                     BookGridItem(
                                         book = book,
                                         onClick = { onSelectBook(book) },
@@ -1146,7 +1126,7 @@ fun LibraryListScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                itemsIndexed(filteredComics, key = { _, item -> item.id }) { index, comicItem ->
+                                itemsIndexed(filteredComics, key = { _, item -> item.id }) { _, comicItem ->
                                     ComicGridItem(
                                         comic = comicItem,
                                         onClick = { onSelectComic(comicItem) },
@@ -1164,7 +1144,7 @@ fun LibraryListScreen(
                                     .weight(1f)
                                     .fillMaxWidth()
                             ) {
-                                itemsIndexed(filteredComics, key = { _, item -> item.id }) { index, comicItem ->
+                                itemsIndexed(filteredComics, key = { _, item -> item.id }) { _, comicItem ->
                                     ComicListItem(
                                         comic = comicItem,
                                         onClick = { onSelectComic(comicItem) },
@@ -1243,7 +1223,7 @@ fun LibraryListScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                                 verticalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                itemsIndexed(filteredMovies, key = { _, item -> item.id }) { index, movieItem ->
+                                itemsIndexed(filteredMovies, key = { _, item -> item.id }) { _, movieItem ->
                                     MovieGridItem(
                                         movie = movieItem,
                                         onClick = { onSelectMovie(movieItem) },
@@ -1261,7 +1241,7 @@ fun LibraryListScreen(
                                     .weight(1f)
                                     .fillMaxWidth()
                             ) {
-                                itemsIndexed(filteredMovies, key = { _, item -> item.id }) { index, movieItem ->
+                                itemsIndexed(filteredMovies, key = { _, item -> item.id }) { _, movieItem ->
                                     MovieListItem(
                                         movie = movieItem,
                                         onClick = { onSelectMovie(movieItem) },
@@ -1483,13 +1463,7 @@ private fun SeriesDivider(
 @Composable
 private fun ContentTypeTabs(
     selectedContentType: ContentType,
-    onContentTypeChange: (ContentType) -> Unit,
-    audiobookCount: Int,
-    bookCount: Int,
-    musicCount: Int = 0,
-    creepypastaCount: Int = 0,
-    comicsCount: Int = 0,
-    movieCount: Int = 0
+    onContentTypeChange: (ContentType) -> Unit
 ) {
     val palette = currentPalette()
     val shape12 = cornerRadius(12.dp)
@@ -1528,13 +1502,11 @@ private fun ContentTypeTabs(
             .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left arrow - always visible with accent background, cycles in reverse
+        // Left arrow - minimal style, cycles in reverse
         Box(
             modifier = Modifier
                 .padding(start = 8.dp)
                 .size(arrowSize)
-                .clip(CircleShape)
-                .background(palette.accentGradient())
                 .clickable {
                     coroutineScope.launch {
                         // Cycle in reverse: if can't scroll backward, wrap to end
@@ -1551,8 +1523,8 @@ private fun ContentTypeTabs(
             Icon(
                 AppIcons.ChevronLeft,
                 contentDescription = "Previous category",
-                tint = palette.shade9,
-                modifier = Modifier.size(arrowSize * 0.625f)
+                tint = palette.textSecondary,
+                modifier = Modifier.size(arrowSize * 0.75f)
             )
         }
 
@@ -1583,16 +1555,6 @@ private fun ContentTypeTabs(
                         animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
                         label = "tabScale"
                     )
-
-                    // Get the count for this content type
-                    val count = when (type) {
-                        ContentType.AUDIOBOOK -> audiobookCount
-                        ContentType.EBOOK -> bookCount
-                        ContentType.MUSIC -> musicCount
-                        ContentType.CREEPYPASTA -> creepypastaCount
-                        ContentType.COMICS -> comicsCount
-                        ContentType.MOVIE -> movieCount
-                    }
 
                     // Get the icon for this content type
                     val icon = when (type) {
@@ -1650,13 +1612,11 @@ private fun ContentTypeTabs(
             }
         }
 
-        // Right arrow - always visible with accent background, cycles forward
+        // Right arrow - minimal style, cycles forward
         Box(
             modifier = Modifier
                 .padding(end = 8.dp)
                 .size(arrowSize)
-                .clip(CircleShape)
-                .background(palette.accentGradient())
                 .clickable {
                     coroutineScope.launch {
                         // Cycle forward: if can't scroll forward anymore, wrap to start
@@ -1673,8 +1633,8 @@ private fun ContentTypeTabs(
             Icon(
                 AppIcons.ChevronRight,
                 contentDescription = "Next category",
-                tint = palette.shade9,
-                modifier = Modifier.size(arrowSize * 0.625f)
+                tint = palette.textSecondary,
+                modifier = Modifier.size(arrowSize * 0.75f)
             )
         }
     }
@@ -1910,6 +1870,7 @@ fun AudiobookListItem(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditMetadataDialog(
@@ -1933,8 +1894,6 @@ private fun EditMetadataDialog(
     var showDeleteSeriesConfirm by remember { mutableStateOf<LibrarySeries?>(null) }
     var newSeriesName by remember { mutableStateOf("") }
     val palette = currentPalette()
-    val shape3 = cornerRadius(3.dp)
-    val shape4 = cornerRadius(4.dp)
 
     val selectedSeriesName = seriesList.find { it.id == selectedSeriesId }?.name ?: "None"
 
@@ -2468,7 +2427,6 @@ fun MusicListItem(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
-    val shape3 = cornerRadius(3.dp)
     val shape8 = cornerRadius(8.dp)
     val shape12 = cornerRadius(12.dp)
     val haptic = LocalHapticFeedback.current
@@ -2656,8 +2614,6 @@ private fun EditBookMetadataDialog(
     var showDeleteSeriesConfirm by remember { mutableStateOf<LibrarySeries?>(null) }
     var newSeriesName by remember { mutableStateOf("") }
     val palette = currentPalette()
-    val shape3 = cornerRadius(3.dp)
-    val shape4 = cornerRadius(4.dp)
     val selectedSeriesName = seriesList.find { it.id == selectedSeriesId }?.name ?: "None"
 
     // Delete Series Confirmation Dialog
@@ -3142,6 +3098,7 @@ fun ComicListItem(
     }
 }
 
+@Suppress("UNUSED_PARAMETER")
 @OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun MovieListItem(
@@ -3567,7 +3524,6 @@ private fun EditMusicMetadataDialog(
     var showDeleteSeriesConfirm by remember { mutableStateOf<LibrarySeries?>(null) }
     var newSeriesName by remember { mutableStateOf("") }
     val palette = currentPalette()
-    val shape6 = cornerRadius(6.dp)
     val selectedSeriesName = seriesList.find { it.id == selectedSeriesId }?.name ?: "None"
 
     // Delete Playlist Confirmation Dialog
@@ -3893,7 +3849,6 @@ private fun EditComicMetadataDialog(
     var showDeleteSeriesConfirm by remember { mutableStateOf<LibrarySeries?>(null) }
     var newSeriesName by remember { mutableStateOf("") }
     val palette = currentPalette()
-    val shape6 = cornerRadius(6.dp)
     val selectedSeriesName = seriesList.find { it.id == selectedSeriesId }?.name ?: "None"
 
     // Delete Collection Confirmation Dialog
@@ -4218,7 +4173,6 @@ private fun EditMovieMetadataDialog(
     var showDeleteSeriesConfirm by remember { mutableStateOf<LibrarySeries?>(null) }
     var newSeriesName by remember { mutableStateOf("") }
     val palette = currentPalette()
-    val shape6 = cornerRadius(6.dp)
     val selectedSeriesName = seriesList.find { it.id == selectedSeriesId }?.name ?: "None"
 
     // Delete Playlist Confirmation Dialog
@@ -4509,6 +4463,7 @@ private fun EditMovieMetadataDialog(
  * Scales properly for all device screen sizes
  * Supports collapse/expand functionality
  */
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 fun SeriesDivider(
@@ -5031,6 +4986,7 @@ fun AssignSeriesDialog(
 /**
  * Grid item for audiobooks - shows cover art on top, title, author, progress below
  */
+@Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AudiobookGridItem(
@@ -5045,7 +5001,6 @@ private fun AudiobookGridItem(
     val shape6 = cornerRadius(6.dp)
     val shape8 = cornerRadius(8.dp)
     val haptic = LocalHapticFeedback.current
-    val context = LocalContext.current
 
     Column(
         modifier = modifier
@@ -5075,7 +5030,8 @@ private fun AudiobookGridItem(
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && audiobook.coverArt == null,
                 fileExtension = audiobook.fileType,
-                contentType = CoverArtContentType.AUDIOBOOK
+                contentType = CoverArtContentType.AUDIOBOOK,
+                title = audiobook.title
             )
         }
 
@@ -5164,7 +5120,8 @@ private fun BookGridItem(
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && book.coverArt == null,
                 fileExtension = book.fileType,
-                contentType = CoverArtContentType.EBOOK
+                contentType = CoverArtContentType.EBOOK,
+                title = book.title
             )
         }
 
@@ -5253,7 +5210,8 @@ private fun MusicGridItem(
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && music.coverArt == null,
                 fileExtension = music.fileType,
-                contentType = CoverArtContentType.MUSIC
+                contentType = CoverArtContentType.MUSIC,
+                title = music.title
             )
         }
 
@@ -5342,7 +5300,8 @@ private fun ComicGridItem(
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && comic.coverArt == null,
                 fileExtension = comic.fileType,
-                contentType = CoverArtContentType.COMICS
+                contentType = CoverArtContentType.COMICS,
+                title = comic.title
             )
         }
 
@@ -5447,7 +5406,8 @@ private fun MovieGridItem(
                 elevation = 0.dp,
                 showPlaceholderAlways = showPlaceholderIcons && bitmap == null,
                 fileExtension = movie.fileType,
-                contentType = CoverArtContentType.MOVIE
+                contentType = CoverArtContentType.MOVIE,
+                title = movie.title
             )
         }
 

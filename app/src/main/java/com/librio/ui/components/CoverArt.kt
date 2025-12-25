@@ -24,6 +24,8 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,6 +39,7 @@ import com.librio.ui.theme.currentPalette
  * @param showPlaceholderAlways If true, always shows the placeholder with file extension instead of cover art
  * @param fileExtension The file extension to display (e.g., "M4B", "MP3")
  * @param contentType Type of content for icon selection (AUDIOBOOK, MUSIC, MOVIE)
+ * @param title Optional title to display on placeholder to make each one unique
  */
 @Composable
 fun CoverArt(
@@ -47,7 +50,8 @@ fun CoverArt(
     elevation: Dp = 12.dp,
     showPlaceholderAlways: Boolean = false,
     fileExtension: String = "",
-    contentType: CoverArtContentType = CoverArtContentType.AUDIOBOOK
+    contentType: CoverArtContentType = CoverArtContentType.AUDIOBOOK,
+    title: String = ""
 ) {
     val palette = currentPalette()
     val shape = cornerRadius(cornerRadiusSize)
@@ -60,13 +64,15 @@ fun CoverArt(
             .background(palette.coverArtGradient()),
         contentAlignment = Alignment.Center
     ) {
-        // Show placeholder with icon and extension
+        // Show placeholder with icon, title, and extension
         if (showPlaceholderAlways || bitmap == null) {
-            // Icon and file extension overlay
+            // Icon, title, and file extension overlay
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(8.dp)
             ) {
                 Icon(
                     imageVector = when (contentType) {
@@ -78,18 +84,34 @@ fun CoverArt(
                     },
                     contentDescription = null,
                     modifier = Modifier
-                        .size(72.dp)
-                        .padding(8.dp),
+                        .size(48.dp)
+                        .padding(4.dp),
                     tint = palette.shade2
                 )
 
+                // Title text (truncated to 2 lines)
+                if (title.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.Medium,
+                            lineHeight = 14.sp
+                        ),
+                        color = palette.textSecondary,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 4.dp)
+                    )
+                }
+
                 if (fileExtension.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = fileExtension.uppercase(),
-                        style = MaterialTheme.typography.titleMedium.copy(
+                        style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            fontSize = 18.sp,
                             letterSpacing = 1.sp
                         ),
                         color = palette.accent
@@ -127,7 +149,8 @@ fun CoverArtThumbnail(
     size: Dp = 56.dp,
     showPlaceholderAlways: Boolean = false,
     fileExtension: String = "",
-    contentType: CoverArtContentType = CoverArtContentType.AUDIOBOOK
+    contentType: CoverArtContentType = CoverArtContentType.AUDIOBOOK,
+    title: String = ""
 ) {
     CoverArt(
         bitmap = bitmap,
@@ -137,6 +160,7 @@ fun CoverArtThumbnail(
         elevation = 4.dp,
         showPlaceholderAlways = showPlaceholderAlways,
         fileExtension = fileExtension,
-        contentType = contentType
+        contentType = contentType,
+        title = title
     )
 }

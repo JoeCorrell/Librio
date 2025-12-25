@@ -102,7 +102,6 @@ fun EbookReaderScreen(
     initialBrightness: Float = 1f,
     initialBoldText: Boolean = false,
     initialWordSpacing: Int = 0,
-    initialBackgroundColor: String = "theme", // Default to theme colors
     initialPageFitMode: String = "fit",
     initialPageGap: Int = 4,
     initialForceTwoPage: Boolean = false,
@@ -117,7 +116,6 @@ fun EbookReaderScreen(
     onBrightnessChange: (Float) -> Unit = {},
     onBoldTextChange: (Boolean) -> Unit = {},
     onWordSpacingChange: (Int) -> Unit = {},
-    onBackgroundColorChange: (String) -> Unit = {},
     onPageFitModeChange: (String) -> Unit = {},
     onPageGapChange: (Int) -> Unit = {},
     onForceTwoPageChange: (Boolean) -> Unit = {},
@@ -156,7 +154,6 @@ fun EbookReaderScreen(
     // Reader settings - Layout (initialized from persisted values)
     var forceTwoPageMode by remember { mutableStateOf(initialForceTwoPage) }
     var forceSinglePageMode by remember { mutableStateOf(initialForceSinglePage) }
-    var backgroundColor by remember { mutableStateOf(initialBackgroundColor) }
     var pageFitMode by remember { mutableStateOf(initialPageFitMode) }
     var pageGap by remember { mutableIntStateOf(initialPageGap) }
 
@@ -191,15 +188,8 @@ fun EbookReaderScreen(
         else -> showTwoPages
     }
 
-    // Background colors based on setting
-    val bgColor = when (backgroundColor) {
-        "dark" -> Color(0xFF1A1A1A)
-        "light" -> Color.White
-        "sepia" -> Color(0xFFF5E6D3)
-        "amoled" -> Color.Black
-        "theme" -> palette.background
-        else -> palette.background
-    }
+    // Background color - follows theme
+    val bgColor = palette.background
 
     // Calculate page pairs for 2-page mode
     val pagePairs = remember(pages, effectiveTwoPageMode) {
@@ -246,9 +236,6 @@ fun EbookReaderScreen(
         )
     }
 
-    // Debounced background color to prevent rapid reloads
-    var debouncedBackgroundColor by remember { mutableStateOf(backgroundColor) }
-
     // Debounce text settings changes - prevents rapid reloads while adjusting sliders
     LaunchedEffect(fontSize, lineSpacing, marginSize, fontFamily, textAlign, paragraphSpacing, boldText, wordSpacing) {
         kotlinx.coroutines.delay(1500) // Wait 1.5s after last change to prevent lag during slider adjustments
@@ -262,12 +249,6 @@ fun EbookReaderScreen(
             boldText = boldText,
             wordSpacing = wordSpacing
         )
-    }
-
-    // Debounce background color changes
-    LaunchedEffect(backgroundColor) {
-        kotlinx.coroutines.delay(300) // Shorter delay for background as it's more immediate feedback
-        debouncedBackgroundColor = backgroundColor
     }
 
     // Cleanup page load job when leaving the screen
@@ -309,7 +290,7 @@ fun EbookReaderScreen(
     // For PDFs and image-based books, only reload when background changes
     // Uses debounced values to prevent rapid reloads causing crashes
     // Uses Mutex to prevent race conditions from concurrent page loading
-    LaunchedEffect(book.uri, debouncedBackgroundColor, if (isTextBasedBook) textSettings else Unit, themeBgColorInt, themeTextColorInt) {
+    LaunchedEffect(book.uri, if (isTextBasedBook) textSettings else Unit, themeBgColorInt, themeTextColorInt) {
         // Cancel any previous page loading job to prevent race conditions
         pageLoadJob?.cancel()
 
@@ -324,7 +305,7 @@ fun EbookReaderScreen(
                     // Check if we should continue before the expensive operation
                     if (!isActive) return@withLock
 
-                    val newPages = loadBookPages(context, book.uri, book.fileType, debouncedBackgroundColor, textSettings, themeBgColorInt, themeTextColorInt)
+                    val newPages = loadBookPages(context, book.uri, book.fileType, "theme", textSettings, themeBgColorInt, themeTextColorInt)
 
                     // Check again after the operation completes
                     if (!isActive) return@withLock
@@ -799,7 +780,6 @@ fun EbookReaderScreen(
         val settingsPadding = if (screenWidth < 400) 12.dp else 16.dp
         val settingsIconSize = if (screenWidth < 400) 14.dp else 16.dp
         val settingsButtonHeight = if (screenWidth < 400) 32.dp else 36.dp
-        val settingsColorSize = if (screenWidth < 400) 30.dp else 36.dp
         val settingsFontSize = if (screenWidth < 400) 10.sp else 12.sp
         val settingsMaxHeight = (screenHeight * 0.6f).dp  // Max 60% of screen height
 
@@ -936,56 +916,6 @@ fun EbookReaderScreen(
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(6.dp))
-
-                            // Background colors
-                            Text(
-                                "Background",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = palette.textMuted
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                listOf(
-                                    "dark" to Color(0xFF1A1A1A),
-                                    "light" to Color.White,
-                                    "sepia" to Color(0xFFF5E6D3),
-                                    "amoled" to Color.Black,
-                                    "theme" to palette.primary
-                                ).forEach { (name, color) ->
-                                    val isSelected = backgroundColor == name
-                                    Box(
-                                        modifier = Modifier
-                                            .size(settingsColorSize)
-                                            .clip(CircleShape)
-                                            .background(if (name == "theme") palette.primary else color)
-                                            .border(
-                                                width = if (isSelected) 2.dp else 1.dp,
-                                                color = if (isSelected) palette.accent else palette.shade4,
-                                                shape = CircleShape
-                                            )
-                                            .clickable {
-                                                backgroundColor = name
-                                                onBackgroundColorChange(name)
-                                            },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (name == "theme" && !isSelected) {
-                                            Text("T", color = palette.onPrimary, fontWeight = FontWeight.Bold, fontSize = settingsFontSize)
-                                        } else if (isSelected) {
-                                            Icon(
-                                                AppIcons.Check,
-                                                contentDescription = null,
-                                                tint = if (name == "light" || name == "sepia") palette.primary else Color.White,
-                                                modifier = Modifier.size(settingsIconSize)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
 
@@ -1272,7 +1202,7 @@ fun EbookReaderScreen(
                                         boldText = newValue
                                         onBoldTextChange(newValue)
                                     }
-                                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -1283,8 +1213,8 @@ fun EbookReaderScreen(
                                         tint = palette.textPrimary,
                                         modifier = Modifier.size(settingsIconSize)
                                     )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text("Bold", style = MaterialTheme.typography.bodySmall, color = palette.textPrimary)
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Bold text", style = MaterialTheme.typography.bodySmall, color = palette.textPrimary)
                                 }
                                 Switch(
                                     checked = boldText,
@@ -1292,7 +1222,6 @@ fun EbookReaderScreen(
                                         boldText = it
                                         onBoldTextChange(it)
                                     },
-                                    modifier = Modifier.height(18.dp),
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = palette.onPrimary,
                                         checkedTrackColor = palette.accent,

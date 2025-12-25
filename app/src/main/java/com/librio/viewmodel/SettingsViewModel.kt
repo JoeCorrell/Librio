@@ -269,6 +269,10 @@ class SettingsViewModel : ViewModel() {
     private val _migrationComplete = MutableStateFlow(false)
     val migrationComplete: StateFlow<Boolean> = _migrationComplete.asStateFlow()
 
+    // Onboarding state
+    private val _showOnboarding = MutableStateFlow(false)
+    val showOnboarding: StateFlow<Boolean> = _showOnboarding.asStateFlow()
+
     private var migrationManager: MigrationManager? = null
 
     fun initialize(context: Context) {
@@ -282,7 +286,25 @@ class SettingsViewModel : ViewModel() {
 
             // Check and perform migration if needed
             performMigrationIfNeeded()
+
+            // Check if onboarding is needed (first launch)
+            _showOnboarding.value = !repository!!.isOnboardingComplete()
         }
+    }
+
+    /**
+     * Check if onboarding should be shown
+     */
+    fun isOnboardingComplete(): Boolean {
+        return repository?.isOnboardingComplete() ?: true
+    }
+
+    /**
+     * Mark onboarding as complete and hide the onboarding screen
+     */
+    fun completeOnboarding() {
+        repository?.setOnboardingComplete()
+        _showOnboarding.value = false
     }
 
     /**

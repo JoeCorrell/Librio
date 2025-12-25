@@ -82,7 +82,6 @@ fun MusicPlayerScreen(
     volumeBoostLevel: Float = 1.0f,
     normalizeAudio: Boolean = false,
     bassBoostLevel: Float = 0f,
-    crossfadeDuration: Int = 0,
     autoRewind: Int = 0,
     autoPlayNext: Boolean = true,
     resumePlayback: Boolean = true,
@@ -93,7 +92,6 @@ fun MusicPlayerScreen(
     onAutoPlayNextChange: (Boolean) -> Unit = {},
     onResumePlaybackChange: (Boolean) -> Unit = {},
     onSleepTimerChange: (Int) -> Unit = {},
-    onCrossfadeDurationChange: (Int) -> Unit = {},
     onVolumeBoostEnabledChange: (Boolean) -> Unit = {},
     onVolumeBoostLevelChange: (Float) -> Unit = {},
     onNormalizeAudioChange: (Boolean) -> Unit = {},
@@ -262,7 +260,6 @@ fun MusicPlayerScreen(
                             e.printStackTrace()
                         }
                     }
-                    applyCrossfade(exoPlayer, crossfadeDuration)
                 }
                 // Handle track ended - auto-play next based on shuffle/repeat mode
                 if (playbackState == Player.STATE_ENDED && !isExternalPlayer) {
@@ -350,7 +347,7 @@ fun MusicPlayerScreen(
         }
 
         // Apply audio effects when toggles change
-        LaunchedEffect(volumeBoostEnabled, volumeBoostLevel, normalizeAudio, bassBoostLevel, equalizerPreset, crossfadeDuration) {
+        LaunchedEffect(volumeBoostEnabled, volumeBoostLevel, normalizeAudio, bassBoostLevel, equalizerPreset) {
             applyAudioEffects(
                 loudnessEnhancer,
                 bassBoost,
@@ -360,12 +357,6 @@ fun MusicPlayerScreen(
                 bassBoostLevel,
                 equalizerPreset
             )
-            applyCrossfade(exoPlayer, crossfadeDuration)
-        }
-    } else {
-        // Still apply crossfade + skip silence guards for the shared player
-        LaunchedEffect(crossfadeDuration) {
-            applyCrossfade(exoPlayer, crossfadeDuration)
         }
     }
 
@@ -878,8 +869,6 @@ fun MusicPlayerScreen(
                     onResumePlaybackChange = onResumePlaybackChange,
                     sleepTimerMinutes = sleepTimerMinutes,
                     onSleepTimerChange = onSleepTimerChange,
-                    crossfadeDuration = crossfadeDuration,
-                    onCrossfadeDurationChange = onCrossfadeDurationChange,
                     volumeBoostEnabled = volumeBoostEnabled,
                     onVolumeBoostEnabledChange = onVolumeBoostEnabledChange,
                     volumeBoostLevel = volumeBoostLevel,
@@ -939,16 +928,6 @@ private fun applyAudioEffects(
         }
         boost.setStrength(strength.toShort())
         boost.enabled = strength > 0
-    }
-}
-
-private fun applyCrossfade(exoPlayer: ExoPlayer, crossfadeSeconds: Int) {
-    val ms = (crossfadeSeconds * 1000L).coerceAtLeast(0L)
-    listOf("setMediaItemsTransitionDurationMs", "setCrossFadeDurationMs", "setCrossfadeDurationMs").forEach { name ->
-        runCatching {
-            val method = exoPlayer.javaClass.getMethod(name, java.lang.Long.TYPE)
-            method.invoke(exoPlayer, ms)
-        }
     }
 }
 

@@ -2585,5 +2585,20 @@ class SettingsRepository(private val context: Context) {
         private const val KEY_LAST_ACTIVE_TYPE = "last_active_type"
         private const val KEY_MUSIC_SHUFFLE_ENABLED = "music_shuffle_enabled"
         private const val KEY_MUSIC_REPEAT_MODE = "music_repeat_mode"
+        private const val KEY_ONBOARDING_COMPLETE = "onboarding_complete"
+    }
+
+    /**
+     * Check if the user has completed the first-time onboarding
+     */
+    fun isOnboardingComplete(): Boolean {
+        return prefs.getBoolean(KEY_ONBOARDING_COMPLETE, false)
+    }
+
+    /**
+     * Mark onboarding as complete
+     */
+    fun setOnboardingComplete() {
+        prefs.edit().putBoolean(KEY_ONBOARDING_COMPLETE, true).apply()
     }
 }

@@ -793,6 +793,47 @@ class LibraryRepository(private val context: Context) {
         }
     }
 
+    /**
+     * Migrate all library data from old profile key to new profile key
+     * This should be called when a profile is renamed to preserve library data
+     */
+    suspend fun migrateLibraryDataForRename(oldName: String, newName: String) = withContext(Dispatchers.IO) {
+        val oldKey = { baseKey: String -> "${baseKey}_profile_${oldName.replace(Regex("[^a-zA-Z0-9]"), "_")}" }
+        val newKey = { baseKey: String -> "${baseKey}_profile_${newName.replace(Regex("[^a-zA-Z0-9]"), "_")}" }
+
+        // List of all keys that need to be migrated
+        val keysToMigrate = listOf(
+            KEY_LIBRARY,
+            KEY_BOOKS,
+            KEY_MUSIC,
+            KEY_COMICS,
+            KEY_MOVIES,
+            KEY_SERIES,
+            KEY_LAST_PLAYED,
+            KEY_CATEGORIES
+        )
+
+        prefs.edit().apply {
+            // Migrate string data
+            keysToMigrate.forEach { key ->
+                prefs.getString(oldKey(key), null)?.let { value ->
+                    putString(newKey(key), value)
+                    remove(oldKey(key)) // Remove old key after migration
+                }
+            }
+
+            // Migrate playback speed (float)
+            val oldSpeedKey = oldKey(KEY_PLAYBACK_SPEED)
+            if (prefs.contains(oldSpeedKey)) {
+                val speed = prefs.getFloat(oldSpeedKey, 1.0f)
+                putFloat(newKey(KEY_PLAYBACK_SPEED), speed)
+                remove(oldSpeedKey)
+            }
+
+            commit()
+        }
+    }
+
     companion object {
         private const val PREFS_NAME = "audible_library_prefs"
         private const val KEY_LIBRARY = "library_data"

@@ -344,10 +344,45 @@ class LibraryViewModel : ViewModel() {
     }
 
     /**
+     * Migrate library data when any profile is renamed
+     * This should be called for ALL profile renames to preserve library data
+     * Updates the active profile name if it matches the old name
+     */
+    fun renameActiveProfile(oldName: String, newName: String) {
+        // Migrate library data from old key to new key synchronously
+        // This ensures no load/save operations use the wrong key during migration
+        kotlinx.coroutines.runBlocking {
+            repository?.migrateLibraryDataForRename(oldName, newName)
+        }
+
+        // If this is the active profile, update the name reference
+        if (currentProfileName == oldName) {
+            currentProfileName = newName
+            repository?.setCurrentProfile(newName)
+        }
+    }
+
+    /**
      * Get profile-specific content folder
      */
     private fun getProfileContentFolder(contentType: String): File? {
         return settingsRepository?.getProfileContentFolder(currentProfileName, contentType)
+    }
+
+    /**
+     * Check if a URI belongs to the current profile's content folders
+     * Returns true if the URI path is within any of this profile's content folders
+     */
+    private fun belongsToCurrentProfile(uri: Uri): Boolean {
+        val path = uri.path ?: return true // If no path, assume it belongs (external content)
+
+        // Check if path contains the current profile's folder
+        val profileFolder = settingsRepository?.getProfileFolder(currentProfileName)?.absolutePath ?: return true
+
+        // Path should contain the profile folder path to belong to this profile
+        return path.contains(profileFolder) ||
+               path.contains("/Profiles/$currentProfileName/") ||
+               path.contains("/Profiles/${currentProfileName.replace(Regex("[\\\\/:*?\"<>|]"), "_")}/")
     }
 
     /**
@@ -505,19 +540,26 @@ class LibraryViewModel : ViewModel() {
                     }
 
                     @Suppress("UNCHECKED_CAST")
-                    val savedAudiobooks = results[0] as List<LibraryAudiobook>
+                    val loadedAudiobooks = results[0] as List<LibraryAudiobook>
                     @Suppress("UNCHECKED_CAST")
                     val savedCategories = results[1] as List<Category>
                     @Suppress("UNCHECKED_CAST")
-                    val savedBooks = results[2] as List<LibraryBook>
+                    val loadedBooks = results[2] as List<LibraryBook>
                     @Suppress("UNCHECKED_CAST")
-                    val savedMusic = results[3] as List<LibraryMusic>
+                    val loadedMusic = results[3] as List<LibraryMusic>
                     @Suppress("UNCHECKED_CAST")
-                    val savedComics = results[4] as List<LibraryComic>
+                    val loadedComics = results[4] as List<LibraryComic>
                     @Suppress("UNCHECKED_CAST")
-                    val savedMovies = results[5] as List<LibraryMovie>
+                    val loadedMovies = results[5] as List<LibraryMovie>
                     @Suppress("UNCHECKED_CAST")
                     var savedSeries = results[6] as List<LibrarySeries>
+
+                    // Filter content to ensure profile isolation - only keep items belonging to current profile
+                    val savedAudiobooks = loadedAudiobooks.filter { belongsToCurrentProfile(it.uri) }
+                    val savedBooks = loadedBooks.filter { belongsToCurrentProfile(it.uri) }
+                    val savedMusic = loadedMusic.filter { belongsToCurrentProfile(it.uri) }
+                    val savedComics = loadedComics.filter { belongsToCurrentProfile(it.uri) }
+                    val savedMovies = loadedMovies.filter { belongsToCurrentProfile(it.uri) }
 
                     // Sync playlist folders with series - discover new folders and create series entries
                     val originalSeriesCount = savedSeries.size

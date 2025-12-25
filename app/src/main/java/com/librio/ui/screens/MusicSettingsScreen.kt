@@ -73,8 +73,6 @@ fun MusicSettingsScreen(
     onResumePlaybackChange: (Boolean) -> Unit,
     sleepTimerMinutes: Int,
     onSleepTimerChange: (Int) -> Unit,
-    crossfadeDuration: Int,
-    onCrossfadeDurationChange: (Int) -> Unit,
     volumeBoostEnabled: Boolean,
     onVolumeBoostEnabledChange: (Boolean) -> Unit,
     volumeBoostLevel: Float,
@@ -195,15 +193,6 @@ fun MusicSettingsScreen(
                             onChange = { onAutoRewindChange(it.toInt()) },
                             valueRange = 0f..60f,
                             step = 12
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-                        SliderRow(
-                            title = "Crossfade",
-                            valueLabel = "${crossfadeDuration}s",
-                            value = crossfadeDuration.coerceAtLeast(0).toFloat(),
-                            onChange = { onCrossfadeDurationChange(it.toInt()) },
-                            valueRange = 0f..10f,
-                            step = 10
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         ToggleRow(
