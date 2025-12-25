@@ -37,7 +37,6 @@ data class ProfileSettings(
     val selectedAudiobookCategoryId: String? = null,
     val selectedBookCategoryId: String? = null,
     val selectedMusicCategoryId: String? = null,
-    val selectedCreepypastaCategoryId: String? = null,
     val selectedComicCategoryId: String? = null,
     val selectedMovieCategoryId: String? = null,
     val lastModified: Long = System.currentTimeMillis()
@@ -76,10 +75,8 @@ data class AudioSettings(
     val fadeOnPauseResume: Boolean = false,
     val fadeOnSeek: Boolean = false,
     val fadeDurationMs: Int = 300,
-    // Gapless and crossfade
+    // Gapless playback
     val gaplessPlayback: Boolean = true,
-    val crossfadeEnabled: Boolean = false,
-    val crossfadeDuration: Int = 3, // seconds
     // Mono audio and channel balance
     val monoAudio: Boolean = false,
     val channelBalance: Float = 0f, // -1.0 (left) to 1.0 (right), 0 = center
@@ -167,7 +164,7 @@ data class MovieSettings(
     val skipIntroEnabled: Boolean = false,
     val skipIntroSeconds: Int = 0,
     val defaultAudioTrack: String = "auto",
-    val defaultSubtitleTrack: String = "off",
+    val subtitlesEnabled: Boolean = false,
     val subtitleSize: Float = 1.0f,
     val subtitleBackground: Boolean = false,
     val lastModified: Long = System.currentTimeMillis()

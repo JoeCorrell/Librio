@@ -500,7 +500,7 @@ class ProfileFileManager {
                 skipIntroEnabled = json.optBoolean("skipIntroEnabled", false),
                 skipIntroSeconds = json.optInt("skipIntroSeconds", 0),
                 defaultAudioTrack = json.optString("defaultAudioTrack", "auto"),
-                defaultSubtitleTrack = json.optString("defaultSubtitleTrack", "off"),
+                subtitlesEnabled = json.optBoolean("subtitlesEnabled", false),
                 subtitleSize = json.optDouble("subtitleSize", 1.0).toFloat(),
                 subtitleBackground = json.optBoolean("subtitleBackground", false),
                 lastModified = json.optLong("lastModified", System.currentTimeMillis())
@@ -539,7 +539,7 @@ class ProfileFileManager {
                 put("skipIntroEnabled", settings.skipIntroEnabled)
                 put("skipIntroSeconds", settings.skipIntroSeconds)
                 put("defaultAudioTrack", settings.defaultAudioTrack)
-                put("defaultSubtitleTrack", settings.defaultSubtitleTrack)
+                put("subtitlesEnabled", settings.subtitlesEnabled)
                 put("subtitleSize", settings.subtitleSize.toDouble())
                 put("subtitleBackground", settings.subtitleBackground)
                 put("lastModified", System.currentTimeMillis())

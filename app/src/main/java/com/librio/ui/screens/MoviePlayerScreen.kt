@@ -96,6 +96,8 @@ fun MoviePlayerScreen(
     onSwipeGesturesEnabledChange: (Boolean) -> Unit = {},
     rememberPosition: Boolean = true,
     onRememberPositionChange: (Boolean) -> Unit = {},
+    subtitlesEnabled: Boolean = false,
+    onSubtitlesEnabledChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
@@ -414,6 +416,7 @@ fun MoviePlayerScreen(
                     .weight(1f)
                     .fillMaxWidth()
                     .padding(bottom = if (!isFullscreen) 80.dp else 0.dp) // Add padding to prevent navbar clipping
+                    .background(Color.Black)
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
@@ -480,12 +483,12 @@ fun MoviePlayerScreen(
                                     modifier = Modifier
                                         .size(seekButtonSize * 0.85f)
                                         .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.5f))
+                                        .background(palette.accent.copy(alpha = 0.25f))
                                 ) {
                                     Icon(
                                         AppIcons.Replay30,
                                         contentDescription = "Rewind 30 seconds",
-                                        tint = Color.White.copy(alpha = 0.9f),
+                                        tint = palette.accent.copy(alpha = 0.9f),
                                         modifier = Modifier.size(seekIconSize * 0.9f)
                                     )
                                 }
@@ -498,12 +501,12 @@ fun MoviePlayerScreen(
                                     modifier = Modifier
                                         .size(seekButtonSize)
                                         .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.6f))
+                                        .background(palette.accent.copy(alpha = 0.35f))
                                 ) {
                                     Icon(
                                         AppIcons.Replay10,
                                         contentDescription = "Rewind 10 seconds",
-                                        tint = Color.White,
+                                        tint = palette.accent,
                                         modifier = Modifier.size(seekIconSize)
                                     )
                                 }
@@ -535,12 +538,12 @@ fun MoviePlayerScreen(
                                     modifier = Modifier
                                         .size(seekButtonSize)
                                         .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.6f))
+                                        .background(palette.accent.copy(alpha = 0.35f))
                                 ) {
                                     Icon(
                                         AppIcons.Forward10,
                                         contentDescription = "Forward 10 seconds",
-                                        tint = Color.White,
+                                        tint = palette.accent,
                                         modifier = Modifier.size(seekIconSize)
                                     )
                                 }
@@ -554,12 +557,12 @@ fun MoviePlayerScreen(
                                     modifier = Modifier
                                         .size(seekButtonSize * 0.85f)
                                         .clip(CircleShape)
-                                        .background(Color.Black.copy(alpha = 0.5f))
+                                        .background(palette.accent.copy(alpha = 0.25f))
                                 ) {
                                     Icon(
                                         AppIcons.Forward30,
                                         contentDescription = "Forward 30 seconds",
-                                        tint = Color.White.copy(alpha = 0.9f),
+                                        tint = palette.accent.copy(alpha = 0.9f),
                                         modifier = Modifier.size(seekIconSize * 0.9f)
                                     )
                                 }
@@ -804,6 +807,13 @@ fun MoviePlayerScreen(
         }
 
         // Settings panel overlay - positioned directly above navbar
+        // Adaptive sizing based on screen
+        val settingsPadding = if (screenWidth < 400.dp) 12.dp else 16.dp
+        val settingsIconSize = if (screenWidth < 400.dp) 14.dp else 16.dp
+        val settingsButtonHeight = if (screenWidth < 400.dp) 32.dp else 36.dp
+        val settingsFontSize = if (screenWidth < 400.dp) 10.sp else 12.sp
+        val settingsMaxHeight = (configuration.screenHeightDp * 0.6f).dp
+
         AnimatedVisibility(
             visible = showSettings,
             enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -816,19 +826,20 @@ fun MoviePlayerScreen(
                 shadowElevation = 12.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(bottom = 80.dp) // Directly above nav bar like comic reader
+                    .heightIn(max = settingsMaxHeight)
+                    .padding(bottom = 80.dp)
             ) {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .verticalScroll(rememberScrollState())
-                        .padding(16.dp)
+                        .padding(horizontal = settingsPadding, vertical = 10.dp)
                 ) {
-                    // Handle
+                    // Header with drag handle
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 8.dp),
+                            .padding(bottom = 6.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         Box(
@@ -840,7 +851,6 @@ fun MoviePlayerScreen(
                         )
                     }
 
-                    // Header
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -851,12 +861,12 @@ fun MoviePlayerScreen(
                                 AppIcons.Movie,
                                 contentDescription = null,
                                 tint = palette.accent,
-                                modifier = Modifier.size(20.dp)
+                                modifier = Modifier.size(if (screenWidth < 400.dp) 18.dp else 22.dp)
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
                             Text(
                                 "Movie Settings",
-                                style = MaterialTheme.typography.titleMedium,
+                                style = if (screenWidth < 400.dp) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                                 fontWeight = FontWeight.Bold,
                                 color = palette.textPrimary
                             )
@@ -874,133 +884,44 @@ fun MoviePlayerScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
 
-                    // Playback Speed Card
+                    // Display Settings Card
                     Surface(
                         color = palette.surfaceMedium,
                         shape = shape10,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                "Playback Speed: ${playbackSpeed}x",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = palette.textSecondary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(shape8)
-                                    .background(palette.surfaceLight),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { speed ->
-                                    val isSelected = playbackSpeed == speed
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(shape8)
-                                            .background(
-                                                if (isSelected) palette.primary else Color.Transparent
-                                            )
-                                            .clickable { onPlaybackSpeedChange(speed) }
-                                            .padding(vertical = 10.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = "${speed}x",
-                                            fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                            color = if (isSelected) palette.onPrimary else palette.textPrimary
-                                        )
-                                    }
-                                }
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            // Section header
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    AppIcons.Visibility,
+                                    contentDescription = null,
+                                    tint = palette.accent,
+                                    modifier = Modifier.size(settingsIconSize)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "Display",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = palette.textPrimary
+                                )
                             }
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Movie Scale Mode Card
-                    Surface(
-                        color = palette.surfaceMedium,
-                        shape = shape10,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                "Movie Scale",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = palette.textSecondary
-                            )
                             Spacer(modifier = Modifier.height(8.dp))
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(shape8)
-                                    .background(palette.surfaceLight),
-                                horizontalArrangement = Arrangement.SpaceEvenly
-                            ) {
-                                data class ScaleOption(val mode: String, val label: String)
-                                listOf(
-                                    ScaleOption("fit", "Fit"),
-                                    ScaleOption("fill", "Fill"),
-                                    ScaleOption("zoom", "Zoom")
-                                ).forEach { option ->
-                                    val isSelected = resizeMode == option.mode
-                                    Box(
-                                        modifier = Modifier
-                                            .weight(1f)
-                                            .clip(shape8)
-                                            .background(
-                                                if (isSelected) palette.primary else Color.Transparent
-                                            )
-                                            .clickable { onResizeModeChange(option.mode) }
-                                            .padding(vertical = 10.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(
-                                            text = option.label,
-                                            fontSize = 12.sp,
-                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
-                                            color = if (isSelected) palette.onPrimary else palette.textPrimary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
 
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    // Brightness Control Card
-                    Surface(
-                        color = palette.surfaceMedium,
-                        shape = shape10,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            Text(
-                                "Brightness: ${(brightness * 100).toInt()}%",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = palette.textSecondary
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
+                            // Brightness row
                             Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(shape8)
-                                    .background(palette.surfaceLight)
-                                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                                modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Icon(
                                     AppIcons.BrightnessLow,
                                     contentDescription = null,
                                     tint = palette.textMuted,
-                                    modifier = Modifier.size(20.dp)
+                                    modifier = Modifier.size(settingsIconSize)
                                 )
                                 Slider(
                                     value = brightness,
@@ -1008,140 +929,369 @@ fun MoviePlayerScreen(
                                     valueRange = 0.1f..1f,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(horizontal = 8.dp),
+                                        .padding(horizontal = 4.dp),
                                     colors = SliderDefaults.colors(
-                                        thumbColor = palette.primary,
-                                        activeTrackColor = palette.primary,
-                                        inactiveTrackColor = palette.textMuted.copy(alpha = 0.2f)
+                                        thumbColor = palette.accent,
+                                        activeTrackColor = palette.accent,
+                                        inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
                                     )
                                 )
                                 Icon(
                                     AppIcons.BrightnessHigh,
                                     contentDescription = null,
-                                    tint = palette.textPrimary,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = palette.textMuted,
+                                    modifier = Modifier.size(settingsIconSize)
                                 )
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            // Scale mode
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(settingsButtonHeight)
+                                    .clip(shape8)
+                                    .background(palette.background),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                listOf("fit" to "Fit", "fill" to "Fill", "zoom" to "Zoom").forEach { (mode, label) ->
+                                    val isSelected = resizeMode == mode
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .clip(shape8)
+                                            .background(if (isSelected) palette.accent else Color.Transparent)
+                                            .clickable { onResizeModeChange(mode) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = label,
+                                            fontSize = settingsFontSize,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                            color = if (isSelected) palette.onPrimary else palette.textPrimary
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
-                    // Toggle Options Card
+                    // Playback Settings Card
                     Surface(
                         color = palette.surfaceMedium,
                         shape = shape10,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Column(modifier = Modifier.padding(12.dp)) {
-                            // Fullscreen toggle
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(shape8)
-                                    .background(if (isFullscreen) palette.primary.copy(alpha = 0.15f) else palette.surfaceLight)
-                                    .clickable {
-                                        isFullscreen = !isFullscreen
-                                        manualFullscreenOverride = true
-                                    }
-                                    .padding(horizontal = 12.dp, vertical = 12.dp),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Icon(
-                                        imageVector = if (isFullscreen) AppIcons.FullscreenExit else AppIcons.Fullscreen,
-                                        contentDescription = null,
-                                        tint = if (isFullscreen) palette.primary else palette.textPrimary,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Text(
-                                        if (isFullscreen) "Exit Fullscreen" else "Fullscreen",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = if (isFullscreen) palette.primary else palette.textPrimary
-                                    )
-                                }
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
                                 Icon(
-                                    imageVector = AppIcons.ChevronRight,
+                                    AppIcons.Play,
                                     contentDescription = null,
-                                    tint = palette.textMuted,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = palette.accent,
+                                    modifier = Modifier.size(settingsIconSize)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "Playback",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = palette.textPrimary
                                 )
                             }
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Auto-fullscreen on landscape toggle
+                            // Speed selector
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(settingsButtonHeight)
+                                    .clip(shape8)
+                                    .background(palette.background),
+                                horizontalArrangement = Arrangement.SpaceEvenly
+                            ) {
+                                listOf(0.5f, 0.75f, 1.0f, 1.25f, 1.5f, 2.0f).forEach { speed ->
+                                    val isSelected = playbackSpeed == speed
+                                    Box(
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .fillMaxHeight()
+                                            .clip(shape8)
+                                            .background(if (isSelected) palette.accent else Color.Transparent)
+                                            .clickable { onPlaybackSpeedChange(speed) },
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "${speed}x",
+                                            fontSize = settingsFontSize,
+                                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                            color = if (isSelected) palette.onPrimary else palette.textPrimary
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Subtitles toggle
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(shape8)
-                                    .background(palette.surfaceLight)
-                                    .clickable { onAutoFullscreenLandscapeChange(!autoFullscreenLandscape) }
-                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                    .background(palette.background)
+                                    .clickable { onSubtitlesEnabledChange(!subtitlesEnabled) }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = AppIcons.ScreenRotation,
+                                        AppIcons.TextFields,
                                         contentDescription = null,
                                         tint = palette.textPrimary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(settingsIconSize)
                                     )
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        "Auto-fullscreen on Rotate",
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        "Subtitles",
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = palette.textPrimary
                                     )
                                 }
                                 Switch(
-                                    checked = autoFullscreenLandscape,
-                                    onCheckedChange = { onAutoFullscreenLandscapeChange(it) },
+                                    checked = subtitlesEnabled,
+                                    onCheckedChange = { onSubtitlesEnabledChange(it) },
+                                    modifier = Modifier.scale(0.8f),
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = palette.onPrimary,
-                                        checkedTrackColor = palette.primary,
+                                        checkedTrackColor = palette.accent,
                                         uncheckedThumbColor = palette.textMuted,
                                         uncheckedTrackColor = palette.textMuted.copy(alpha = 0.2f)
                                     )
                                 )
                             }
 
-                            Spacer(modifier = Modifier.height(8.dp))
-
-                            // Keep Screen On toggle
+                            // Remember position toggle
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .clip(shape8)
-                                    .background(palette.surfaceLight)
-                                    .clickable { onKeepScreenOnChange(!keepScreenOn) }
-                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                    .background(palette.background)
+                                    .clickable { onRememberPositionChange(!rememberPosition) }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Icon(
-                                        imageVector = if (keepScreenOn) AppIcons.Visibility else AppIcons.VisibilityOff,
+                                        AppIcons.Bookmark,
                                         contentDescription = null,
                                         tint = palette.textPrimary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(settingsIconSize)
                                     )
-                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "Remember Position",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = palette.textPrimary
+                                    )
+                                }
+                                Switch(
+                                    checked = rememberPosition,
+                                    onCheckedChange = { onRememberPositionChange(it) },
+                                    modifier = Modifier.scale(0.8f),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = palette.onPrimary,
+                                        checkedTrackColor = palette.accent,
+                                        uncheckedThumbColor = palette.textMuted,
+                                        uncheckedTrackColor = palette.textMuted.copy(alpha = 0.2f)
+                                    )
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    // Controls Settings Card
+                    Surface(
+                        color = palette.surfaceMedium,
+                        shape = shape10,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(10.dp)) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(
+                                    AppIcons.TouchApp,
+                                    contentDescription = null,
+                                    tint = palette.accent,
+                                    modifier = Modifier.size(settingsIconSize)
+                                )
+                                Spacer(modifier = Modifier.width(6.dp))
+                                Text(
+                                    "Controls",
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = palette.textPrimary
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Fullscreen toggle
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shape8)
+                                    .background(if (isFullscreen) palette.accent.copy(alpha = 0.15f) else palette.background)
+                                    .clickable {
+                                        isFullscreen = !isFullscreen
+                                        manualFullscreenOverride = true
+                                    }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        if (isFullscreen) AppIcons.FullscreenExit else AppIcons.Fullscreen,
+                                        contentDescription = null,
+                                        tint = if (isFullscreen) palette.accent else palette.textPrimary,
+                                        modifier = Modifier.size(settingsIconSize)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        if (isFullscreen) "Exit Fullscreen" else "Fullscreen",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = if (isFullscreen) palette.accent else palette.textPrimary
+                                    )
+                                }
+                                Icon(
+                                    AppIcons.ChevronRight,
+                                    contentDescription = null,
+                                    tint = palette.textMuted,
+                                    modifier = Modifier.size(settingsIconSize)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // Auto-fullscreen on landscape
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shape8)
+                                    .background(palette.background)
+                                    .clickable { onAutoFullscreenLandscapeChange(!autoFullscreenLandscape) }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        AppIcons.ScreenRotation,
+                                        contentDescription = null,
+                                        tint = palette.textPrimary,
+                                        modifier = Modifier.size(settingsIconSize)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "Auto-fullscreen on Rotate",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = palette.textPrimary
+                                    )
+                                }
+                                Switch(
+                                    checked = autoFullscreenLandscape,
+                                    onCheckedChange = { onAutoFullscreenLandscapeChange(it) },
+                                    modifier = Modifier.scale(0.8f),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = palette.onPrimary,
+                                        checkedTrackColor = palette.accent,
+                                        uncheckedThumbColor = palette.textMuted,
+                                        uncheckedTrackColor = palette.textMuted.copy(alpha = 0.2f)
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // Keep Screen On
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shape8)
+                                    .background(palette.background)
+                                    .clickable { onKeepScreenOnChange(!keepScreenOn) }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        if (keepScreenOn) AppIcons.Visibility else AppIcons.VisibilityOff,
+                                        contentDescription = null,
+                                        tint = palette.textPrimary,
+                                        modifier = Modifier.size(settingsIconSize)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
                                     Text(
                                         "Keep Screen On",
-                                        style = MaterialTheme.typography.bodyMedium,
+                                        style = MaterialTheme.typography.bodySmall,
                                         color = palette.textPrimary
                                     )
                                 }
                                 Switch(
                                     checked = keepScreenOn,
                                     onCheckedChange = { onKeepScreenOnChange(it) },
+                                    modifier = Modifier.scale(0.8f),
                                     colors = SwitchDefaults.colors(
                                         checkedThumbColor = palette.onPrimary,
-                                        checkedTrackColor = palette.primary,
+                                        checkedTrackColor = palette.accent,
+                                        uncheckedThumbColor = palette.textMuted,
+                                        uncheckedTrackColor = palette.textMuted.copy(alpha = 0.2f)
+                                    )
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            // Swipe Gestures
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(shape8)
+                                    .background(palette.background)
+                                    .clickable { onSwipeGesturesEnabledChange(!swipeGesturesEnabled) }
+                                    .padding(horizontal = 10.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        AppIcons.Vibration,
+                                        contentDescription = null,
+                                        tint = palette.textPrimary,
+                                        modifier = Modifier.size(settingsIconSize)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        "Swipe Gestures",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = palette.textPrimary
+                                    )
+                                }
+                                Switch(
+                                    checked = swipeGesturesEnabled,
+                                    onCheckedChange = { onSwipeGesturesEnabledChange(it) },
+                                    modifier = Modifier.scale(0.8f),
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = palette.onPrimary,
+                                        checkedTrackColor = palette.accent,
                                         uncheckedThumbColor = palette.textMuted,
                                         uncheckedTrackColor = palette.textMuted.copy(alpha = 0.2f)
                                     )

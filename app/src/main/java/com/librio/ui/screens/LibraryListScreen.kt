@@ -784,7 +784,6 @@ fun LibraryListScreen(
                         ContentType.EBOOK -> "Search E Books..."
                         ContentType.COMICS -> "Search Comics..."
                         ContentType.MUSIC -> "Search Music..."
-                        ContentType.CREEPYPASTA -> "Search Creepypasta..."
                         ContentType.MOVIE -> "Search Movies..."
                     }
                     BasicTextField(
@@ -1209,106 +1208,6 @@ fun LibraryListScreen(
                                     .fillMaxWidth()
                             ) {
                                 itemsIndexed(filteredMusic, key = { _, item -> item.id }) { _, musicItem ->
-                                    MusicListItem(
-                                        music = musicItem,
-                                        onClick = { onSelectMusic(musicItem) },
-                                        onLongClick = { showEditMusicDialog = musicItem },
-                                        showPlaceholderIcons = showPlaceholderIcons,
-                                        modifier = Modifier
-                                            .animateItemPlacement()
-                                    )
-                                }
-
-                                item {
-                                    Spacer(modifier = Modifier.height(100.dp))
-                                }
-                            }
-                        }
-                    }
-                }
-                ContentType.CREEPYPASTA -> {
-                    val creepItems = music.filter { it.contentType == ContentType.CREEPYPASTA }
-                    if (creepItems.isEmpty()) {
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .fillMaxWidth(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Icon(
-                                    AppIcons.Music,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(64.dp),
-                                    tint = palette.primary.copy(alpha = 0.6f)
-                                )
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text(
-                                    text = "No creepypasta yet",
-                                    style = MaterialTheme.typography.titleMedium,
-                                    color = palette.primary
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Place audio in your\nprofile's Creepypasta folder",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = palette.primary.copy(alpha = 0.5f),
-                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                                )
-                            }
-                        }
-                    } else {
-                        // Filter and sort creepypasta by playlist
-                        val filteredCreep = remember(creepItems, selectedPlaylistFilter, sortOption) {
-                            val filtered = if (selectedPlaylistFilter != null) {
-                                creepItems.filter { it.seriesId == selectedPlaylistFilter }
-                            } else {
-                                creepItems
-                            }
-
-                            // Sort filtered creepypasta
-                            when (sortOption) {
-                                SortOption.TITLE_AZ -> filtered.sortedBy { it.title.lowercase() }
-                                SortOption.TITLE_ZA -> filtered.sortedByDescending { it.title.lowercase() }
-                                SortOption.AUTHOR_AZ -> filtered.sortedBy { it.artist.lowercase() }
-                                SortOption.RECENTLY_ADDED -> filtered.sortedByDescending { it.dateAdded }
-                                SortOption.RECENTLY_PLAYED -> filtered.sortedByDescending { it.lastPlayed }
-                                SortOption.PROGRESS -> filtered.sortedByDescending { it.progress }
-                                SortOption.BOOK_NUMBER -> filtered.sortedBy { it.seriesOrder }
-                            }
-                        }
-
-                        // Flat creepypasta list without playlist dividers
-                        if (defaultLibraryView == "GRID_2") {
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth(),
-                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                itemsIndexed(filteredCreep, key = { _, item -> item.id }) { _, musicItem ->
-                                    MusicGridItem(
-                                        music = musicItem,
-                                        onClick = { onSelectMusic(musicItem) },
-                                        onLongClick = { showEditMusicDialog = musicItem },
-                                        showPlaceholderIcons = showPlaceholderIcons
-                                    )
-                                }
-
-                                item {
-                                    Spacer(modifier = Modifier.height(100.dp))
-                                }
-                            }
-                        } else {
-                            LazyColumn(
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .fillMaxWidth()
-                            ) {
-                                itemsIndexed(filteredCreep, key = { _, item -> item.id }) { _, musicItem ->
                                     MusicListItem(
                                         music = musicItem,
                                         onClick = { onSelectMusic(musicItem) },
@@ -1797,7 +1696,6 @@ private fun CategoryPlaylistBar(
                         ContentType.AUDIOBOOK -> AppIcons.Audiobook
                         ContentType.EBOOK -> AppIcons.Book
                         ContentType.MUSIC -> AppIcons.Music
-                        ContentType.CREEPYPASTA -> AppIcons.Music
                         ContentType.COMICS -> AppIcons.Comic
                         ContentType.MOVIE -> AppIcons.Movie
                     }

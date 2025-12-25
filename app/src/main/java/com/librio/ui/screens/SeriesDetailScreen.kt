@@ -99,7 +99,6 @@ fun SeriesDetailScreen(
 
     // Determine if this content type supports playback controls
     val hasPlaybackControls = contentType == ContentType.MUSIC ||
-        contentType == ContentType.CREEPYPASTA ||
         contentType == ContentType.AUDIOBOOK ||
         contentType == ContentType.MOVIE
 
@@ -120,7 +119,7 @@ fun SeriesDetailScreen(
 
     // Calculate item count based on content type
     val itemCount = when (contentType) {
-        ContentType.MUSIC, ContentType.CREEPYPASTA -> musicTracks.size
+        ContentType.MUSIC -> musicTracks.size
         ContentType.AUDIOBOOK -> audiobooks.size
         ContentType.EBOOK -> books.size
         ContentType.COMICS -> comics.size
@@ -129,7 +128,7 @@ fun SeriesDetailScreen(
 
     // Get the appropriate icon for the content type
     val contentIcon = when (contentType) {
-        ContentType.MUSIC, ContentType.CREEPYPASTA -> AppIcons.Playlist
+        ContentType.MUSIC -> AppIcons.Playlist
         ContentType.AUDIOBOOK -> AppIcons.Audiobook
         ContentType.EBOOK -> AppIcons.Book
         ContentType.COMICS -> AppIcons.Comic
@@ -138,7 +137,7 @@ fun SeriesDetailScreen(
 
     // Get item label
     val itemLabel = when (contentType) {
-        ContentType.MUSIC, ContentType.CREEPYPASTA -> if (itemCount == 1) "track" else "tracks"
+        ContentType.MUSIC -> if (itemCount == 1) "track" else "tracks"
         ContentType.AUDIOBOOK -> if (itemCount == 1) "audiobook" else "audiobooks"
         ContentType.EBOOK -> if (itemCount == 1) "book" else "books"
         ContentType.COMICS -> if (itemCount == 1) "comic" else "comics"
@@ -148,7 +147,7 @@ fun SeriesDetailScreen(
     // Calculate total duration for audio/video content
     val totalDuration = remember(musicTracks, audiobooks, movies) {
         when (contentType) {
-            ContentType.MUSIC, ContentType.CREEPYPASTA -> musicTracks.sumOf { it.duration }
+            ContentType.MUSIC -> musicTracks.sumOf { it.duration }
             ContentType.AUDIOBOOK -> audiobooks.sumOf { it.duration }
             ContentType.MOVIE -> movies.sumOf { it.duration }
             else -> 0L
@@ -564,7 +563,7 @@ fun SeriesDetailScreen(
 
             // Content list based on type
             when (contentType) {
-                ContentType.MUSIC, ContentType.CREEPYPASTA -> {
+                ContentType.MUSIC -> {
                     itemsIndexed(musicTracks, key = { _, track -> track.id }) { _, track ->
                         SeriesTrackItem(
                             title = track.title,

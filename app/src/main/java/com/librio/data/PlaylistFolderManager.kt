@@ -374,7 +374,6 @@ class PlaylistFolderManager {
             ContentType.AUDIOBOOK -> setOf("mp3", "m4a", "m4b", "ogg", "flac", "wav", "aac", "wma", "opus")
             ContentType.EBOOK -> setOf("pdf", "epub", "txt", "mobi", "azw", "azw3", "djvu", "fb2")
             ContentType.MUSIC -> setOf("mp3", "m4a", "flac", "ogg", "wav", "aac", "wma", "opus", "aiff")
-            ContentType.CREEPYPASTA -> setOf("mp3", "m4a", "flac", "ogg", "wav", "aac", "wma", "opus", "aiff", "webm", "mp4", "mkv", "m4v")
             ContentType.COMICS -> setOf("cbz", "cbr", "cb7", "cbt", "pdf")
             ContentType.MOVIE -> setOf("mp4", "mkv", "avi", "webm", "mov", "wmv", "flv", "m4v", "3gp")
         }

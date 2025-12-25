@@ -1,6 +1,8 @@
 package com.librio.ui.screens
 
+import android.app.Activity
 import android.content.Context
+import android.view.WindowManager
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -89,6 +91,8 @@ fun ComicReaderScreen(
     onEnableDoubleTapZoomChange: (Boolean) -> Unit = {},
     showControlsOnTap: Boolean = true,
     onShowControlsOnTapChange: (Boolean) -> Unit = {},
+    keepScreenOn: Boolean = true,
+    onKeepScreenOnChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
@@ -128,6 +132,19 @@ fun ComicReaderScreen(
 
     // Background color - follows theme
     val bgColor = palette.background
+
+    // Keep screen on based on setting
+    DisposableEffect(keepScreenOn) {
+        val window = (context as? Activity)?.window
+        if (keepScreenOn) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+    }
 
     // Calculate page pairs for 2-page mode
     val pagePairs = remember(pages, effectiveTwoPageMode) {
@@ -948,6 +965,20 @@ fun ComicReaderScreen(
                                 Switch(
                                     checked = showControlsOnTap,
                                     onCheckedChange = onShowControlsOnTapChange
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(6.dp))
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text("Keep screen on", style = MaterialTheme.typography.labelSmall, color = palette.textPrimary)
+                                Switch(
+                                    checked = keepScreenOn,
+                                    onCheckedChange = onKeepScreenOnChange
                                 )
                             }
                         }

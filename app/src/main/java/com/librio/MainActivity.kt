@@ -171,8 +171,6 @@ class MainActivity : ComponentActivity() {
             val showUndoSeekButton by settingsViewModel.showUndoSeekButton?.collectAsState() ?: remember { mutableStateOf(true) }
             val fadeOnPauseResume by settingsViewModel.fadeOnPauseResume?.collectAsState() ?: remember { mutableStateOf(false) }
             val gaplessPlayback by settingsViewModel.gaplessPlayback?.collectAsState() ?: remember { mutableStateOf(true) }
-            val crossfadeEnabled by settingsViewModel.crossfadeEnabled?.collectAsState() ?: remember { mutableStateOf(false) }
-            val crossfadeDuration by settingsViewModel.crossfadeDuration?.collectAsState() ?: remember { mutableStateOf(3) }
             val monoAudio by settingsViewModel.monoAudio?.collectAsState() ?: remember { mutableStateOf(false) }
             val channelBalance by settingsViewModel.channelBalance?.collectAsState() ?: remember { mutableStateOf(0f) }
             val trimSilence by settingsViewModel.trimSilence?.collectAsState() ?: remember { mutableStateOf(false) }
@@ -191,6 +189,7 @@ class MainActivity : ComponentActivity() {
             val readerPageGap by settingsViewModel.readerPageGap?.collectAsState() ?: remember { mutableStateOf(4) }
             val readerForceTwoPage by settingsViewModel.readerForceTwoPage?.collectAsState() ?: remember { mutableStateOf(false) }
             val readerForceSinglePage by settingsViewModel.readerForceSinglePage?.collectAsState() ?: remember { mutableStateOf(false) }
+            val readerKeepScreenOn by settingsViewModel.readerKeepScreenOn?.collectAsState() ?: remember { mutableStateOf(true) }
 
             // Comic reader settings
             val comicForceTwoPage by settingsViewModel.comicForceTwoPage?.collectAsState() ?: remember { mutableStateOf(false) }
@@ -201,6 +200,20 @@ class MainActivity : ComponentActivity() {
             val comicShowPageIndicators by settingsViewModel.comicShowPageIndicators?.collectAsState() ?: remember { mutableStateOf(true) }
             val comicEnableDoubleTapZoom by settingsViewModel.comicEnableDoubleTapZoom?.collectAsState() ?: remember { mutableStateOf(true) }
             val comicShowControlsOnTap by settingsViewModel.comicShowControlsOnTap?.collectAsState() ?: remember { mutableStateOf(true) }
+            val comicKeepScreenOn by settingsViewModel.comicKeepScreenOn?.collectAsState() ?: remember { mutableStateOf(true) }
+
+            // Movie player settings
+            val moviePlaybackSpeed by settingsViewModel.moviePlaybackSpeed?.collectAsState() ?: remember { mutableStateOf(1.0f) }
+            val movieKeepScreenOn by settingsViewModel.movieKeepScreenOn?.collectAsState() ?: remember { mutableStateOf(true) }
+            val movieResizeMode by settingsViewModel.movieResizeMode?.collectAsState() ?: remember { mutableStateOf("fit") }
+            val movieBrightness by settingsViewModel.movieBrightness?.collectAsState() ?: remember { mutableStateOf(1.0f) }
+            val movieAutoFullscreenLandscape by settingsViewModel.movieAutoFullscreenLandscape?.collectAsState() ?: remember { mutableStateOf(true) }
+            val movieShowControlsOnTap by settingsViewModel.movieShowControlsOnTap?.collectAsState() ?: remember { mutableStateOf(true) }
+            val movieControlsTimeout by settingsViewModel.movieControlsTimeout?.collectAsState() ?: remember { mutableStateOf(4000) }
+            val movieDoubleTapSeekDuration by settingsViewModel.movieDoubleTapSeekDuration?.collectAsState() ?: remember { mutableStateOf(10) }
+            val movieSwipeGesturesEnabled by settingsViewModel.movieSwipeGesturesEnabled?.collectAsState() ?: remember { mutableStateOf(true) }
+            val movieRememberPosition by settingsViewModel.movieRememberPosition?.collectAsState() ?: remember { mutableStateOf(true) }
+            val movieSubtitlesEnabled by settingsViewModel.movieSubtitlesEnabled?.collectAsState() ?: remember { mutableStateOf(false) }
 
             // Clean up player when activity is destroyed
             DisposableEffect(Unit) {
@@ -447,7 +460,7 @@ class MainActivity : ComponentActivity() {
             }
 
             // Get filtered music
-            val filteredMusic = remember(libraryState.music, searchQuery, musicSortOption, libraryState.selectedMusicCategoryId, libraryState.selectedCreepypastaCategoryId, libraryState.selectedContentType) {
+            val filteredMusic = remember(libraryState.music, searchQuery, musicSortOption, libraryState.selectedMusicCategoryId, libraryState.selectedContentType) {
                 libraryViewModel.getFilteredMusic()
             }
 
@@ -473,7 +486,7 @@ class MainActivity : ComponentActivity() {
                 if (!introComplete) return@LaunchedEffect
                 // Use lastActiveType for priority if available, otherwise fall back to playing state
                 val shouldRestoreMusic = lastMusicId != null && (
-                    lastActiveType == "MUSIC" || lastActiveType == "CREEPYPASTA" ||
+                    lastActiveType == "MUSIC" ||
                     (lastActiveType == null && (lastMusicPlaying || (!lastAudiobookPlaying && lastAudiobookId == null)))
                 )
                 if (!shouldRestoreMusic) return@LaunchedEffect
@@ -482,13 +495,13 @@ class MainActivity : ComponentActivity() {
                     music?.let {
                         lastPlayedMusic = it
                         lastPlayedAudiobook = null
-                        // Filter playlist to only include items of the same content type (MUSIC or CREEPYPASTA)
+                        // Filter playlist to only include items of the same content type
                         currentMusicPlaylist = libraryState.music.filter { musicItem ->
                             musicItem.contentType == it.contentType
                         }
                         musicCurrentPosition = lastMusicPosition
                         isMusicPlaying = lastMusicPlaying
-                        val activeType = if (it.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                        val activeType = "MUSIC"
                         settingsViewModel.setLastActiveType(activeType)
                         musicExoPlayer.setMediaItem(buildMusicMediaItem(it))
                         musicExoPlayer.prepare()
@@ -619,7 +632,7 @@ class MainActivity : ComponentActivity() {
                             nextIndex?.let { idx ->
                                 val nextTrack = playlist[idx]
                                 lastPlayedMusic = nextTrack
-                                val activeType = if (nextTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                val activeType = "MUSIC"
                                 settingsViewModel.setLastActiveType(activeType)
                                 libraryViewModel.selectMusic(nextTrack)
                                 libraryViewModel.incrementMusicPlayCount(nextTrack.id)
@@ -699,7 +712,7 @@ class MainActivity : ComponentActivity() {
                 lastActiveType == "AUDIOBOOK" && lastPlayedAudiobook != null -> {
                     buildAudiobookNowPlaying(lastPlayedAudiobook!!)
                 }
-                (lastActiveType == "MUSIC" || lastActiveType == "CREEPYPASTA") && lastPlayedMusic != null -> {
+                lastActiveType == "MUSIC" && lastPlayedMusic != null -> {
                     buildMusicNowPlaying(lastPlayedMusic!!)
                 }
                 // Priority 2: If audiobook is actively playing (service running)
@@ -726,7 +739,6 @@ class MainActivity : ComponentActivity() {
                 ContentType.AUDIOBOOK -> audiobookSortOption
                 ContentType.EBOOK -> bookSortOption
                 ContentType.MUSIC -> musicSortOption
-                ContentType.CREEPYPASTA -> musicSortOption
                 ContentType.COMICS -> comicSortOption
                 ContentType.MOVIE -> movieSortOption
             }
@@ -950,7 +962,7 @@ class MainActivity : ComponentActivity() {
                                         player.pause()
                                     }
                                     lastPlayedMusic = musicItem
-                                    val activeType = if (musicItem.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                    val activeType = "MUSIC"
                                     settingsViewModel.setLastActiveType(activeType)
                                     val playlistForSelection = if (musicItem.seriesId != null) {
                                         filteredMusic.filter { it.seriesId == musicItem.seriesId }
@@ -1294,7 +1306,7 @@ class MainActivity : ComponentActivity() {
                                             if (nextIdx >= 0 && nextIdx < musicList.size) {
                                                 val nextMusic = musicList[nextIdx]
                                                 lastPlayedMusic = nextMusic
-                                                val activeType = if (nextMusic.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                val activeType = "MUSIC"
                                                 settingsViewModel.setLastActiveType(activeType)
                                                 libraryViewModel.selectMusic(nextMusic)
                                                 libraryViewModel.incrementMusicPlayCount(nextMusic.id)
@@ -1316,7 +1328,7 @@ class MainActivity : ComponentActivity() {
                                         if (currentIdx > 0) {
                                             val prevMusic = musicList[currentIdx - 1]
                                             lastPlayedMusic = prevMusic
-                                            val activeType = if (prevMusic.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                            val activeType = "MUSIC"
                                             settingsViewModel.setLastActiveType(activeType)
                                             libraryViewModel.selectMusic(prevMusic)
                                             libraryViewModel.incrementMusicPlayCount(prevMusic.id)
@@ -1466,10 +1478,6 @@ class MainActivity : ComponentActivity() {
                                 onFadeOnPauseResumeChange = { settingsViewModel.setFadeOnPauseResume(it) },
                                 gaplessPlayback = gaplessPlayback,
                                 onGaplessPlaybackChange = { settingsViewModel.setGaplessPlayback(it) },
-                                crossfadeEnabled = crossfadeEnabled,
-                                onCrossfadeEnabledChange = { settingsViewModel.setCrossfadeEnabled(it) },
-                                crossfadeDuration = crossfadeDuration,
-                                onCrossfadeDurationChange = { settingsViewModel.setCrossfadeDuration(it) },
                                 monoAudio = monoAudio,
                                 onMonoAudioChange = { settingsViewModel.setMonoAudio(it) },
                                 channelBalance = channelBalance,
@@ -1543,7 +1551,9 @@ class MainActivity : ComponentActivity() {
                                     onPageFitModeChange = { settingsViewModel.setReaderPageFitMode(it) },
                                     onPageGapChange = { settingsViewModel.setReaderPageGap(it) },
                                     onForceTwoPageChange = { settingsViewModel.setReaderForceTwoPage(it) },
-                                    onForceSinglePageChange = { settingsViewModel.setReaderForceSinglePage(it) }
+                                    onForceSinglePageChange = { settingsViewModel.setReaderForceSinglePage(it) },
+                                    keepScreenOn = readerKeepScreenOn,
+                                    onKeepScreenOnChange = { settingsViewModel.setReaderKeepScreenOn(it) }
                                 )
                             }
                         }
@@ -1572,7 +1582,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onTrackChange = { newTrack ->
                                         lastPlayedMusic = newTrack
-                                        val activeType = if (newTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                        val activeType = "MUSIC"
                                         settingsViewModel.setLastActiveType(activeType)
                                         if (currentMusicPlaylist.isEmpty()) {
                                             currentMusicPlaylist = activePlaylist
@@ -1631,10 +1641,6 @@ class MainActivity : ComponentActivity() {
                                     onFadeOnPauseResumeChange = { settingsViewModel.setFadeOnPauseResume(it) },
                                     gaplessPlayback = gaplessPlayback,
                                     onGaplessPlaybackChange = { settingsViewModel.setGaplessPlayback(it) },
-                                    crossfadeEnabled = crossfadeEnabled,
-                                    onCrossfadeEnabledChange = { settingsViewModel.setCrossfadeEnabled(it) },
-                                    crossfadeDuration = crossfadeDuration,
-                                    onCrossfadeDurationChange = { settingsViewModel.setCrossfadeDuration(it) },
                                     monoAudio = monoAudio,
                                     onMonoAudioChange = { settingsViewModel.setMonoAudio(it) },
                                     channelBalance = channelBalance,
@@ -1678,7 +1684,30 @@ class MainActivity : ComponentActivity() {
                                     },
                                     showBackButton = showBackButton,
                                     showSearchBar = showSearchBar,
-                                    headerTitle = profileHeaderTitle
+                                    headerTitle = profileHeaderTitle,
+                                    // Movie settings
+                                    playbackSpeed = moviePlaybackSpeed,
+                                    onPlaybackSpeedChange = { settingsViewModel.setMoviePlaybackSpeed(it) },
+                                    keepScreenOn = movieKeepScreenOn,
+                                    onKeepScreenOnChange = { settingsViewModel.setMovieKeepScreenOn(it) },
+                                    resizeMode = movieResizeMode,
+                                    onResizeModeChange = { settingsViewModel.setMovieResizeMode(it) },
+                                    brightness = movieBrightness,
+                                    onBrightnessChange = { settingsViewModel.setMovieBrightness(it) },
+                                    autoFullscreenLandscape = movieAutoFullscreenLandscape,
+                                    onAutoFullscreenLandscapeChange = { settingsViewModel.setMovieAutoFullscreenLandscape(it) },
+                                    showControlsOnTap = movieShowControlsOnTap,
+                                    onShowControlsOnTapChange = { settingsViewModel.setMovieShowControlsOnTap(it) },
+                                    controlsTimeout = movieControlsTimeout,
+                                    onControlsTimeoutChange = { settingsViewModel.setMovieControlsTimeout(it) },
+                                    doubleTapSeekDuration = movieDoubleTapSeekDuration,
+                                    onDoubleTapSeekDurationChange = { settingsViewModel.setMovieDoubleTapSeekDuration(it) },
+                                    swipeGesturesEnabled = movieSwipeGesturesEnabled,
+                                    onSwipeGesturesEnabledChange = { settingsViewModel.setMovieSwipeGesturesEnabled(it) },
+                                    rememberPosition = movieRememberPosition,
+                                    onRememberPositionChange = { settingsViewModel.setMovieRememberPosition(it) },
+                                    subtitlesEnabled = movieSubtitlesEnabled,
+                                    onSubtitlesEnabledChange = { settingsViewModel.setMovieSubtitlesEnabled(it) }
                                 )
                             }
                         }
@@ -1727,7 +1756,9 @@ class MainActivity : ComponentActivity() {
                                     enableDoubleTapZoom = comicEnableDoubleTapZoom,
                                     onEnableDoubleTapZoomChange = { settingsViewModel.setComicEnableDoubleTapZoom(it) },
                                     showControlsOnTap = comicShowControlsOnTap,
-                                    onShowControlsOnTapChange = { settingsViewModel.setComicShowControlsOnTap(it) }
+                                    onShowControlsOnTapChange = { settingsViewModel.setComicShowControlsOnTap(it) },
+                                    keepScreenOn = comicKeepScreenOn,
+                                    onKeepScreenOnChange = { settingsViewModel.setComicKeepScreenOn(it) }
                                 )
                             }
                         }
@@ -1754,7 +1785,6 @@ class MainActivity : ComponentActivity() {
                                 // Get cover art from first item if available
                                 val coverArt = when (seriesItem.contentType) {
                                     ContentType.MUSIC -> seriesMusic.firstOrNull()?.coverArt
-                                    ContentType.CREEPYPASTA -> seriesMusic.firstOrNull()?.coverArt
                                     ContentType.AUDIOBOOK -> seriesAudiobooks.firstOrNull()?.coverArt
                                     ContentType.EBOOK -> seriesBooks.firstOrNull()?.coverArt
                                     ContentType.COMICS -> seriesComics.firstOrNull()?.coverArt
@@ -1764,14 +1794,12 @@ class MainActivity : ComponentActivity() {
                                 // Determine currently playing ID based on content type
                                 val currentlyPlayingId = when (seriesItem.contentType) {
                                     ContentType.MUSIC -> if (lastPlayedMusic?.seriesId == seriesId) lastPlayedMusic?.id else null
-                                    ContentType.CREEPYPASTA -> if (lastPlayedMusic?.seriesId == seriesId) lastPlayedMusic?.id else null
                                     ContentType.AUDIOBOOK -> if (lastPlayedAudiobook?.seriesId == seriesId) lastPlayedAudiobook?.id else null
                                     else -> null
                                 }
 
                                 val isCurrentlyPlaying = when (seriesItem.contentType) {
                                     ContentType.MUSIC -> isMusicPlaying && currentlyPlayingId != null
-                                    ContentType.CREEPYPASTA -> isMusicPlaying && currentlyPlayingId != null
                                     ContentType.AUDIOBOOK -> isAudiobookPlaying && currentlyPlayingId != null
                                     else -> false
                                 }
@@ -1803,7 +1831,7 @@ class MainActivity : ComponentActivity() {
                                             player.pause()
                                         }
                                         lastPlayedMusic = track
-                                        val activeType = if (track.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                        val activeType = "MUSIC"
                                         settingsViewModel.setLastActiveType(activeType)
                                         currentMusicPlaylist = tracks
                                         libraryViewModel.selectMusic(track)
@@ -1879,7 +1907,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onPlayAllClick = {
                                         when (seriesItem.contentType) {
-                                            ContentType.MUSIC, ContentType.CREEPYPASTA -> {
+                                            ContentType.MUSIC -> {
                                                 if (seriesMusic.isNotEmpty()) {
                                                     val firstTrack = if (musicShuffleEnabled) seriesMusic.random() else seriesMusic.first()
                                                     if (isAudiobookPlaying) {
@@ -1887,7 +1915,7 @@ class MainActivity : ComponentActivity() {
                                                         player.pause()
                                                     }
                                                     lastPlayedMusic = firstTrack
-                                                    val activeType = if (firstTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    val activeType = "MUSIC"
                                                     settingsViewModel.setLastActiveType(activeType)
                                                     currentMusicPlaylist = seriesMusic
                                                     libraryViewModel.selectMusic(firstTrack)
@@ -1926,7 +1954,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onPlayPause = {
                                         when (seriesItem.contentType) {
-                                            ContentType.MUSIC, ContentType.CREEPYPASTA -> {
+                                            ContentType.MUSIC -> {
                                                 if (musicExoPlayer.isPlaying) {
                                                     musicExoPlayer.pause()
                                                 } else {
@@ -1948,12 +1976,12 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onSkipPrevious = {
                                         when (seriesItem.contentType) {
-                                            ContentType.MUSIC, ContentType.CREEPYPASTA -> {
+                                            ContentType.MUSIC -> {
                                                 val currentIdx = seriesMusic.indexOfFirst { it.id == lastPlayedMusic?.id }
                                                 if (currentIdx > 0) {
                                                     val prevTrack = seriesMusic[currentIdx - 1]
                                                     lastPlayedMusic = prevTrack
-                                                    val activeType = if (prevTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    val activeType = "MUSIC"
                                                     settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(prevTrack)
                                                     libraryViewModel.incrementMusicPlayCount(prevTrack.id)
@@ -1969,7 +1997,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onSkipNext = {
                                         when (seriesItem.contentType) {
-                                            ContentType.MUSIC, ContentType.CREEPYPASTA -> {
+                                            ContentType.MUSIC -> {
                                                 val currentIdx = seriesMusic.indexOfFirst { it.id == lastPlayedMusic?.id }
                                                 val nextIdx = if (musicShuffleEnabled && seriesMusic.size > 1) {
                                                     val available = seriesMusic.indices.filter { it != currentIdx }
@@ -1984,7 +2012,7 @@ class MainActivity : ComponentActivity() {
                                                 if (nextIdx >= 0 && nextIdx < seriesMusic.size) {
                                                     val nextTrack = seriesMusic[nextIdx]
                                                     lastPlayedMusic = nextTrack
-                                                    val activeType = if (nextTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    val activeType = "MUSIC"
                                                     settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(nextTrack)
                                                     libraryViewModel.incrementMusicPlayCount(nextTrack.id)
@@ -2047,7 +2075,7 @@ class MainActivity : ComponentActivity() {
                                                     val nextIndex = if (currentIndex < playlist.size - 1) currentIndex + 1 else 0
                                                     val nextTrack = playlist[nextIndex]
                                                     lastPlayedMusic = nextTrack
-                                                    val activeType = if (nextTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    val activeType = "MUSIC"
                                                     settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(nextTrack)
                                                     libraryViewModel.incrementMusicPlayCount(nextTrack.id)
@@ -2066,7 +2094,7 @@ class MainActivity : ComponentActivity() {
                                                     val prevIndex = if (currentIndex > 0) currentIndex - 1 else playlist.size - 1
                                                     val prevTrack = playlist[prevIndex]
                                                     lastPlayedMusic = prevTrack
-                                                    val activeType = if (prevTrack.contentType == ContentType.CREEPYPASTA) "CREEPYPASTA" else "MUSIC"
+                                                    val activeType = "MUSIC"
                                                     settingsViewModel.setLastActiveType(activeType)
                                                     libraryViewModel.selectMusic(prevTrack)
                                                     libraryViewModel.incrementMusicPlayCount(prevTrack.id)

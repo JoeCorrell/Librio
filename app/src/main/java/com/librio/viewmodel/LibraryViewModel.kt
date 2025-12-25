@@ -488,7 +488,6 @@ class LibraryViewModel : ViewModel() {
                     scanAudiobooksFolderSilent(context)
                     scanBooksFolderSilent(context)
                     scanForMusicFiles(context)
-                    scanForCreepypastaFiles(context)
                     scanForComicFiles(context)
                     scanForMovieFiles(context)
                 }
@@ -702,7 +701,6 @@ class LibraryViewModel : ViewModel() {
                     launch { scanAudiobooksFolderSilent(context) }
                     launch { scanBooksFolderSilent(context) }
                     launch { scanForMusicFiles(context) }
-                    launch { scanForCreepypastaFiles(context) }
                     launch { scanForComicFiles(context) }
                     launch { scanForMovieFiles(context) }
                 } else {
@@ -1278,7 +1276,6 @@ class LibraryViewModel : ViewModel() {
             ContentType.AUDIOBOOK -> _audiobookSortOption.value = option
             ContentType.EBOOK -> _bookSortOption.value = option
             ContentType.MUSIC -> _musicSortOption.value = option
-            ContentType.CREEPYPASTA -> _musicSortOption.value = option
             ContentType.COMICS -> _comicSortOption.value = option
             ContentType.MOVIE -> _movieSortOption.value = option
         }
@@ -1289,7 +1286,6 @@ class LibraryViewModel : ViewModel() {
             ContentType.AUDIOBOOK -> _audiobookSortOption.value
             ContentType.EBOOK -> _bookSortOption.value
             ContentType.MUSIC -> _musicSortOption.value
-            ContentType.CREEPYPASTA -> _musicSortOption.value
             ContentType.COMICS -> _comicSortOption.value
             ContentType.MOVIE -> _movieSortOption.value
         }
@@ -1425,9 +1421,6 @@ class LibraryViewModel : ViewModel() {
         if (newState.selectedMusicCategoryId == categoryId) {
             newState = newState.copy(selectedMusicCategoryId = null)
         }
-        if (newState.selectedCreepypastaCategoryId == categoryId) {
-            newState = newState.copy(selectedCreepypastaCategoryId = null)
-        }
         if (newState.selectedComicCategoryId == categoryId) {
             newState = newState.copy(selectedComicCategoryId = null)
         }
@@ -1474,7 +1467,6 @@ class LibraryViewModel : ViewModel() {
             ContentType.AUDIOBOOK -> currentState.copy(selectedAudiobookCategoryId = categoryId)
             ContentType.EBOOK -> currentState.copy(selectedBookCategoryId = categoryId)
             ContentType.MUSIC -> currentState.copy(selectedMusicCategoryId = categoryId)
-            ContentType.CREEPYPASTA -> currentState.copy(selectedCreepypastaCategoryId = categoryId)
             ContentType.COMICS -> currentState.copy(selectedComicCategoryId = categoryId)
             ContentType.MOVIE -> currentState.copy(selectedMovieCategoryId = categoryId)
         }
@@ -2160,25 +2152,6 @@ class LibraryViewModel : ViewModel() {
     }
 
     /**
-     * Find creepypasta audio files in the profile-specific Creepypasta folder only
-     */
-    private fun findCreepypastaFilesInFolders(): List<File> {
-        val audioExtensions = setOf(
-            "mp3", "m4a", "aac", "flac", "ogg", "opus", "wav", "wma", "alac",
-            "webm", "mp4", "mkv", "m4v"
-        )
-        val files = mutableListOf<File>()
-
-        getProfileContentFolder("Creepypasta")?.let { profileFolder ->
-            if (profileFolder.exists() && profileFolder.isDirectory) {
-                scanFolderRecursively(profileFolder, audioExtensions, files)
-            }
-        }
-
-        return files.distinctBy { it.absolutePath }
-    }
-
-    /**
      * Find comic files in the profile-specific Comics folder only
      * Each profile only sees its own content for complete content isolation
      */
@@ -2267,63 +2240,6 @@ class LibraryViewModel : ViewModel() {
                             val updatedMusic = (_libraryState.value.music + newMusic)
                                 .distinctBy { it.uri.toString() }
                             _libraryState.value = _libraryState.value.copy(music = updatedMusic)
-                            saveMusic()
-                            saveSeries()
-                        }
-                    }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
-
-    /**
-     * Scan for and add creepypasta files from the profile's Creepypasta folder
-     */
-    fun scanForCreepypastaFiles(context: Context) {
-        viewModelScope.launch(Dispatchers.IO) {
-            musicScanMutex.withLock {
-                try {
-                    val otherTypes = _libraryState.value.music.filter { it.contentType != ContentType.CREEPYPASTA }
-                    var current = _libraryState.value.music.filter { it.contentType == ContentType.CREEPYPASTA }
-                    val deduped = current.distinctBy { it.uri.toString() }
-                    if (deduped.size != current.size) {
-                        withContext(Dispatchers.Main) {
-                            _libraryState.value = _libraryState.value.copy(music = otherTypes + deduped)
-                            saveMusic()
-                        }
-                        current = deduped
-                    }
-
-                    val files = findCreepypastaFilesInFolders()
-                    val existingUris = current.map { it.uri.toString() }.toSet()
-                    val existingFilenames = current.mapNotNull { item ->
-                        item.uri.lastPathSegment?.substringAfterLast("/")?.lowercase()
-                    }.toSet()
-                    val newItems = mutableListOf<LibraryMusic>()
-
-                    files.forEach { file ->
-                        val uri = file.toUri()
-                        val filename = file.name.lowercase()
-                        if (uri.toString() !in existingUris && filename !in existingFilenames) {
-                            val playlistName = getPlaylistFolderName(file, "Creepypasta")
-                            val seriesId = if (playlistName != null) {
-                                withContext(Dispatchers.Main) {
-                                    findOrCreateSeriesForPlaylist(playlistName, ContentType.CREEPYPASTA)
-                                }
-                            } else null
-
-                            val item = createMusicFromFile(context, file, seriesId, ContentType.CREEPYPASTA)
-                            newItems.add(item)
-                        }
-                    }
-
-                    if (newItems.isNotEmpty()) {
-                        withContext(Dispatchers.Main) {
-                            val updated = (_libraryState.value.music + newItems)
-                                .distinctBy { it.uri.toString() }
-                            _libraryState.value = _libraryState.value.copy(music = updated)
                             saveMusic()
                             saveSeries()
                         }
@@ -2988,13 +2904,10 @@ class LibraryViewModel : ViewModel() {
     fun getFilteredMusic(): List<LibraryMusic> {
         val query = _searchQuery.value.lowercase()
         val currentType = _libraryState.value.selectedContentType
-        if (currentType != ContentType.MUSIC && currentType != ContentType.CREEPYPASTA) {
+        if (currentType != ContentType.MUSIC) {
             return emptyList()
         }
-        val selectedCategoryId = when (currentType) {
-            ContentType.CREEPYPASTA -> _libraryState.value.selectedCreepypastaCategoryId
-            else -> _libraryState.value.selectedMusicCategoryId
-        }
+        val selectedCategoryId = _libraryState.value.selectedMusicCategoryId
 
         // First filter by category
         val categoryFiltered = _libraryState.value.music
@@ -3332,7 +3245,6 @@ class LibraryViewModel : ViewModel() {
                 scanBooksFolderSilent(context)
                 // Music, comics, and movies don't have silent versions, scan normally
                 scanForMusicFiles(context)
-                scanForCreepypastaFiles(context)
                 scanForComicFiles(context)
                 scanForMovieFiles(context)
 
@@ -3426,8 +3338,7 @@ class LibraryViewModel : ViewModel() {
                 }
 
                 if (file != null && file.exists()) {
-                    val folderName = if (music.contentType == ContentType.CREEPYPASTA) "Creepypasta" else "Music"
-                    val playlistName = getPlaylistFolderName(file, folderName)
+                    val playlistName = getPlaylistFolderName(file, "Music")
                     val newSeriesId = if (playlistName != null) {
                         findOrCreateSeriesForPlaylist(playlistName, music.contentType)
                     } else null
@@ -3772,23 +3683,6 @@ class LibraryViewModel : ViewModel() {
                 result
             }
             ContentType.MUSIC -> {
-                val filtered = getFilteredMusic()
-                val result = mutableMapOf<LibrarySeries?, List<Any>>()
-
-                val unassigned = filtered.filter { it.seriesId == null }
-                if (unassigned.isNotEmpty()) {
-                    result[null] = unassigned
-                }
-
-                series.forEach { s ->
-                    val items = filtered.filter { it.seriesId == s.id }.sortedBy { it.seriesOrder }
-                    if (items.isNotEmpty()) {
-                        result[s] = items
-                    }
-                }
-                result
-            }
-            ContentType.CREEPYPASTA -> {
                 val filtered = getFilteredMusic()
                 val result = mutableMapOf<LibrarySeries?, List<Any>>()
 

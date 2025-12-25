@@ -12,7 +12,6 @@ enum class ContentType(val displayName: String, val folderName: String) {
     EBOOK("E Books", "Books"),
     COMICS("Comics", "Comics"),
     MUSIC("Music", "Music"),
-    CREEPYPASTA("Creepypasta", "Creepypasta"),
     MOVIE("Movies", "Movies")
 }
 
@@ -238,7 +237,6 @@ data class LibraryState(
     val selectedAudiobookCategoryId: String? = null,
     val selectedBookCategoryId: String? = null,
     val selectedMusicCategoryId: String? = null,
-    val selectedCreepypastaCategoryId: String? = null,
     val selectedComicCategoryId: String? = null,
     val selectedMovieCategoryId: String? = null,
     val selectedContentType: ContentType = ContentType.AUDIOBOOK,
@@ -251,7 +249,6 @@ data class LibraryState(
             ContentType.AUDIOBOOK -> selectedAudiobookCategoryId
             ContentType.EBOOK -> selectedBookCategoryId
             ContentType.MUSIC -> selectedMusicCategoryId
-            ContentType.CREEPYPASTA -> selectedCreepypastaCategoryId
             ContentType.COMICS -> selectedComicCategoryId
             ContentType.MOVIE -> selectedMovieCategoryId
         }

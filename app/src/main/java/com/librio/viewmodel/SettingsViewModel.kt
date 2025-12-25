@@ -152,6 +152,9 @@ class SettingsViewModel : ViewModel() {
     val comicShowControlsOnTap: StateFlow<Boolean>?
         get() = repository?.comicShowControlsOnTap
 
+    val comicKeepScreenOn: StateFlow<Boolean>?
+        get() = repository?.comicKeepScreenOn
+
     // Audio Enhancement settings
     val normalizeAudio: StateFlow<Boolean>?
         get() = repository?.normalizeAudio
@@ -274,12 +277,6 @@ class SettingsViewModel : ViewModel() {
     val gaplessPlayback: StateFlow<Boolean>?
         get() = repository?.gaplessPlayback
 
-    val crossfadeEnabled: StateFlow<Boolean>?
-        get() = repository?.crossfadeEnabled
-
-    val crossfadeDuration: StateFlow<Int>?
-        get() = repository?.crossfadeDuration
-
     val monoAudio: StateFlow<Boolean>?
         get() = repository?.monoAudio
 
@@ -288,6 +285,40 @@ class SettingsViewModel : ViewModel() {
 
     val trimSilence: StateFlow<Boolean>?
         get() = repository?.trimSilence
+
+    // Movie player settings
+    val moviePlaybackSpeed: StateFlow<Float>?
+        get() = repository?.moviePlaybackSpeed
+
+    val movieKeepScreenOn: StateFlow<Boolean>?
+        get() = repository?.movieKeepScreenOn
+
+    val movieResizeMode: StateFlow<String>?
+        get() = repository?.movieResizeMode
+
+    val movieBrightness: StateFlow<Float>?
+        get() = repository?.movieBrightness
+
+    val movieAutoFullscreenLandscape: StateFlow<Boolean>?
+        get() = repository?.movieAutoFullscreenLandscape
+
+    val movieShowControlsOnTap: StateFlow<Boolean>?
+        get() = repository?.movieShowControlsOnTap
+
+    val movieControlsTimeout: StateFlow<Int>?
+        get() = repository?.movieControlsTimeout
+
+    val movieDoubleTapSeekDuration: StateFlow<Int>?
+        get() = repository?.movieDoubleTapSeekDuration
+
+    val movieSwipeGesturesEnabled: StateFlow<Boolean>?
+        get() = repository?.movieSwipeGesturesEnabled
+
+    val movieRememberPosition: StateFlow<Boolean>?
+        get() = repository?.movieRememberPosition
+
+    val movieSubtitlesEnabled: StateFlow<Boolean>?
+        get() = repository?.movieSubtitlesEnabled
 
     // Migration state
     private val _migrationComplete = MutableStateFlow(false)
@@ -574,6 +605,10 @@ class SettingsViewModel : ViewModel() {
         repository?.setComicShowControlsOnTap(enabled)
     }
 
+    fun setComicKeepScreenOn(enabled: Boolean) {
+        repository?.setComicKeepScreenOn(enabled)
+    }
+
     // Additional global settings setters
     fun setPlaybackSpeed(speed: Float) {
         repository?.setPlaybackSpeed(speed)
@@ -783,14 +818,6 @@ class SettingsViewModel : ViewModel() {
         repository?.setGaplessPlayback(enabled)
     }
 
-    fun setCrossfadeEnabled(enabled: Boolean) {
-        repository?.setCrossfadeEnabled(enabled)
-    }
-
-    fun setCrossfadeDuration(duration: Int) {
-        repository?.setCrossfadeDuration(duration)
-    }
-
     fun setMonoAudio(enabled: Boolean) {
         repository?.setMonoAudio(enabled)
     }
@@ -801,5 +828,50 @@ class SettingsViewModel : ViewModel() {
 
     fun setTrimSilence(enabled: Boolean) {
         repository?.setTrimSilence(enabled)
+    }
+
+    // Movie player settings setters
+    fun setMoviePlaybackSpeed(speed: Float) {
+        repository?.setMoviePlaybackSpeed(speed)
+    }
+
+    fun setMovieKeepScreenOn(enabled: Boolean) {
+        repository?.setMovieKeepScreenOn(enabled)
+    }
+
+    fun setMovieResizeMode(mode: String) {
+        repository?.setMovieResizeMode(mode)
+    }
+
+    fun setMovieBrightness(brightness: Float) {
+        repository?.setMovieBrightness(brightness)
+    }
+
+    fun setMovieAutoFullscreenLandscape(enabled: Boolean) {
+        repository?.setMovieAutoFullscreenLandscape(enabled)
+    }
+
+    fun setMovieShowControlsOnTap(enabled: Boolean) {
+        repository?.setMovieShowControlsOnTap(enabled)
+    }
+
+    fun setMovieControlsTimeout(timeout: Int) {
+        repository?.setMovieControlsTimeout(timeout)
+    }
+
+    fun setMovieDoubleTapSeekDuration(seconds: Int) {
+        repository?.setMovieDoubleTapSeekDuration(seconds)
+    }
+
+    fun setMovieSwipeGesturesEnabled(enabled: Boolean) {
+        repository?.setMovieSwipeGesturesEnabled(enabled)
+    }
+
+    fun setMovieRememberPosition(enabled: Boolean) {
+        repository?.setMovieRememberPosition(enabled)
+    }
+
+    fun setMovieSubtitlesEnabled(enabled: Boolean) {
+        repository?.setMovieSubtitlesEnabled(enabled)
     }
 }

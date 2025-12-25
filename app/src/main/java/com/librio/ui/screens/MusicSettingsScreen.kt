@@ -90,10 +90,6 @@ fun MusicSettingsScreen(
     onFadeOnPauseResumeChange: (Boolean) -> Unit = {},
     gaplessPlayback: Boolean = true,
     onGaplessPlaybackChange: (Boolean) -> Unit = {},
-    crossfadeEnabled: Boolean = false,
-    onCrossfadeEnabledChange: (Boolean) -> Unit = {},
-    crossfadeDuration: Int = 3,
-    onCrossfadeDurationChange: (Int) -> Unit = {},
     monoAudio: Boolean = false,
     onMonoAudioChange: (Boolean) -> Unit = {},
     channelBalance: Float = 0f,
@@ -303,7 +299,7 @@ fun MusicSettingsScreen(
 
                     SectionCard(
                         title = "Transitions",
-                        subtitle = "Fading and crossfade effects",
+                        subtitle = "Playback transition effects",
                         icon = AppIcons.Tune,
                         colors = cardColors
                     ) {
@@ -319,23 +315,6 @@ fun MusicSettingsScreen(
                             checked = gaplessPlayback,
                             onCheckedChange = onGaplessPlaybackChange
                         )
-                        ToggleRow(
-                            title = "Crossfade",
-                            subtitle = "Blend end of track into next",
-                            checked = crossfadeEnabled,
-                            onCheckedChange = onCrossfadeEnabledChange
-                        )
-                        if (crossfadeEnabled) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            SliderRow(
-                                title = "Crossfade duration",
-                                valueLabel = "${crossfadeDuration}s",
-                                value = crossfadeDuration.toFloat(),
-                                onChange = { onCrossfadeDurationChange(it.roundToInt().coerceIn(1, 12)) },
-                                valueRange = 1f..12f,
-                                step = 11
-                            )
-                        }
                     }
 
                     SectionCard(

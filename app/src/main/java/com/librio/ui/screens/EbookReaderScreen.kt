@@ -121,6 +121,8 @@ fun EbookReaderScreen(
     onPageGapChange: (Int) -> Unit = {},
     onForceTwoPageChange: (Boolean) -> Unit = {},
     onForceSinglePageChange: (Boolean) -> Unit = {},
+    keepScreenOn: Boolean = true,
+    onKeepScreenOnChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
@@ -173,10 +175,14 @@ fun EbookReaderScreen(
     var pageLoadJob by remember { mutableStateOf<Job?>(null) }
     val pageLoadMutex = remember { Mutex() }
 
-    // Keep screen on
-    DisposableEffect(Unit) {
+    // Keep screen on based on setting
+    DisposableEffect(keepScreenOn) {
         val window = (context as? Activity)?.window
-        window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        if (keepScreenOn) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
         onDispose {
             window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         }
@@ -914,6 +920,36 @@ fun EbookReaderScreen(
                                     contentDescription = null,
                                     tint = palette.textMuted,
                                     modifier = Modifier.size(settingsIconSize)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(8.dp))
+
+                            // Keep screen on toggle
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Icon(
+                                        imageVector = AppIcons.LightMode,
+                                        contentDescription = null,
+                                        tint = palette.textPrimary,
+                                        modifier = Modifier.size(settingsIconSize)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text("Keep screen on", style = MaterialTheme.typography.bodySmall, color = palette.textPrimary)
+                                }
+                                Switch(
+                                    checked = keepScreenOn,
+                                    onCheckedChange = onKeepScreenOnChange,
+                                    colors = SwitchDefaults.colors(
+                                        checkedThumbColor = palette.onPrimary,
+                                        checkedTrackColor = palette.accent,
+                                        uncheckedThumbColor = palette.shade4,
+                                        uncheckedTrackColor = palette.shade5.copy(alpha = 0.5f)
+                                    )
                                 )
                             }
 

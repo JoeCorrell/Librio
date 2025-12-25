@@ -91,7 +91,7 @@ class SettingsRepository(private val context: Context) {
     // Profile folder structure
     private val librioRoot = File(Environment.getExternalStorageDirectory(), "Librio")
     private val profilesRoot = File(librioRoot, "Profiles")
-    private val contentFolders = listOf("Audiobooks", "Books", "Music", "Creepypasta", "Comics", "Movies")
+    private val contentFolders = listOf("Audiobooks", "Books", "Music", "Comics", "Movies")
 
     /**
      * Get the profile folder for a given profile name
@@ -331,6 +331,9 @@ class SettingsRepository(private val context: Context) {
     private val _comicShowControlsOnTap = MutableStateFlow(loadComicShowControlsOnTap())
     val comicShowControlsOnTap: StateFlow<Boolean> = _comicShowControlsOnTap.asStateFlow()
 
+    private val _comicKeepScreenOn = MutableStateFlow(loadComicKeepScreenOn())
+    val comicKeepScreenOn: StateFlow<Boolean> = _comicKeepScreenOn.asStateFlow()
+
     // Movie Player settings (per-profile)
     private val _moviePlaybackSpeed = MutableStateFlow(loadMoviePlaybackSpeed())
     val moviePlaybackSpeed: StateFlow<Float> = _moviePlaybackSpeed.asStateFlow()
@@ -361,6 +364,9 @@ class SettingsRepository(private val context: Context) {
 
     private val _movieRememberPosition = MutableStateFlow(loadMovieRememberPosition())
     val movieRememberPosition: StateFlow<Boolean> = _movieRememberPosition.asStateFlow()
+
+    private val _movieSubtitlesEnabled = MutableStateFlow(loadMovieSubtitlesEnabled())
+    val movieSubtitlesEnabled: StateFlow<Boolean> = _movieSubtitlesEnabled.asStateFlow()
 
     // Audio Enhancement settings
     private val _normalizeAudio = MutableStateFlow(loadNormalizeAudio())
@@ -394,12 +400,6 @@ class SettingsRepository(private val context: Context) {
 
     private val _gaplessPlayback = MutableStateFlow(true)
     val gaplessPlayback: StateFlow<Boolean> = _gaplessPlayback.asStateFlow()
-
-    private val _crossfadeEnabled = MutableStateFlow(false)
-    val crossfadeEnabled: StateFlow<Boolean> = _crossfadeEnabled.asStateFlow()
-
-    private val _crossfadeDuration = MutableStateFlow(3)
-    val crossfadeDuration: StateFlow<Int> = _crossfadeDuration.asStateFlow()
 
     private val _monoAudio = MutableStateFlow(false)
     val monoAudio: StateFlow<Boolean> = _monoAudio.asStateFlow()
@@ -983,8 +983,6 @@ class SettingsRepository(private val context: Context) {
         _lastSeekPosition.value = settings.lastSeekPosition
         _fadeOnPauseResume.value = settings.fadeOnPauseResume
         _gaplessPlayback.value = settings.gaplessPlayback
-        _crossfadeEnabled.value = settings.crossfadeEnabled
-        _crossfadeDuration.value = settings.crossfadeDuration
         _monoAudio.value = settings.monoAudio
         _channelBalance.value = settings.channelBalance
         _trimSilence.value = settings.trimSilence
@@ -1126,6 +1124,7 @@ class SettingsRepository(private val context: Context) {
         _comicShowPageIndicators.value = settings.showPageIndicators
         _comicEnableDoubleTapZoom.value = settings.enableDoubleTapZoom
         _comicShowControlsOnTap.value = settings.showControlsOnTap
+        _comicKeepScreenOn.value = settings.keepScreenOn
 
         // Also update SharedPreferences to keep them in sync
         prefs.edit().apply {
@@ -1138,6 +1137,7 @@ class SettingsRepository(private val context: Context) {
             putBoolean(getProfileKey(KEY_COMIC_SHOW_PAGE_INDICATORS), settings.showPageIndicators)
             putBoolean(getProfileKey(KEY_COMIC_ENABLE_DOUBLE_TAP_ZOOM), settings.enableDoubleTapZoom)
             putBoolean(getProfileKey(KEY_COMIC_SHOW_CONTROLS_ON_TAP), settings.showControlsOnTap)
+            putBoolean(getProfileKey(KEY_COMIC_KEEP_SCREEN_ON), settings.keepScreenOn)
             apply()
         }
     }
@@ -1159,6 +1159,7 @@ class SettingsRepository(private val context: Context) {
         _movieDoubleTapSeekDuration.value = settings.doubleTapSeekDuration
         _movieSwipeGesturesEnabled.value = settings.swipeGesturesEnabled
         _movieRememberPosition.value = settings.rememberPosition
+        _movieSubtitlesEnabled.value = settings.subtitlesEnabled
 
         // Also update SharedPreferences to keep them in sync
         prefs.edit().apply {
@@ -1172,6 +1173,7 @@ class SettingsRepository(private val context: Context) {
             putInt(getProfileKey(KEY_MOVIE_DOUBLE_TAP_SEEK_DURATION), settings.doubleTapSeekDuration)
             putBoolean(getProfileKey(KEY_MOVIE_SWIPE_GESTURES_ENABLED), settings.swipeGesturesEnabled)
             putBoolean(getProfileKey(KEY_MOVIE_REMEMBER_POSITION), settings.rememberPosition)
+            putBoolean(getProfileKey(KEY_MOVIE_SUBTITLES_ENABLED), settings.subtitlesEnabled)
             apply()
         }
     }
@@ -1225,7 +1227,6 @@ class SettingsRepository(private val context: Context) {
                 selectedAudiobookCategoryId = null,
                 selectedBookCategoryId = null,
                 selectedMusicCategoryId = null,
-                selectedCreepypastaCategoryId = null,
                 selectedComicCategoryId = null,
                 selectedMovieCategoryId = null
             )
@@ -1263,8 +1264,6 @@ class SettingsRepository(private val context: Context) {
                 lastSeekPosition = _lastSeekPosition.value,
                 fadeOnPauseResume = _fadeOnPauseResume.value,
                 gaplessPlayback = _gaplessPlayback.value,
-                crossfadeEnabled = _crossfadeEnabled.value,
-                crossfadeDuration = _crossfadeDuration.value,
                 monoAudio = _monoAudio.value,
                 channelBalance = _channelBalance.value,
                 trimSilence = _trimSilence.value,
@@ -1325,7 +1324,7 @@ class SettingsRepository(private val context: Context) {
                 showPageIndicators = _comicShowPageIndicators.value,
                 enableDoubleTapZoom = _comicEnableDoubleTapZoom.value,
                 showControlsOnTap = _comicShowControlsOnTap.value,
-                keepScreenOn = true
+                keepScreenOn = _comicKeepScreenOn.value
             )
             profileFileManager.saveComicSettings(currentProfileName, comicSettings)
         }
@@ -1347,7 +1346,8 @@ class SettingsRepository(private val context: Context) {
                 controlsTimeout = _movieControlsTimeout.value,
                 doubleTapSeekDuration = _movieDoubleTapSeekDuration.value,
                 swipeGesturesEnabled = _movieSwipeGesturesEnabled.value,
-                rememberPosition = _movieRememberPosition.value
+                rememberPosition = _movieRememberPosition.value,
+                subtitlesEnabled = _movieSubtitlesEnabled.value
             )
             profileFileManager.saveMovieSettings(currentProfileName, movieSettings)
         }
@@ -1605,6 +1605,12 @@ class SettingsRepository(private val context: Context) {
         saveComicSettingsToFile()
     }
 
+    fun setComicKeepScreenOn(enabled: Boolean) {
+        _comicKeepScreenOn.value = enabled
+        prefs.edit().putBoolean(getProfileKey(KEY_COMIC_KEEP_SCREEN_ON), enabled).apply()
+        saveComicSettingsToFile()
+    }
+
     // Movie Player setters (per-profile)
     fun setMoviePlaybackSpeed(speed: Float) {
         val safeSpeed = speed.coerceIn(0.25f, 3f)
@@ -1667,6 +1673,12 @@ class SettingsRepository(private val context: Context) {
     fun setMovieRememberPosition(enabled: Boolean) {
         _movieRememberPosition.value = enabled
         prefs.edit().putBoolean(getProfileKey(KEY_MOVIE_REMEMBER_POSITION), enabled).apply()
+        saveMovieSettingsToFile()
+    }
+
+    fun setMovieSubtitlesEnabled(enabled: Boolean) {
+        _movieSubtitlesEnabled.value = enabled
+        prefs.edit().putBoolean(getProfileKey(KEY_MOVIE_SUBTITLES_ENABLED), enabled).apply()
         saveMovieSettingsToFile()
     }
 
@@ -2361,6 +2373,7 @@ class SettingsRepository(private val context: Context) {
     private fun loadComicShowPageIndicators(): Boolean = prefs.getBoolean(getProfileKey(KEY_COMIC_SHOW_PAGE_INDICATORS), true)
     private fun loadComicEnableDoubleTapZoom(): Boolean = prefs.getBoolean(getProfileKey(KEY_COMIC_ENABLE_DOUBLE_TAP_ZOOM), true)
     private fun loadComicShowControlsOnTap(): Boolean = prefs.getBoolean(getProfileKey(KEY_COMIC_SHOW_CONTROLS_ON_TAP), true)
+    private fun loadComicKeepScreenOn(): Boolean = prefs.getBoolean(getProfileKey(KEY_COMIC_KEEP_SCREEN_ON), true)
 
     // Movie Player loaders (per-profile)
     private fun loadMoviePlaybackSpeed(): Float = prefs.getFloat(getProfileKey(KEY_MOVIE_PLAYBACK_SPEED), 1.0f)
@@ -2373,6 +2386,7 @@ class SettingsRepository(private val context: Context) {
     private fun loadMovieDoubleTapSeekDuration(): Int = prefs.getInt(getProfileKey(KEY_MOVIE_DOUBLE_TAP_SEEK_DURATION), 10)
     private fun loadMovieSwipeGesturesEnabled(): Boolean = prefs.getBoolean(getProfileKey(KEY_MOVIE_SWIPE_GESTURES_ENABLED), true)
     private fun loadMovieRememberPosition(): Boolean = prefs.getBoolean(getProfileKey(KEY_MOVIE_REMEMBER_POSITION), true)
+    private fun loadMovieSubtitlesEnabled(): Boolean = prefs.getBoolean(getProfileKey(KEY_MOVIE_SUBTITLES_ENABLED), false)
 
     // Audio Enhancement loaders
     private fun loadNormalizeAudio(): Boolean = prefs.getBoolean(KEY_NORMALIZE_AUDIO, false)
@@ -2463,16 +2477,6 @@ class SettingsRepository(private val context: Context) {
 
     fun setGaplessPlayback(enabled: Boolean) {
         _gaplessPlayback.value = enabled
-        saveAudioSettingsToFile()
-    }
-
-    fun setCrossfadeEnabled(enabled: Boolean) {
-        _crossfadeEnabled.value = enabled
-        saveAudioSettingsToFile()
-    }
-
-    fun setCrossfadeDuration(duration: Int) {
-        _crossfadeDuration.value = duration
         saveAudioSettingsToFile()
     }
 
@@ -2613,6 +2617,7 @@ class SettingsRepository(private val context: Context) {
         private const val KEY_COMIC_SHOW_PAGE_INDICATORS = "comic_show_page_indicators"
         private const val KEY_COMIC_ENABLE_DOUBLE_TAP_ZOOM = "comic_enable_double_tap_zoom"
         private const val KEY_COMIC_SHOW_CONTROLS_ON_TAP = "comic_show_controls_on_tap"
+        private const val KEY_COMIC_KEEP_SCREEN_ON = "comic_keep_screen_on"
 
         // Movie Player keys
         private const val KEY_MOVIE_PLAYBACK_SPEED = "movie_playback_speed"
@@ -2625,6 +2630,7 @@ class SettingsRepository(private val context: Context) {
         private const val KEY_MOVIE_DOUBLE_TAP_SEEK_DURATION = "movie_double_tap_seek_duration"
         private const val KEY_MOVIE_SWIPE_GESTURES_ENABLED = "movie_swipe_gestures_enabled"
         private const val KEY_MOVIE_REMEMBER_POSITION = "movie_remember_position"
+        private const val KEY_MOVIE_SUBTITLES_ENABLED = "movie_subtitles_enabled"
 
         private const val KEY_PLAYBACK_SPEED = "playback_speed"
         private const val KEY_SLEEP_TIMER_MINUTES = "sleep_timer_minutes"
