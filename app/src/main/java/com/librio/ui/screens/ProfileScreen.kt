@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.librio.ui.theme.AppIcons
@@ -36,6 +38,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -77,8 +80,6 @@ fun ProfileScreen(
     onAccentThemeChange: (AppTheme) -> Unit = {},
     darkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
-    backgroundTheme: BackgroundTheme = BackgroundTheme.WHITE,
-    onBackgroundThemeChange: (BackgroundTheme) -> Unit = {},
     customPrimaryColor: Int = 0x00897B,
     onCustomPrimaryColorChange: (Int) -> Unit = {},
     customAccentColor: Int = 0x26A69A,
@@ -1200,110 +1201,6 @@ fun ProfileScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    // Background Theme Card
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = palette.surfaceMedium),
-                        shape = shape16,
-                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .clip(shape12)
-                                        .background(palette.accent.copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = AppIcons.Image,
-                                        contentDescription = null,
-                                        tint = palette.accent,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        text = "Background",
-                                        style = MaterialTheme.typography.titleMedium,
-                                        fontWeight = FontWeight.SemiBold,
-                                        color = palette.primary
-                                    )
-                                    Text(
-                                        text = backgroundTheme.displayName,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = palette.accent,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(12.dp))
-                            // Background theme options in a horizontal scrollable row
-                            LazyRow(
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                items(BackgroundTheme.entries.toList()) { bgTheme ->
-                                    val isSelected = backgroundTheme == bgTheme
-                                    val bgColor = when (bgTheme) {
-                                        BackgroundTheme.WHITE -> Color(0xFFFFFFFF)
-                                        BackgroundTheme.CREAM -> Color(0xFFFFFBF0)
-                                        BackgroundTheme.LIGHT_GRAY -> Color(0xFFF5F5F5)
-                                        BackgroundTheme.WARM_WHITE -> Color(0xFFFFFAF5)
-                                        BackgroundTheme.COOL_GRAY -> Color(0xFFF0F4F8)
-                                        BackgroundTheme.PAPER -> Color(0xFFFAF8F5)
-                                        BackgroundTheme.SOFT_BLUE -> Color(0xFFE8F0F8)
-                                        BackgroundTheme.MINT -> Color(0xFFE8F8F0)
-                                        BackgroundTheme.LAVENDER -> Color(0xFFF0E8F8)
-                                        BackgroundTheme.PEACH -> Color(0xFFFFF0E8)
-                                        BackgroundTheme.SLATE -> Color(0xFF3A4A5A)
-                                        BackgroundTheme.CHARCOAL -> Color(0xFF1F1F1F)
-                                        BackgroundTheme.DARK_BLUE -> Color(0xFF1A1F3C)
-                                        BackgroundTheme.FOREST -> Color(0xFF1A2F1A)
-                                        BackgroundTheme.SEPIA -> Color(0xFFE8D5B5)
-                                        BackgroundTheme.ROSE -> Color(0xFFFFF0F5)
-                                    }
-                                    Box(
-                                        modifier = Modifier
-                                            .size(40.dp)
-                                            .clip(shape8)
-                                            .background(bgColor)
-                                            .border(
-                                                width = if (isSelected) 2.dp else 1.dp,
-                                                color = if (isSelected) palette.accent else palette.shade4,
-                                                shape = shape8
-                                            )
-                                            .clickable { onBackgroundThemeChange(bgTheme) },
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        if (isSelected) {
-                                            val isDarkBg = bgTheme == BackgroundTheme.SLATE ||
-                                                           bgTheme == BackgroundTheme.CHARCOAL ||
-                                                           bgTheme == BackgroundTheme.DARK_BLUE ||
-                                                           bgTheme == BackgroundTheme.FOREST
-                                            Icon(
-                                                AppIcons.Check,
-                                                contentDescription = "Selected",
-                                                tint = if (isDarkBg) Color.White else palette.accent,
-                                                modifier = Modifier.size(16.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
                     // App Scale Card
                     Card(
                         colors = CardDefaults.cardColors(containerColor = palette.surfaceMedium),
@@ -1415,7 +1312,12 @@ fun ProfileScreen(
 
                             Spacer(modifier = Modifier.height(16.dp))
 
-                            // Font Size
+                            // Font Size - 6 options: 85%, 100%, 115%, 130%, 150%, 175%
+                            val fontScaleOptions = listOf(0.85f, 1.0f, 1.15f, 1.3f, 1.5f, 1.75f)
+                            val currentScaleIndex = fontScaleOptions.indexOfFirst {
+                                kotlin.math.abs(it - uiFontScale) < 0.05f
+                            }.coerceAtLeast(0)
+
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -1428,10 +1330,13 @@ fun ProfileScreen(
                                     modifier = Modifier.width(50.dp)
                                 )
                                 Slider(
-                                    value = uiFontScale.coerceIn(0.85f, 1.75f),
-                                    onValueChange = { onUiFontScaleChange(it.coerceIn(0.85f, 1.75f)) },
-                                    valueRange = 0.85f..1.75f,
-                                    steps = 17,
+                                    value = currentScaleIndex.toFloat(),
+                                    onValueChange = {
+                                        val index = it.roundToInt().coerceIn(0, fontScaleOptions.size - 1)
+                                        onUiFontScaleChange(fontScaleOptions[index])
+                                    },
+                                    valueRange = 0f..(fontScaleOptions.size - 1).toFloat(),
+                                    steps = fontScaleOptions.size - 2, // 4 steps = 6 choices
                                     modifier = Modifier.weight(1f),
                                     colors = SliderDefaults.colors(
                                         thumbColor = palette.accent,

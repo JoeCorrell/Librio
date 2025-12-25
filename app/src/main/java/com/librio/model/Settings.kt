@@ -67,6 +67,24 @@ data class AudioSettings(
     val headsetControls: Boolean = true,
     val pauseOnDisconnect: Boolean = true,
     val showPlaybackNotification: Boolean = true,
+    // Undo seek feature
+    val showUndoSeekButton: Boolean = true,
+    val lastSeekPosition: Long = 0L,
+    // Headphone/Bluetooth controls
+    val headphoneUnplugAction: String = "PAUSE", // PAUSE, STOP, CONTINUE
+    // Audio transition effects
+    val fadeOnPauseResume: Boolean = false,
+    val fadeOnSeek: Boolean = false,
+    val fadeDurationMs: Int = 300,
+    // Gapless and crossfade
+    val gaplessPlayback: Boolean = true,
+    val crossfadeEnabled: Boolean = false,
+    val crossfadeDuration: Int = 3, // seconds
+    // Mono audio and channel balance
+    val monoAudio: Boolean = false,
+    val channelBalance: Float = 0f, // -1.0 (left) to 1.0 (right), 0 = center
+    // Silence trimming
+    val trimSilence: Boolean = false,
     // Last playback state for music
     val lastMusicId: String? = null,
     val lastMusicPosition: Long = 0L,

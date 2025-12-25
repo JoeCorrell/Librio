@@ -83,6 +83,23 @@ fun MusicSettingsScreen(
     onBassBoostLevelChange: (Float) -> Unit,
     equalizerPreset: String,
     onEqualizerPresetChange: (String) -> Unit,
+    // New audio settings
+    showUndoSeekButton: Boolean = true,
+    onShowUndoSeekButtonChange: (Boolean) -> Unit = {},
+    fadeOnPauseResume: Boolean = false,
+    onFadeOnPauseResumeChange: (Boolean) -> Unit = {},
+    gaplessPlayback: Boolean = true,
+    onGaplessPlaybackChange: (Boolean) -> Unit = {},
+    crossfadeEnabled: Boolean = false,
+    onCrossfadeEnabledChange: (Boolean) -> Unit = {},
+    crossfadeDuration: Int = 3,
+    onCrossfadeDurationChange: (Int) -> Unit = {},
+    monoAudio: Boolean = false,
+    onMonoAudioChange: (Boolean) -> Unit = {},
+    channelBalance: Float = 0f,
+    onChannelBalanceChange: (Float) -> Unit = {},
+    trimSilence: Boolean = false,
+    onTrimSilenceChange: (Boolean) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
@@ -267,6 +284,93 @@ fun MusicSettingsScreen(
                             onChange = { onSleepTimerChange(it.toInt()) },
                             valueRange = 0f..120f,
                             step = 12
+                        )
+                    }
+
+                    SectionCard(
+                        title = "Controls",
+                        subtitle = "Playback buttons and gestures",
+                        icon = AppIcons.TouchApp,
+                        colors = cardColors
+                    ) {
+                        ToggleRow(
+                            title = "Show undo seek button",
+                            subtitle = "Quickly return to position before last skip",
+                            checked = showUndoSeekButton,
+                            onCheckedChange = onShowUndoSeekButtonChange
+                        )
+                    }
+
+                    SectionCard(
+                        title = "Transitions",
+                        subtitle = "Fading and crossfade effects",
+                        icon = AppIcons.Tune,
+                        colors = cardColors
+                    ) {
+                        ToggleRow(
+                            title = "Fade on pause/resume",
+                            subtitle = "Smooth audio fade when pausing or resuming",
+                            checked = fadeOnPauseResume,
+                            onCheckedChange = onFadeOnPauseResumeChange
+                        )
+                        ToggleRow(
+                            title = "Gapless playback",
+                            subtitle = "No silence between tracks",
+                            checked = gaplessPlayback,
+                            onCheckedChange = onGaplessPlaybackChange
+                        )
+                        ToggleRow(
+                            title = "Crossfade",
+                            subtitle = "Blend end of track into next",
+                            checked = crossfadeEnabled,
+                            onCheckedChange = onCrossfadeEnabledChange
+                        )
+                        if (crossfadeEnabled) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            SliderRow(
+                                title = "Crossfade duration",
+                                valueLabel = "${crossfadeDuration}s",
+                                value = crossfadeDuration.toFloat(),
+                                onChange = { onCrossfadeDurationChange(it.roundToInt().coerceIn(1, 12)) },
+                                valueRange = 1f..12f,
+                                step = 11
+                            )
+                        }
+                    }
+
+                    SectionCard(
+                        title = "Audio Output",
+                        subtitle = "Channel and output settings",
+                        icon = AppIcons.VolumeUp,
+                        colors = cardColors
+                    ) {
+                        ToggleRow(
+                            title = "Mono audio",
+                            subtitle = "Combine left and right channels",
+                            checked = monoAudio,
+                            onCheckedChange = onMonoAudioChange
+                        )
+                        if (!monoAudio) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            SliderRow(
+                                title = "Channel balance",
+                                valueLabel = when {
+                                    channelBalance < -0.1f -> "L ${(-channelBalance * 100).toInt()}%"
+                                    channelBalance > 0.1f -> "R ${(channelBalance * 100).toInt()}%"
+                                    else -> "Center"
+                                },
+                                value = channelBalance,
+                                onChange = { onChannelBalanceChange(it.coerceIn(-1f, 1f)) },
+                                valueRange = -1f..1f,
+                                step = 20
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                        ToggleRow(
+                            title = "Trim silence",
+                            subtitle = "Skip silent parts of audio",
+                            checked = trimSilence,
+                            onCheckedChange = onTrimSilenceChange
                         )
                     }
                 }

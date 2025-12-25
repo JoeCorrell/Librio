@@ -97,6 +97,23 @@ fun MusicPlayerScreen(
     onNormalizeAudioChange: (Boolean) -> Unit = {},
     onBassBoostLevelChange: (Float) -> Unit = {},
     onEqualizerPresetChange: (String) -> Unit = {},
+    // New audio settings
+    showUndoSeekButton: Boolean = true,
+    onShowUndoSeekButtonChange: (Boolean) -> Unit = {},
+    fadeOnPauseResume: Boolean = false,
+    onFadeOnPauseResumeChange: (Boolean) -> Unit = {},
+    gaplessPlayback: Boolean = true,
+    onGaplessPlaybackChange: (Boolean) -> Unit = {},
+    crossfadeEnabled: Boolean = false,
+    onCrossfadeEnabledChange: (Boolean) -> Unit = {},
+    crossfadeDuration: Int = 3,
+    onCrossfadeDurationChange: (Int) -> Unit = {},
+    monoAudio: Boolean = false,
+    onMonoAudioChange: (Boolean) -> Unit = {},
+    channelBalance: Float = 0f,
+    onChannelBalanceChange: (Float) -> Unit = {},
+    trimSilence: Boolean = false,
+    onTrimSilenceChange: (Boolean) -> Unit = {},
     initialShuffleEnabled: Boolean = false,
     initialRepeatMode: Int = Player.REPEAT_MODE_OFF,
     onShuffleEnabledChange: (Boolean) -> Unit = {},
@@ -149,6 +166,9 @@ fun MusicPlayerScreen(
 
     // Playback speed state
     var currentSpeed by remember { mutableFloatStateOf(playbackSpeed.coerceIn(0.5f, 2f)) }
+
+    // Undo seek tracking - stores position before last seek
+    var lastSeekPositionLocal by remember { mutableStateOf(0L) }
     fun buildMusicMediaItem(track: LibraryMusic): MediaItem {
         return MediaItem.Builder()
             .setUri(track.uri)
@@ -604,7 +624,10 @@ fun MusicPlayerScreen(
                             .size(mediumButtonSize)
                             .clip(CircleShape)
                             .background(palette.accent.copy(alpha = 0.1f))
-                            .clickable { exoPlayer.seekTo((currentPosition - skipBackSeconds * 1000L).coerceAtLeast(0)) },
+                            .clickable {
+                                lastSeekPositionLocal = currentPosition
+                                exoPlayer.seekTo((currentPosition - skipBackSeconds * 1000L).coerceAtLeast(0))
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -655,6 +678,7 @@ fun MusicPlayerScreen(
                             .clip(CircleShape)
                             .background(palette.accent.copy(alpha = 0.1f))
                             .clickable {
+                                lastSeekPositionLocal = currentPosition
                                 val maxPos = if (duration > 0) duration else Long.MAX_VALUE
                                 exoPlayer.seekTo((currentPosition + skipForwardSeconds * 1000L).coerceAtMost(maxPos))
                             },
@@ -704,6 +728,51 @@ fun MusicPlayerScreen(
                             tint = if (hasNext || playlist.isEmpty()) palette.accent else palette.accent.copy(alpha = 0.3f),
                             modifier = Modifier.size(smallIconSize + 4.dp)
                         )
+                    }
+                }
+
+                // Undo seek button
+                val canUndo = showUndoSeekButton && lastSeekPositionLocal > 0L &&
+                    kotlin.math.abs(currentPosition - lastSeekPositionLocal) > 1000L
+                AnimatedVisibility(
+                    visible = canUndo,
+                    enter = fadeIn() + expandVertically(),
+                    exit = fadeOut() + shrinkVertically()
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 10.dp),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(20.dp))
+                                .background(palette.accent.copy(alpha = 0.15f))
+                                .clickable {
+                                    exoPlayer.seekTo(lastSeekPositionLocal)
+                                    lastSeekPositionLocal = 0L
+                                }
+                                .padding(horizontal = 16.dp, vertical = 8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            ) {
+                                Icon(
+                                    imageVector = AppIcons.Replay,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(18.dp),
+                                    tint = palette.accent
+                                )
+                                Text(
+                                    text = "Undo seek",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = palette.accent,
+                                    fontWeight = FontWeight.Medium
+                                )
+                            }
+                        }
                     }
                 }
 
@@ -879,6 +948,23 @@ fun MusicPlayerScreen(
                     onBassBoostLevelChange = onBassBoostLevelChange,
                     equalizerPreset = equalizerPreset,
                     onEqualizerPresetChange = onEqualizerPresetChange,
+                    // New audio settings
+                    showUndoSeekButton = showUndoSeekButton,
+                    onShowUndoSeekButtonChange = onShowUndoSeekButtonChange,
+                    fadeOnPauseResume = fadeOnPauseResume,
+                    onFadeOnPauseResumeChange = onFadeOnPauseResumeChange,
+                    gaplessPlayback = gaplessPlayback,
+                    onGaplessPlaybackChange = onGaplessPlaybackChange,
+                    crossfadeEnabled = crossfadeEnabled,
+                    onCrossfadeEnabledChange = onCrossfadeEnabledChange,
+                    crossfadeDuration = crossfadeDuration,
+                    onCrossfadeDurationChange = onCrossfadeDurationChange,
+                    monoAudio = monoAudio,
+                    onMonoAudioChange = onMonoAudioChange,
+                    channelBalance = channelBalance,
+                    onChannelBalanceChange = onChannelBalanceChange,
+                    trimSilence = trimSilence,
+                    onTrimSilenceChange = onTrimSilenceChange,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .clickable(

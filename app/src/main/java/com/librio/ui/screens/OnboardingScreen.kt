@@ -130,7 +130,7 @@ fun OnboardingScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
-                    imageVector = AppIcons.Audiobook,
+                    imageVector = AppIcons.Library,
                     contentDescription = null,
                     modifier = Modifier.size(48.dp),
                     tint = Color.White

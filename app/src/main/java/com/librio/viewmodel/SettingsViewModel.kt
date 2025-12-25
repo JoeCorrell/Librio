@@ -10,7 +10,6 @@ import com.librio.data.ProfileFileManager
 import com.librio.data.repository.SettingsRepository
 import com.librio.ui.screens.UserProfile
 import com.librio.ui.theme.AppTheme
-import com.librio.ui.theme.BackgroundTheme
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -56,9 +55,6 @@ class SettingsViewModel : ViewModel() {
 
     val darkMode: StateFlow<Boolean>?
         get() = repository?.darkMode
-
-    val backgroundTheme: StateFlow<BackgroundTheme>?
-        get() = repository?.backgroundTheme
 
     // Additional global settings
     val playbackSpeed: StateFlow<Float>?
@@ -265,6 +261,34 @@ class SettingsViewModel : ViewModel() {
     val musicRepeatMode: StateFlow<Int>?
         get() = repository?.musicRepeatMode
 
+    // New audio settings
+    val showUndoSeekButton: StateFlow<Boolean>?
+        get() = repository?.showUndoSeekButton
+
+    val lastSeekPosition: StateFlow<Long>?
+        get() = repository?.lastSeekPosition
+
+    val fadeOnPauseResume: StateFlow<Boolean>?
+        get() = repository?.fadeOnPauseResume
+
+    val gaplessPlayback: StateFlow<Boolean>?
+        get() = repository?.gaplessPlayback
+
+    val crossfadeEnabled: StateFlow<Boolean>?
+        get() = repository?.crossfadeEnabled
+
+    val crossfadeDuration: StateFlow<Int>?
+        get() = repository?.crossfadeDuration
+
+    val monoAudio: StateFlow<Boolean>?
+        get() = repository?.monoAudio
+
+    val channelBalance: StateFlow<Float>?
+        get() = repository?.channelBalance
+
+    val trimSilence: StateFlow<Boolean>?
+        get() = repository?.trimSilence
+
     // Migration state
     private val _migrationComplete = MutableStateFlow(false)
     val migrationComplete: StateFlow<Boolean> = _migrationComplete.asStateFlow()
@@ -419,10 +443,6 @@ class SettingsViewModel : ViewModel() {
 
     fun setDarkMode(enabled: Boolean) {
         repository?.setDarkModeForProfile(enabled)
-    }
-
-    fun setBackgroundTheme(theme: BackgroundTheme) {
-        repository?.setBackgroundTheme(theme)
     }
 
     fun addProfile(name: String) {
@@ -744,5 +764,42 @@ class SettingsViewModel : ViewModel() {
 
     fun setProfileSleepTimer(minutes: Int) {
         repository?.setProfileSleepTimer(minutes)
+    }
+
+    // New audio settings setters
+    fun setShowUndoSeekButton(enabled: Boolean) {
+        repository?.setShowUndoSeekButton(enabled)
+    }
+
+    fun setLastSeekPosition(position: Long) {
+        repository?.setLastSeekPosition(position)
+    }
+
+    fun setFadeOnPauseResume(enabled: Boolean) {
+        repository?.setFadeOnPauseResume(enabled)
+    }
+
+    fun setGaplessPlayback(enabled: Boolean) {
+        repository?.setGaplessPlayback(enabled)
+    }
+
+    fun setCrossfadeEnabled(enabled: Boolean) {
+        repository?.setCrossfadeEnabled(enabled)
+    }
+
+    fun setCrossfadeDuration(duration: Int) {
+        repository?.setCrossfadeDuration(duration)
+    }
+
+    fun setMonoAudio(enabled: Boolean) {
+        repository?.setMonoAudio(enabled)
+    }
+
+    fun setChannelBalance(balance: Float) {
+        repository?.setChannelBalance(balance)
+    }
+
+    fun setTrimSilence(enabled: Boolean) {
+        repository?.setTrimSilence(enabled)
     }
 }

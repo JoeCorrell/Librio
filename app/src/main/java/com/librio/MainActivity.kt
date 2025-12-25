@@ -53,7 +53,6 @@ import com.librio.player.applyEqualizerPreset
 import com.librio.player.normalizeEqPresetName
 import com.librio.ui.theme.AppTheme
 import com.librio.ui.theme.AudiobookPlayerTheme
-import com.librio.ui.theme.BackgroundTheme
 import com.librio.viewmodel.LibraryViewModel
 import com.librio.viewmodel.SettingsViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -105,7 +104,6 @@ class MainActivity : ComponentActivity() {
             val appTheme by settingsViewModel.appTheme?.collectAsState() ?: remember { mutableStateOf(AppTheme.TEAL) }
             val accentTheme by settingsViewModel.accentTheme?.collectAsState() ?: remember { mutableStateOf(AppTheme.TEAL) }
             val darkMode by settingsViewModel.darkMode?.collectAsState() ?: remember { mutableStateOf(false) }
-            val backgroundTheme by settingsViewModel.backgroundTheme?.collectAsState() ?: remember { mutableStateOf(BackgroundTheme.WHITE) }
             val skipForward by settingsViewModel.skipForwardDuration?.collectAsState() ?: remember { mutableStateOf(30) }
             val skipBack by settingsViewModel.skipBackDuration?.collectAsState() ?: remember { mutableStateOf(10) }
             val autoBookmark by settingsViewModel.autoBookmark?.collectAsState() ?: remember { mutableStateOf(true) }
@@ -168,6 +166,16 @@ class MainActivity : ComponentActivity() {
             val customPrimaryColor by settingsViewModel.customPrimaryColor?.collectAsState() ?: remember { mutableStateOf(0x00897B) }
             val customAccentColor by settingsViewModel.customAccentColor?.collectAsState() ?: remember { mutableStateOf(0x26A69A) }
             val customBackgroundColor by settingsViewModel.customBackgroundColor?.collectAsState() ?: remember { mutableStateOf(0x121212) }
+
+            // New audio settings
+            val showUndoSeekButton by settingsViewModel.showUndoSeekButton?.collectAsState() ?: remember { mutableStateOf(true) }
+            val fadeOnPauseResume by settingsViewModel.fadeOnPauseResume?.collectAsState() ?: remember { mutableStateOf(false) }
+            val gaplessPlayback by settingsViewModel.gaplessPlayback?.collectAsState() ?: remember { mutableStateOf(true) }
+            val crossfadeEnabled by settingsViewModel.crossfadeEnabled?.collectAsState() ?: remember { mutableStateOf(false) }
+            val crossfadeDuration by settingsViewModel.crossfadeDuration?.collectAsState() ?: remember { mutableStateOf(3) }
+            val monoAudio by settingsViewModel.monoAudio?.collectAsState() ?: remember { mutableStateOf(false) }
+            val channelBalance by settingsViewModel.channelBalance?.collectAsState() ?: remember { mutableStateOf(0f) }
+            val trimSilence by settingsViewModel.trimSilence?.collectAsState() ?: remember { mutableStateOf(false) }
 
             // E-Reader settings
             val readerFontSize by settingsViewModel.readerFontSize?.collectAsState() ?: remember { mutableStateOf(18) }
@@ -1139,8 +1147,6 @@ class MainActivity : ComponentActivity() {
                                 onThemeChange = { settingsViewModel.setTheme(it) },
                                 accentTheme = accentTheme,
                                 onAccentThemeChange = { settingsViewModel.setAccentTheme(it) },
-                                backgroundTheme = backgroundTheme,
-                                onBackgroundThemeChange = { settingsViewModel.setBackgroundTheme(it) },
                                 darkMode = darkMode,
                                 onDarkModeChange = { settingsViewModel.setDarkMode(it) },
                                 // Settings parameters
@@ -1433,6 +1439,23 @@ class MainActivity : ComponentActivity() {
                                 onNormalizeAudioChange = { settingsViewModel.setProfileNormalizeAudio(it) },
                                 onBassBoostLevelChange = { settingsViewModel.setProfileBassBoostLevel(it) },
                                 onEqualizerPresetChange = { settingsViewModel.setProfileEqualizerPreset(it) },
+                                // New audio settings
+                                showUndoSeekButton = showUndoSeekButton,
+                                onShowUndoSeekButtonChange = { settingsViewModel.setShowUndoSeekButton(it) },
+                                fadeOnPauseResume = fadeOnPauseResume,
+                                onFadeOnPauseResumeChange = { settingsViewModel.setFadeOnPauseResume(it) },
+                                gaplessPlayback = gaplessPlayback,
+                                onGaplessPlaybackChange = { settingsViewModel.setGaplessPlayback(it) },
+                                crossfadeEnabled = crossfadeEnabled,
+                                onCrossfadeEnabledChange = { settingsViewModel.setCrossfadeEnabled(it) },
+                                crossfadeDuration = crossfadeDuration,
+                                onCrossfadeDurationChange = { settingsViewModel.setCrossfadeDuration(it) },
+                                monoAudio = monoAudio,
+                                onMonoAudioChange = { settingsViewModel.setMonoAudio(it) },
+                                channelBalance = channelBalance,
+                                onChannelBalanceChange = { settingsViewModel.setChannelBalance(it) },
+                                trimSilence = trimSilence,
+                                onTrimSilenceChange = { settingsViewModel.setTrimSilence(it) },
                                 showBackButton = showBackButton,
                                 showSearchBar = showSearchBar,
                                 showPlaceholderIcons = showPlaceholderIcons,
@@ -1581,6 +1604,23 @@ class MainActivity : ComponentActivity() {
                                     onNormalizeAudioChange = { settingsViewModel.setProfileNormalizeAudio(it) },
                                     onBassBoostLevelChange = { settingsViewModel.setProfileBassBoostLevel(it) },
                                     onEqualizerPresetChange = { settingsViewModel.setProfileEqualizerPreset(it) },
+                                    // New audio settings
+                                    showUndoSeekButton = showUndoSeekButton,
+                                    onShowUndoSeekButtonChange = { settingsViewModel.setShowUndoSeekButton(it) },
+                                    fadeOnPauseResume = fadeOnPauseResume,
+                                    onFadeOnPauseResumeChange = { settingsViewModel.setFadeOnPauseResume(it) },
+                                    gaplessPlayback = gaplessPlayback,
+                                    onGaplessPlaybackChange = { settingsViewModel.setGaplessPlayback(it) },
+                                    crossfadeEnabled = crossfadeEnabled,
+                                    onCrossfadeEnabledChange = { settingsViewModel.setCrossfadeEnabled(it) },
+                                    crossfadeDuration = crossfadeDuration,
+                                    onCrossfadeDurationChange = { settingsViewModel.setCrossfadeDuration(it) },
+                                    monoAudio = monoAudio,
+                                    onMonoAudioChange = { settingsViewModel.setMonoAudio(it) },
+                                    channelBalance = channelBalance,
+                                    onChannelBalanceChange = { settingsViewModel.setChannelBalance(it) },
+                                    trimSilence = trimSilence,
+                                    onTrimSilenceChange = { settingsViewModel.setTrimSilence(it) },
                                     initialShuffleEnabled = musicShuffleEnabled,
                                     initialRepeatMode = musicRepeatMode,
                                     onShuffleEnabledChange = { settingsViewModel.setMusicShuffleEnabled(it) },

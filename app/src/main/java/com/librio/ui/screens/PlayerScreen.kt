@@ -120,6 +120,23 @@ fun PlayerScreen(
     onNormalizeAudioChange: (Boolean) -> Unit = {},
     onBassBoostLevelChange: (Float) -> Unit = {},
     onEqualizerPresetChange: (String) -> Unit = {},
+    // New audio settings
+    showUndoSeekButton: Boolean = true,
+    onShowUndoSeekButtonChange: (Boolean) -> Unit = {},
+    fadeOnPauseResume: Boolean = false,
+    onFadeOnPauseResumeChange: (Boolean) -> Unit = {},
+    gaplessPlayback: Boolean = true,
+    onGaplessPlaybackChange: (Boolean) -> Unit = {},
+    crossfadeEnabled: Boolean = false,
+    onCrossfadeEnabledChange: (Boolean) -> Unit = {},
+    crossfadeDuration: Int = 3,
+    onCrossfadeDurationChange: (Int) -> Unit = {},
+    monoAudio: Boolean = false,
+    onMonoAudioChange: (Boolean) -> Unit = {},
+    channelBalance: Float = 0f,
+    onChannelBalanceChange: (Float) -> Unit = {},
+    trimSilence: Boolean = false,
+    onTrimSilenceChange: (Boolean) -> Unit = {},
     showBackButton: Boolean = true,
     showSearchBar: Boolean = true,
     showPlaceholderIcons: Boolean = true,
@@ -134,6 +151,9 @@ fun PlayerScreen(
     // No tab selected when in player screen - user navigates FROM library
     var selectedTab by remember { mutableStateOf<BottomNavItem?>(null) }
     var showSettings by remember { mutableStateOf(false) }
+
+    // Undo seek tracking - stores position before last seek
+    var lastSeekPositionLocal by remember { mutableStateOf(0L) }
 
     // File picker launcher
     val filePickerLauncher = rememberLauncherForActivityResult(
@@ -343,14 +363,35 @@ fun PlayerScreen(
                         audiobook = audiobook!!,
                         playbackState = playbackState,
                         onPlayPause = { player.togglePlayPause() },
-                        onSeekForward = { player.seekForward(skipForwardSeconds) },
-                        onSeekBackward = { player.seekBackward(skipBackSeconds) },
-                        onNextChapter = { player.nextChapter() },
-                        onPreviousChapter = { player.previousChapter() },
-                        onSeekTo = { player.seekTo(it) },
+                        onSeekForward = {
+                            lastSeekPositionLocal = playbackState.currentPosition
+                            player.seekForward(skipForwardSeconds)
+                        },
+                        onSeekBackward = {
+                            lastSeekPositionLocal = playbackState.currentPosition
+                            player.seekBackward(skipBackSeconds)
+                        },
+                        onNextChapter = {
+                            lastSeekPositionLocal = playbackState.currentPosition
+                            player.nextChapter()
+                        },
+                        onPreviousChapter = {
+                            lastSeekPositionLocal = playbackState.currentPosition
+                            player.previousChapter()
+                        },
+                        onSeekTo = {
+                            lastSeekPositionLocal = playbackState.currentPosition
+                            player.seekTo(it)
+                        },
                         skipForwardSeconds = skipForwardSeconds,
                         skipBackSeconds = skipBackSeconds,
                         showPlaceholderIcons = showPlaceholderIcons,
+                        showUndoSeekButton = showUndoSeekButton,
+                        lastSeekPosition = lastSeekPositionLocal,
+                        onUndoSeek = {
+                            player.seekTo(lastSeekPositionLocal)
+                            lastSeekPositionLocal = 0L
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 } else {
@@ -424,6 +465,23 @@ fun PlayerScreen(
                     onBassBoostLevelChange = onBassBoostLevelChange,
                     equalizerPreset = equalizerPreset,
                     onEqualizerPresetChange = onEqualizerPresetChange,
+                    // New audio settings
+                    showUndoSeekButton = showUndoSeekButton,
+                    onShowUndoSeekButtonChange = onShowUndoSeekButtonChange,
+                    fadeOnPauseResume = fadeOnPauseResume,
+                    onFadeOnPauseResumeChange = onFadeOnPauseResumeChange,
+                    gaplessPlayback = gaplessPlayback,
+                    onGaplessPlaybackChange = onGaplessPlaybackChange,
+                    crossfadeEnabled = crossfadeEnabled,
+                    onCrossfadeEnabledChange = onCrossfadeEnabledChange,
+                    crossfadeDuration = crossfadeDuration,
+                    onCrossfadeDurationChange = onCrossfadeDurationChange,
+                    monoAudio = monoAudio,
+                    onMonoAudioChange = onMonoAudioChange,
+                    channelBalance = channelBalance,
+                    onChannelBalanceChange = onChannelBalanceChange,
+                    trimSilence = trimSilence,
+                    onTrimSilenceChange = onTrimSilenceChange,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .clickable(
@@ -452,6 +510,9 @@ private fun PlayerContent(
     skipForwardSeconds: Int = 30,
     skipBackSeconds: Int = 10,
     showPlaceholderIcons: Boolean,
+    showUndoSeekButton: Boolean = false,
+    lastSeekPosition: Long = 0L,
+    onUndoSeek: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val palette = currentPalette()
@@ -570,6 +631,9 @@ private fun PlayerContent(
                 onSeekTo = onSeekTo,
                 skipForwardSeconds = skipForwardSeconds,
                 skipBackSeconds = skipBackSeconds,
+                showUndoSeekButton = showUndoSeekButton,
+                lastSeekPosition = lastSeekPosition,
+                onUndoSeek = onUndoSeek,
                 modifier = Modifier.fillMaxWidth()
             )
         }

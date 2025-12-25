@@ -366,48 +366,81 @@ private fun Color.compositeOver(background: Color): Color {
 }
 
 /**
- * Background/Secondary Theme Options
+ * Background Theme Options - matches AppTheme with light/dark variants
+ * Each option generates a subtle tinted background from its theme color
  */
-enum class BackgroundTheme(val displayName: String) {
-    WHITE("White"),
-    CREAM("Cream"),
-    LIGHT_GRAY("Light Gray"),
-    WARM_WHITE("Warm White"),
-    COOL_GRAY("Cool Gray"),
-    PAPER("Paper"),
-    SOFT_BLUE("Soft Blue"),
-    MINT("Mint"),
-    LAVENDER("Lavender"),
-    PEACH("Peach"),
-    SLATE("Slate"),
-    CHARCOAL("Charcoal"),
-    DARK_BLUE("Dark Blue"),
-    FOREST("Forest"),
-    SEPIA("Sepia"),
-    ROSE("Rose")
+enum class BackgroundTheme(val displayName: String, val baseTheme: AppTheme? = null) {
+    // Neutral options
+    DEFAULT("Default (Theme)", null),
+
+    // Theme-based backgrounds (light tinted versions)
+    TEAL("Teal", AppTheme.TEAL),
+    OCEAN("Ocean Blue", AppTheme.OCEAN),
+    PURPLE("Purple", AppTheme.PURPLE),
+    ROSE("Rose", AppTheme.ROSE),
+    AMBER("Amber", AppTheme.AMBER),
+    EMERALD("Emerald", AppTheme.EMERALD),
+    MIDNIGHT("Midnight", AppTheme.MIDNIGHT),
+    CORAL("Coral", AppTheme.CORAL),
+    FOREST("Forest", AppTheme.FOREST),
+    SUNSET("Sunset", AppTheme.SUNSET),
+    LAVENDER("Lavender", AppTheme.LAVENDER),
+    CRIMSON("Crimson", AppTheme.CRIMSON),
+    CYAN("Cyan", AppTheme.CYAN),
+    INDIGO("Indigo", AppTheme.INDIGO),
+    GOLD("Gold", AppTheme.GOLD),
+    MINT("Mint", AppTheme.MINT),
+    SKY("Sky", AppTheme.SKY),
+    WINE("Wine", AppTheme.WINE),
+    SAPPHIRE("Sapphire", AppTheme.SAPPHIRE),
+    PEACH("Peach", AppTheme.PEACH),
+    CHERRY("Cherry", AppTheme.CHERRY),
+    JADE("Jade", AppTheme.JADE),
+    COBALT("Cobalt", AppTheme.COBALT),
+    BRONZE("Bronze", AppTheme.BRONZE),
+    ORCHID("Orchid", AppTheme.ORCHID),
+    RUST("Rust", AppTheme.RUST),
+    STEEL("Steel", AppTheme.STEEL),
+    PLUM("Plum", AppTheme.PLUM),
+    TURQUOISE("Turquoise", AppTheme.TURQUOISE),
+    SAND("Sand", AppTheme.SAND),
+    SLATE("Slate", AppTheme.SLATE),
+    RASPBERRY("Raspberry", AppTheme.RASPBERRY),
+    HONEY("Honey", AppTheme.HONEY),
+    OLIVE("Olive", AppTheme.OLIVE),
+    BLUSH("Blush", AppTheme.BLUSH)
 }
 
 /**
  * Get background colors for each background theme
+ * Returns (backgroundColor, surfaceColor) pair
+ * For theme-based options, generates light tinted versions from the theme's palette
  */
-fun getBackgroundColors(theme: BackgroundTheme): Pair<Color, Color> {
-    return when (theme) {
-        BackgroundTheme.WHITE -> Pair(Color.White, Color.White)
-        BackgroundTheme.CREAM -> Pair(Color(0xFFFFFBF0), Color(0xFFFAF8F3))
-        BackgroundTheme.LIGHT_GRAY -> Pair(Color(0xFFF5F5F5), Color(0xFFEEEEEE))
-        BackgroundTheme.WARM_WHITE -> Pair(Color(0xFFFFFAF5), Color(0xFFF8F4EF))
-        BackgroundTheme.COOL_GRAY -> Pair(Color(0xFFF0F4F8), Color(0xFFE8ECF0))
-        BackgroundTheme.PAPER -> Pair(Color(0xFFF5E6D3), Color(0xFFEEDCC8))
-        BackgroundTheme.SOFT_BLUE -> Pair(Color(0xFFF0F7FF), Color(0xFFE8F1FA))
-        BackgroundTheme.MINT -> Pair(Color(0xFFF0FFF4), Color(0xFFE8F5EC))
-        BackgroundTheme.LAVENDER -> Pair(Color(0xFFF5F0FF), Color(0xFFEDE8F5))
-        BackgroundTheme.PEACH -> Pair(Color(0xFFFFF5F0), Color(0xFFFAEDE8))
-        BackgroundTheme.SLATE -> Pair(Color(0xFF2D3748), Color(0xFF1A202C))
-        BackgroundTheme.CHARCOAL -> Pair(Color(0xFF1F1F1F), Color(0xFF171717))
-        BackgroundTheme.DARK_BLUE -> Pair(Color(0xFF1A1F3C), Color(0xFF0F1225))
-        BackgroundTheme.FOREST -> Pair(Color(0xFF1A2F1A), Color(0xFF0F1F0F))
-        BackgroundTheme.SEPIA -> Pair(Color(0xFFE8D5B5), Color(0xFFDCC9A8))
-        BackgroundTheme.ROSE -> Pair(Color(0xFFFFF0F5), Color(0xFFFAE8EE))
+fun getBackgroundColors(theme: BackgroundTheme, darkMode: Boolean = false): Pair<Color, Color> {
+    // For DEFAULT, return transparent to use the theme's own background
+    if (theme == BackgroundTheme.DEFAULT || theme.baseTheme == null) {
+        return Pair(Color.Transparent, Color.Transparent)
+    }
+
+    // Get the palette for the base theme
+    val palette = getThemePalette(theme.baseTheme, false)
+
+    return if (darkMode) {
+        // Dark mode: use darker shades with theme tint
+        val darkBg = Color(
+            red = (0.10f + palette.accent.red * 0.06f).coerceIn(0f, 0.2f),
+            green = (0.10f + palette.accent.green * 0.06f).coerceIn(0f, 0.2f),
+            blue = (0.12f + palette.accent.blue * 0.06f).coerceIn(0f, 0.22f)
+        )
+        val darkSurface = Color(
+            red = (0.08f + palette.accent.red * 0.04f).coerceIn(0f, 0.15f),
+            green = (0.08f + palette.accent.green * 0.04f).coerceIn(0f, 0.15f),
+            blue = (0.10f + palette.accent.blue * 0.04f).coerceIn(0f, 0.18f)
+        )
+        Pair(darkBg, darkSurface)
+    } else {
+        // Light mode: use the palette's light shades (shade11, shade12)
+        Pair(palette.shade11, palette.shade12)
     }
 }
 
@@ -458,6 +491,9 @@ data class ThemePalette(
     // Light mode colors
     val background: Color = Color(0xFFF8FAFA),
     val surface: Color = Color(0xFFFAFCFC),
+    // Content-specific background (for library, e-reader, comic reader only)
+    // Defaults to background, but can be overridden by BackgroundTheme
+    val contentBackground: Color = Color(0xFFF8FAFA),
     val onPrimary: Color = Color.White,
     val onBackground: Color = Color(0xFF1A1A1A),
     val onSurface: Color = Color(0xFF1A1A1A),
@@ -1052,23 +1088,23 @@ fun getMixedThemePalette(
     // Get the accent theme palette to extract accent colors
     val accentPalette = getThemePalette(accentTheme, darkMode)
 
-    // Combine: use primary palette as base, replace accent colors and shades from accent palette
+    // Combine: use primary palette for backgrounds/surfaces, accent palette for accent colors
+    // shade1-6 are accent-derived text/icon colors (from accent theme)
+    // shade7-12 are background/surface tints (from primary theme)
+    // This ensures consistent backgrounds while using accent colors for text/icons
     return primaryPalette.copy(
+        // Accent colors from accent theme
         accent = accentPalette.accent,
         accentGradientStart = accentPalette.accentGradientStart,
         accentGradientEnd = accentPalette.accentGradientEnd,
+        // Darker shades for text/icons from accent theme
         shade1 = accentPalette.shade1,
         shade2 = accentPalette.shade2,
         shade3 = accentPalette.shade3,
         shade4 = accentPalette.shade4,
         shade5 = accentPalette.shade5,
-        shade6 = accentPalette.shade6,
-        shade7 = accentPalette.shade7,
-        shade8 = accentPalette.shade8,
-        shade9 = accentPalette.shade9,
-        shade10 = accentPalette.shade10,
-        shade11 = accentPalette.shade11,
-        shade12 = accentPalette.shade12
+        shade6 = accentPalette.shade6
+        // shade7-12 and surface colors remain from primaryPalette (backgrounds)
     )
 }
 

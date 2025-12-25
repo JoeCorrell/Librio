@@ -382,6 +382,34 @@ class SettingsRepository(private val context: Context) {
     private val _pauseOnDisconnect = MutableStateFlow(loadPauseOnDisconnect())
     val pauseOnDisconnect: StateFlow<Boolean> = _pauseOnDisconnect.asStateFlow()
 
+    // New audio settings
+    private val _showUndoSeekButton = MutableStateFlow(true)
+    val showUndoSeekButton: StateFlow<Boolean> = _showUndoSeekButton.asStateFlow()
+
+    private val _lastSeekPosition = MutableStateFlow(0L)
+    val lastSeekPosition: StateFlow<Long> = _lastSeekPosition.asStateFlow()
+
+    private val _fadeOnPauseResume = MutableStateFlow(false)
+    val fadeOnPauseResume: StateFlow<Boolean> = _fadeOnPauseResume.asStateFlow()
+
+    private val _gaplessPlayback = MutableStateFlow(true)
+    val gaplessPlayback: StateFlow<Boolean> = _gaplessPlayback.asStateFlow()
+
+    private val _crossfadeEnabled = MutableStateFlow(false)
+    val crossfadeEnabled: StateFlow<Boolean> = _crossfadeEnabled.asStateFlow()
+
+    private val _crossfadeDuration = MutableStateFlow(3)
+    val crossfadeDuration: StateFlow<Int> = _crossfadeDuration.asStateFlow()
+
+    private val _monoAudio = MutableStateFlow(false)
+    val monoAudio: StateFlow<Boolean> = _monoAudio.asStateFlow()
+
+    private val _channelBalance = MutableStateFlow(0f)
+    val channelBalance: StateFlow<Float> = _channelBalance.asStateFlow()
+
+    private val _trimSilence = MutableStateFlow(false)
+    val trimSilence: StateFlow<Boolean> = _trimSilence.asStateFlow()
+
     // Display settings
     private val _showPlaceholderIcons = MutableStateFlow(loadShowPlaceholderIcons())
     val showPlaceholderIcons: StateFlow<Boolean> = _showPlaceholderIcons.asStateFlow()
@@ -871,7 +899,7 @@ class SettingsRepository(private val context: Context) {
         _appTheme.value = try { AppTheme.valueOf(settings.theme) } catch (e: Exception) { AppTheme.DARK_TEAL }
         _darkMode.value = settings.darkMode
         _accentTheme.value = try { AppTheme.valueOf(settings.accentTheme) } catch (e: Exception) { AppTheme.DARK_TEAL }
-        _backgroundTheme.value = try { BackgroundTheme.valueOf(settings.backgroundTheme) } catch (e: Exception) { BackgroundTheme.WHITE }
+        _backgroundTheme.value = try { BackgroundTheme.valueOf(settings.backgroundTheme) } catch (e: Exception) { BackgroundTheme.DEFAULT }
         _customPrimaryColor.value = settings.customPrimaryColor
         _customAccentColor.value = settings.customAccentColor
         _customBackgroundColor.value = settings.customBackgroundColor
@@ -950,6 +978,16 @@ class SettingsRepository(private val context: Context) {
         _headsetControls.value = settings.headsetControls
         _pauseOnDisconnect.value = settings.pauseOnDisconnect
         _showPlaybackNotification.value = settings.showPlaybackNotification
+        // Load new audio settings
+        _showUndoSeekButton.value = settings.showUndoSeekButton
+        _lastSeekPosition.value = settings.lastSeekPosition
+        _fadeOnPauseResume.value = settings.fadeOnPauseResume
+        _gaplessPlayback.value = settings.gaplessPlayback
+        _crossfadeEnabled.value = settings.crossfadeEnabled
+        _crossfadeDuration.value = settings.crossfadeDuration
+        _monoAudio.value = settings.monoAudio
+        _channelBalance.value = settings.channelBalance
+        _trimSilence.value = settings.trimSilence
         val prefsLastMusicId = _lastMusicId.value
         val prefsLastAudiobookId = _lastAudiobookId.value
         val prefsLastActiveType = _lastActiveType.value
@@ -1220,6 +1258,16 @@ class SettingsRepository(private val context: Context) {
                 headsetControls = _headsetControls.value,
                 pauseOnDisconnect = _pauseOnDisconnect.value,
                 showPlaybackNotification = _showPlaybackNotification.value,
+                // New audio settings
+                showUndoSeekButton = _showUndoSeekButton.value,
+                lastSeekPosition = _lastSeekPosition.value,
+                fadeOnPauseResume = _fadeOnPauseResume.value,
+                gaplessPlayback = _gaplessPlayback.value,
+                crossfadeEnabled = _crossfadeEnabled.value,
+                crossfadeDuration = _crossfadeDuration.value,
+                monoAudio = _monoAudio.value,
+                channelBalance = _channelBalance.value,
+                trimSilence = _trimSilence.value,
                 lastMusicId = _lastMusicId.value,
                 lastMusicPosition = _lastMusicPosition.value,
                 lastMusicPlaying = _lastMusicPlaying.value,
@@ -2269,11 +2317,11 @@ class SettingsRepository(private val context: Context) {
         return prefs.getBoolean(KEY_DARK_MODE, false)
     }
     private fun loadBackgroundTheme(): BackgroundTheme {
-        val themeName = prefs.getString(getProfileKey(KEY_BACKGROUND_THEME), BackgroundTheme.WHITE.name)
+        val themeName = prefs.getString(getProfileKey(KEY_BACKGROUND_THEME), BackgroundTheme.DEFAULT.name)
         return try {
-            BackgroundTheme.valueOf(themeName ?: BackgroundTheme.WHITE.name)
+            BackgroundTheme.valueOf(themeName ?: BackgroundTheme.DEFAULT.name)
         } catch (e: Exception) {
-            BackgroundTheme.WHITE
+            BackgroundTheme.DEFAULT
         }
     }
 
@@ -2394,6 +2442,52 @@ class SettingsRepository(private val context: Context) {
     fun setPauseOnDisconnect(enabled: Boolean) {
         _pauseOnDisconnect.value = enabled
         prefs.edit().putBoolean(getProfileKey(KEY_PAUSE_ON_DISCONNECT), enabled).apply()
+        saveAudioSettingsToFile()
+    }
+
+    // New audio settings setters
+    fun setShowUndoSeekButton(enabled: Boolean) {
+        _showUndoSeekButton.value = enabled
+        saveAudioSettingsToFile()
+    }
+
+    fun setLastSeekPosition(position: Long) {
+        _lastSeekPosition.value = position
+        saveAudioSettingsToFile()
+    }
+
+    fun setFadeOnPauseResume(enabled: Boolean) {
+        _fadeOnPauseResume.value = enabled
+        saveAudioSettingsToFile()
+    }
+
+    fun setGaplessPlayback(enabled: Boolean) {
+        _gaplessPlayback.value = enabled
+        saveAudioSettingsToFile()
+    }
+
+    fun setCrossfadeEnabled(enabled: Boolean) {
+        _crossfadeEnabled.value = enabled
+        saveAudioSettingsToFile()
+    }
+
+    fun setCrossfadeDuration(duration: Int) {
+        _crossfadeDuration.value = duration
+        saveAudioSettingsToFile()
+    }
+
+    fun setMonoAudio(enabled: Boolean) {
+        _monoAudio.value = enabled
+        saveAudioSettingsToFile()
+    }
+
+    fun setChannelBalance(balance: Float) {
+        _channelBalance.value = balance
+        saveAudioSettingsToFile()
+    }
+
+    fun setTrimSilence(enabled: Boolean) {
+        _trimSilence.value = enabled
         saveAudioSettingsToFile()
     }
 

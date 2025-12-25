@@ -65,6 +65,9 @@ import com.librio.model.LibrarySeries
 import com.librio.model.LibraryMovie
 import com.librio.model.SortOption
 import com.librio.ui.theme.*
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import kotlin.math.abs
 
 @Suppress("UNUSED_PARAMETER")
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -145,6 +148,9 @@ fun LibraryListScreen(
     var showRenameSeriesDialog by remember { mutableStateOf<LibrarySeries?>(null) }
     var showCoverArtPickerForSeries by remember { mutableStateOf<LibrarySeries?>(null) }
     var selectedPlaylistFilter by remember { mutableStateOf<String?>(null) } // null = "All"
+    var showAddPlaylistDialog by remember { mutableStateOf(false) }
+    var showDeletePlaylistDialog by remember { mutableStateOf<LibrarySeries?>(null) }
+    var newPlaylistName by remember { mutableStateOf("") }
 
     // Reset playlist filter when content type changes
     LaunchedEffect(selectedContentType) {
@@ -160,6 +166,11 @@ fun LibraryListScreen(
     var showSortMenu by remember { mutableStateOf(false) }
     var showAddCategoryDialog by remember { mutableStateOf(false) }
     var newCategoryName by remember { mutableStateOf("") }
+
+    // Swipe gesture state for changing content types
+    val haptic = LocalHapticFeedback.current
+    var swipeOffset by remember { mutableFloatStateOf(0f) }
+    val swipeThreshold = 100f // Minimum swipe distance to trigger category change
 
     // Context for loading cover art bitmaps
     val context = LocalContext.current
@@ -396,6 +407,94 @@ fun LibraryListScreen(
         )
     }
 
+    // Add Playlist Dialog
+    if (showAddPlaylistDialog) {
+        AlertDialog(
+            onDismissRequest = {
+                showAddPlaylistDialog = false
+                newPlaylistName = ""
+            },
+            containerColor = palette.shade10,
+            shape = shape12,
+            title = {
+                Text("Add Playlist", color = palette.primary)
+            },
+            text = {
+                OutlinedTextField(
+                    value = newPlaylistName,
+                    onValueChange = { newPlaylistName = it },
+                    label = { Text("Playlist Name") },
+                    singleLine = true,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.accent,
+                        unfocusedBorderColor = palette.shade6,
+                        cursorColor = palette.accent,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
+                    ),
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (newPlaylistName.isNotBlank()) {
+                            onAddSeries(newPlaylistName)
+                            newPlaylistName = ""
+                            showAddPlaylistDialog = false
+                        }
+                    },
+                    enabled = newPlaylistName.isNotBlank()
+                ) {
+                    Text("Add", color = palette.accent)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    showAddPlaylistDialog = false
+                    newPlaylistName = ""
+                }) {
+                    Text("Cancel", color = palette.textMuted)
+                }
+            }
+        )
+    }
+
+    // Delete Playlist Confirmation Dialog
+    showDeletePlaylistDialog?.let { playlist ->
+        AlertDialog(
+            onDismissRequest = { showDeletePlaylistDialog = null },
+            containerColor = palette.shade10,
+            shape = shape12,
+            title = { Text("Delete Playlist", color = palette.primary) },
+            text = {
+                Text(
+                    "Delete \"${playlist.name}\"? Items in this playlist will not be deleted.",
+                    color = palette.textSecondary
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        onDeleteSeries(playlist.id)
+                        // Clear filter if we deleted the active playlist
+                        if (selectedPlaylistFilter == playlist.id) {
+                            selectedPlaylistFilter = null
+                        }
+                        showDeletePlaylistDialog = null
+                    }
+                ) {
+                    Text("Delete", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeletePlaylistDialog = null }) {
+                    Text("Cancel", color = palette.textMuted)
+                }
+            }
+        )
+    }
+
     // Add category dialog
     if (showAddCategoryDialog) {
         AlertDialog(
@@ -512,14 +611,46 @@ fun LibraryListScreen(
         modifier = modifier
             .fillMaxSize()
             .background(palette.background)
+            .pointerInput(selectedContentType) {
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (abs(swipeOffset) > swipeThreshold) {
+                            val contentTypes = ContentType.entries
+                            val currentIndex = contentTypes.indexOf(selectedContentType)
+
+                            val newIndex = if (swipeOffset < 0) {
+                                // Swipe left → next category
+                                (currentIndex + 1) % contentTypes.size
+                            } else {
+                                // Swipe right → previous category
+                                (currentIndex - 1 + contentTypes.size) % contentTypes.size
+                            }
+
+                            haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                            onContentTypeChange(contentTypes[newIndex])
+                        }
+                        swipeOffset = 0f
+                    },
+                    onDragCancel = { swipeOffset = 0f },
+                    onHorizontalDrag = { _, dragAmount ->
+                        swipeOffset += dragAmount
+                    }
+                )
+            }
     ) {
-        // Small gap before content tabs
+        // Small gap before filter bar
         Spacer(modifier = Modifier.height(8.dp))
 
-        // Content Type Tabs - Audiobooks / Books switcher
-        ContentTypeTabs(
+        // Category and Playlist filter bar
+        CategoryPlaylistBar(
             selectedContentType = selectedContentType,
-            onContentTypeChange = onContentTypeChange
+            onContentTypeChange = onContentTypeChange,
+            selectedPlaylistFilter = selectedPlaylistFilter,
+            playlists = seriesList,
+            onPlaylistFilterChange = { selectedPlaylistFilter = it },
+            onAddPlaylist = { showAddPlaylistDialog = true },
+            onEditPlaylist = { showRenameSeriesDialog = it },
+            onDeletePlaylist = { showDeletePlaylistDialog = it }
         )
 
         // Search bar (if visible)
@@ -1457,106 +1588,79 @@ private fun SeriesDivider(
 }
 
 /**
- * Content Type Tab Switcher - Horizontal scrollable category selector with arrows
- * Shows 2 full items (Audiobooks + Books) with partial 3rd item visible to indicate more
+ * Category and Playlist filter bar with dropdown menus
  */
 @Composable
-private fun ContentTypeTabs(
+private fun CategoryPlaylistBar(
     selectedContentType: ContentType,
-    onContentTypeChange: (ContentType) -> Unit
+    onContentTypeChange: (ContentType) -> Unit,
+    selectedPlaylistFilter: String?,
+    playlists: List<LibrarySeries>,
+    onPlaylistFilterChange: (String?) -> Unit,
+    onAddPlaylist: () -> Unit,
+    onEditPlaylist: (LibrarySeries) -> Unit,
+    onDeletePlaylist: (LibrarySeries) -> Unit
 ) {
     val palette = currentPalette()
     val shape12 = cornerRadius(12.dp)
     val haptic = LocalHapticFeedback.current
-    val listState = rememberLazyListState()
-    val coroutineScope = rememberCoroutineScope()
-    val configuration = LocalConfiguration.current
-    val screenWidth = configuration.screenWidthDp.dp
 
-    // Responsive sizing for category tabs - scale based on screen size
-    val tabHeight = when {
-        screenWidth < 360.dp -> 36.dp
-        screenWidth < 400.dp -> 40.dp
-        screenWidth < 600.dp -> 44.dp
-        else -> 48.dp
-    }
-    val arrowSize = when {
-        screenWidth < 360.dp -> 24.dp
-        screenWidth < 400.dp -> 28.dp
-        else -> 32.dp
-    }
-    val iconSizeTab = when {
-        screenWidth < 360.dp -> 14.dp
-        screenWidth < 400.dp -> 16.dp
-        else -> 18.dp
-    }
-    val fontSize = when {
-        screenWidth < 360.dp -> 11.sp
-        screenWidth < 400.dp -> 12.sp
-        else -> 14.sp
-    }
+    // Dropdown menu states
+    var showCategoryMenu by remember { mutableStateOf(false) }
+    var showPlaylistMenu by remember { mutableStateOf(false) }
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left arrow - minimal style, cycles in reverse
-        Box(
-            modifier = Modifier
-                .padding(start = 8.dp)
-                .size(arrowSize)
-                .clickable {
-                    coroutineScope.launch {
-                        // Cycle in reverse: if can't scroll backward, wrap to end
-                        val targetIndex = if (!listState.canScrollBackward) {
-                            ContentType.entries.size - 1
-                        } else {
-                            listState.firstVisibleItemIndex - 1
-                        }
-                        listState.animateScrollToItem(targetIndex)
+        // Category dropdown button - fills half width
+        Box(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape12)
+                    .background(palette.shade10)
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showCategoryMenu = true
                     }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                AppIcons.ChevronLeft,
-                contentDescription = "Previous category",
-                tint = palette.textSecondary,
-                modifier = Modifier.size(arrowSize * 0.75f)
-            )
-        }
-
-        // Use BoxWithConstraints to calculate proper item widths - always exactly 2 items
-        BoxWithConstraints(
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 4.dp)
-        ) {
-            val availableWidth = maxWidth
-            val spacing = 8.dp
-            val horizontalPadding = 4.dp
-            // Calculate width to fit exactly 2 full items - always fill the space
-            // 2*itemWidth + 1*spacing + 2*horizontalPadding = availableWidth
-            val itemWidth = (availableWidth - spacing - horizontalPadding * 2) / 2
-
-            LazyRow(
-                state = listState,
-                horizontalArrangement = Arrangement.spacedBy(spacing),
-                contentPadding = PaddingValues(horizontal = horizontalPadding),
-                userScrollEnabled = false // Disable free scrolling, only use arrows
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
             ) {
-                items(ContentType.entries.size) { index ->
-                    val type = ContentType.entries[index]
-                    val isSelected = selectedContentType == type
-                    val scale by animateFloatAsState(
-                        targetValue = if (isSelected) 1f else 0.95f,
-                        animationSpec = spring(dampingRatio = Spring.DampingRatioMediumBouncy),
-                        label = "tabScale"
-                    )
+                Icon(
+                    imageVector = AppIcons.Library,
+                    contentDescription = null,
+                    tint = palette.shade3,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Category",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = palette.shade3
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = AppIcons.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = palette.shade4,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
 
-                    // Get the icon for this content type
+            // Category dropdown menu
+            DropdownMenu(
+                expanded = showCategoryMenu,
+                onDismissRequest = { showCategoryMenu = false },
+                modifier = Modifier.background(palette.surface)
+            ) {
+                ContentType.entries.forEach { type ->
+                    val isSelected = selectedContentType == type
                     val icon = when (type) {
                         ContentType.AUDIOBOOK -> AppIcons.Audiobook
                         ContentType.EBOOK -> AppIcons.Book
@@ -1566,76 +1670,223 @@ private fun ContentTypeTabs(
                         ContentType.MOVIE -> AppIcons.Movie
                     }
 
-                    // Category tab with tonal surfaces
-                    Box(
-                        modifier = Modifier
-                            .width(itemWidth)
-                            .height(tabHeight)
-                            .scale(scale)
-                            .clip(shape12)
-                            .background(
-                                if (isSelected) palette.shade4
-                                else palette.shade10
-                            )
-                            .clickable {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                                onContentTypeChange(type)
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                Icon(
+                                    imageVector = icon,
+                                    contentDescription = null,
+                                    tint = if (isSelected) palette.accent else palette.textSecondary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                                Text(
+                                    text = type.displayName,
+                                    color = if (isSelected) palette.accent else palette.textPrimary,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal
+                                )
                             }
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(horizontal = 8.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = if (isSelected) palette.shade11 else palette.shade3,
-                                modifier = Modifier.size(iconSizeTab)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                text = type.displayName,
-                                style = MaterialTheme.typography.labelMedium.copy(
-                                    fontSize = fontSize * 0.9f
-                                ),
-                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
-                                color = if (isSelected) palette.shade11 else palette.shade3,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
+                        },
+                        onClick = {
+                            onContentTypeChange(type)
+                            showCategoryMenu = false
+                        },
+                        trailingIcon = if (isSelected) {
+                            {
+                                Icon(
+                                    AppIcons.Check,
+                                    contentDescription = "Selected",
+                                    tint = palette.accent,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        } else null
+                    )
                 }
             }
         }
 
-        // Right arrow - minimal style, cycles forward
-        Box(
-            modifier = Modifier
-                .padding(end = 8.dp)
-                .size(arrowSize)
-                .clickable {
-                    coroutineScope.launch {
-                        // Cycle forward: if can't scroll forward anymore, wrap to start
-                        val targetIndex = if (!listState.canScrollForward) {
-                            0
-                        } else {
-                            listState.firstVisibleItemIndex + 1
-                        }
-                        listState.animateScrollToItem(targetIndex)
+        // Playlist dropdown button - fills half width
+        Box(modifier = Modifier.weight(1f)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(shape12)
+                    .background(palette.shade10)
+                    .clickable {
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        showPlaylistMenu = true
                     }
-                },
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                AppIcons.ChevronRight,
-                contentDescription = "Next category",
-                tint = palette.textSecondary,
-                modifier = Modifier.size(arrowSize * 0.75f)
-            )
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Icon(
+                    imageVector = AppIcons.Playlist,
+                    contentDescription = null,
+                    tint = if (selectedPlaylistFilter != null) palette.accent else palette.shade3,
+                    modifier = Modifier.size(18.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "Playlist",
+                    style = MaterialTheme.typography.labelLarge,
+                    fontWeight = FontWeight.Medium,
+                    color = if (selectedPlaylistFilter != null) palette.accent else palette.shade3
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Icon(
+                    imageVector = AppIcons.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = palette.shade4,
+                    modifier = Modifier.size(18.dp)
+                )
+            }
+
+            // Playlist dropdown menu
+            DropdownMenu(
+                expanded = showPlaylistMenu,
+                onDismissRequest = { showPlaylistMenu = false },
+                modifier = Modifier.background(palette.surface)
+            ) {
+                // "All" option to clear filter
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = AppIcons.Playlist,
+                                contentDescription = null,
+                                tint = if (selectedPlaylistFilter == null) palette.accent else palette.textSecondary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "All",
+                                color = if (selectedPlaylistFilter == null) palette.accent else palette.textPrimary,
+                                fontWeight = if (selectedPlaylistFilter == null) FontWeight.SemiBold else FontWeight.Normal
+                            )
+                        }
+                    },
+                    onClick = {
+                        onPlaylistFilterChange(null)
+                        showPlaylistMenu = false
+                    },
+                    trailingIcon = if (selectedPlaylistFilter == null) {
+                        {
+                            Icon(
+                                AppIcons.Check,
+                                contentDescription = "Selected",
+                                tint = palette.accent,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    } else null
+                )
+
+                // Divider before playlists
+                if (playlists.isNotEmpty()) {
+                    Divider(color = palette.divider.copy(alpha = 0.3f))
+                }
+
+                // Playlist items filtered by current content type
+                val filteredPlaylists = playlists.filter { it.contentType == selectedContentType }
+                filteredPlaylists.forEach { playlist ->
+                    val isSelected = selectedPlaylistFilter == playlist.id
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                modifier = Modifier.weight(1f),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = playlist.name,
+                                    color = if (isSelected) palette.accent else palette.textPrimary,
+                                    fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
+                        },
+                        onClick = {
+                            onPlaylistFilterChange(playlist.id)
+                            showPlaylistMenu = false
+                        },
+                        trailingIcon = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                // Edit button
+                                Icon(
+                                    imageVector = AppIcons.Edit,
+                                    contentDescription = "Edit playlist",
+                                    tint = palette.textMuted,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable {
+                                            onEditPlaylist(playlist)
+                                            showPlaylistMenu = false
+                                        }
+                                )
+                                // Delete button
+                                Icon(
+                                    imageVector = AppIcons.Delete,
+                                    contentDescription = "Delete playlist",
+                                    tint = palette.textMuted,
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .clickable {
+                                            onDeletePlaylist(playlist)
+                                            showPlaylistMenu = false
+                                        }
+                                )
+                                // Checkmark if selected
+                                if (isSelected) {
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(
+                                        AppIcons.Check,
+                                        contentDescription = "Selected",
+                                        tint = palette.accent,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                }
+                            }
+                        }
+                    )
+                }
+
+                // Divider before add option
+                Divider(color = palette.divider.copy(alpha = 0.3f))
+
+                // Add new playlist option
+                DropdownMenuItem(
+                    text = {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            Icon(
+                                imageVector = AppIcons.Add,
+                                contentDescription = null,
+                                tint = palette.accent,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Add Playlist...",
+                                color = palette.accent,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    },
+                    onClick = {
+                        onAddPlaylist()
+                        showPlaylistMenu = false
+                    }
+                )
+            }
         }
     }
 }

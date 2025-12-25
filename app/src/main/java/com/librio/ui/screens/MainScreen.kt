@@ -126,8 +126,6 @@ fun MainScreen(
     onThemeChange: (AppTheme) -> Unit,
     accentTheme: AppTheme = currentTheme,
     onAccentThemeChange: (AppTheme) -> Unit = {},
-    backgroundTheme: BackgroundTheme = BackgroundTheme.WHITE,
-    onBackgroundThemeChange: (BackgroundTheme) -> Unit = {},
     darkMode: Boolean = false,
     onDarkModeChange: (Boolean) -> Unit = {},
     // Settings parameters
@@ -514,8 +512,6 @@ fun MainScreen(
                             onAccentThemeChange = onAccentThemeChange,
                             darkMode = darkMode,
                             onDarkModeChange = onDarkModeChange,
-                            backgroundTheme = backgroundTheme,
-                            onBackgroundThemeChange = onBackgroundThemeChange,
                             customPrimaryColor = customPrimaryColor,
                             onCustomPrimaryColorChange = onCustomPrimaryColorChange,
                             customAccentColor = customAccentColor,

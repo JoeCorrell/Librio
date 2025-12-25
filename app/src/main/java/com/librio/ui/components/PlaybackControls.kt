@@ -48,8 +48,16 @@ fun PlaybackControls(
     onSeekTo: (Long) -> Unit,
     skipForwardSeconds: Int = 30,
     skipBackSeconds: Int = 30,
+    showUndoSeekButton: Boolean = false,
+    lastSeekPosition: Long = 0L,
+    onUndoSeek: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
+    val palette = currentPalette()
+    // Show undo button if enabled and there's a valid position to return to
+    val canUndo = showUndoSeekButton && lastSeekPosition > 0L &&
+        kotlin.math.abs(playbackState.currentPosition - lastSeekPosition) > 1000L
+
     Column(
         modifier = modifier.fillMaxWidth(),
         horizontalAlignment = Alignment.CenterHorizontally
@@ -102,6 +110,46 @@ fun PlaybackControls(
                 onClick = onNextChapter,
                 size = ControlButtonSize.Small
             )
+        }
+
+        // Undo seek button row
+        AnimatedVisibility(
+            visible = canUndo,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                horizontalArrangement = Arrangement.Center
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(20.dp))
+                        .background(palette.accent.copy(alpha = 0.15f))
+                        .clickable(onClick = onUndoSeek)
+                        .padding(horizontal = 16.dp, vertical = 8.dp)
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = AppIcons.Replay,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                            tint = palette.accent
+                        )
+                        Text(
+                            text = "Undo seek",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = palette.accent,
+                            fontWeight = FontWeight.Medium
+                        )
+                    }
+                }
+            }
         }
 
         Spacer(modifier = Modifier.height(24.dp))

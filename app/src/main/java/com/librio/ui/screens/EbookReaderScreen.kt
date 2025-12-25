@@ -54,6 +54,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlin.math.roundToInt
 import java.io.BufferedReader
 import java.io.ByteArrayOutputStream
 import java.io.File
@@ -1080,7 +1081,7 @@ fun EbookReaderScreen(
 
                             Spacer(modifier = Modifier.height(8.dp))
 
-                            // Font size with compact slider
+                            // Font size with compact slider - 6 choices: 12, 16, 20, 24, 28, 32
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically
@@ -1089,11 +1090,13 @@ fun EbookReaderScreen(
                                 Slider(
                                     value = fontSize.toFloat(),
                                     onValueChange = {
-                                        fontSize = it.toInt()
-                                        onFontSizeChange(it.toInt())
+                                        // Snap to nearest valid value
+                                        val snapped = ((it - 12f) / 4f).roundToInt() * 4 + 12
+                                        fontSize = snapped.coerceIn(12, 32)
+                                        onFontSizeChange(snapped.coerceIn(12, 32))
                                     },
                                     valueRange = 12f..32f,
-                                    steps = 9,
+                                    steps = 4, // 6 choices: 12, 16, 20, 24, 28, 32
                                     modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(20.dp),
                                     colors = SliderDefaults.colors(
                                         thumbColor = palette.accent,
