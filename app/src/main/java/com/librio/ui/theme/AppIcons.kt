@@ -17,6 +17,8 @@ object AppIcons {
 
     // Navigation & Actions
     val Back: ImageVector = Icons.Rounded.ArrowBack
+    val ArrowBack: ImageVector = Icons.Rounded.ArrowBack
+    val ArrowForward: ImageVector = Icons.Rounded.ArrowForward
     val Search: ImageVector = Icons.Rounded.Search
     val Settings: ImageVector = Icons.Rounded.Settings
     val Add: ImageVector = Icons.Rounded.Add

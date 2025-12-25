@@ -1,36 +1,92 @@
 package com.librio.player
 
 import android.content.Context
-import androidx.media3.common.AudioAttributes
-import androidx.media3.common.C
 import androidx.media3.exoplayer.ExoPlayer
 
 /**
  * Shared ExoPlayer instance for music playback.
  * Keeps a single player alive across screens and the playback service,
  * with simple reference counting to avoid premature release.
+ *
+ * Uses AudioSettingsManager for advanced audio processing:
+ * - Trim silence (skip silent parts)
+ * - Fade on pause/resume
+ * - Mono audio mixing
+ * - Channel balance (L/R)
+ * - Gapless playback
  */
 object SharedMusicPlayer {
     private var player: ExoPlayer? = null
     private var refCount = 0
+    private var audioSettingsManager: AudioSettingsManager? = null
+
+    /**
+     * Get the audio settings manager (creates one if needed)
+     */
+    @Synchronized
+    fun getAudioSettingsManager(context: Context): AudioSettingsManager {
+        if (audioSettingsManager == null) {
+            audioSettingsManager = AudioSettingsManager(context.applicationContext)
+        }
+        return audioSettingsManager!!
+    }
 
     @Synchronized
     fun acquire(context: Context): ExoPlayer {
         if (player == null) {
-            player = ExoPlayer.Builder(context.applicationContext)
-                .setAudioAttributes(
-                    AudioAttributes.Builder()
-                        .setUsage(C.USAGE_MEDIA)
-                        .setContentType(C.AUDIO_CONTENT_TYPE_MUSIC)
-                        .build(),
-                    true
-                )
-                .setHandleAudioBecomingNoisy(true)
-                .setWakeMode(C.WAKE_MODE_LOCAL)
-                .build()
+            val manager = getAudioSettingsManager(context)
+            player = manager.createConfiguredPlayer()
         }
         refCount++
         return player!!
+    }
+
+    /**
+     * Update audio settings on the fly
+     */
+    @Synchronized
+    fun updateAudioSettings(
+        context: Context,
+        trimSilence: Boolean? = null,
+        monoAudio: Boolean? = null,
+        channelBalance: Float? = null,
+        fadeOnPauseResume: Boolean? = null,
+        gaplessPlayback: Boolean? = null
+    ) {
+        val manager = getAudioSettingsManager(context)
+        trimSilence?.let { manager.setTrimSilence(it) }
+        monoAudio?.let { manager.setMonoAudio(it) }
+        channelBalance?.let { manager.setChannelBalance(it) }
+        fadeOnPauseResume?.let { manager.setFadeOnPauseResume(it) }
+        gaplessPlayback?.let { manager.setGaplessPlayback(it) }
+    }
+
+    /**
+     * Play with fade effect if enabled
+     */
+    @Synchronized
+    fun playWithFade(context: Context) {
+        val p = player ?: return
+        val manager = getAudioSettingsManager(context)
+        manager.playWithFade(p)
+    }
+
+    /**
+     * Pause with fade effect if enabled
+     */
+    @Synchronized
+    fun pauseWithFade(context: Context, onComplete: (() -> Unit)? = null) {
+        val p = player ?: return
+        val manager = getAudioSettingsManager(context)
+        manager.pauseWithFade(p, onComplete)
+    }
+
+    /**
+     * Check if fade on pause/resume is enabled
+     */
+    @Synchronized
+    fun isFadeEnabled(context: Context): Boolean {
+        return getAudioSettingsManager(context).fadeOnPauseResume
     }
 
     @Synchronized
@@ -40,6 +96,8 @@ object SharedMusicPlayer {
             if (refCount == 0) {
                 player?.release()
                 player = null
+                audioSettingsManager?.release()
+                audioSettingsManager = null
             }
         }
     }

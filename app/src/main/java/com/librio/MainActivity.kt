@@ -211,11 +211,24 @@ class MainActivity : ComponentActivity() {
             }
 
             // Apply profile audio effects to audiobook player
-            LaunchedEffect(profileNormalizeAudio, profileBassBoost, profileVolumeBoost, profileVolumeBoostLevel, profileEqualizer) {
+            LaunchedEffect(profileNormalizeAudio, profileBassBoost, profileVolumeBoost, profileVolumeBoostLevel, profileEqualizer, fadeOnPauseResume) {
                 player.setNormalizeAudio(profileNormalizeAudio)
                 player.setBassBoostLevel(profileBassBoost)
                 player.setVolumeBoost(profileVolumeBoost, profileVolumeBoostLevel)
                 player.setEqualizerPreset(profileEqualizer)
+                player.setFadeOnPauseResume(fadeOnPauseResume)
+            }
+
+            // Apply audio processing settings to shared music player
+            LaunchedEffect(trimSilence, monoAudio, channelBalance, fadeOnPauseResume, gaplessPlayback) {
+                SharedMusicPlayer.updateAudioSettings(
+                    context = context,
+                    trimSilence = trimSilence,
+                    monoAudio = monoAudio,
+                    channelBalance = channelBalance,
+                    fadeOnPauseResume = fadeOnPauseResume,
+                    gaplessPlayback = gaplessPlayback
+                )
             }
 
             // Observe library state
@@ -840,6 +853,13 @@ class MainActivity : ComponentActivity() {
                                 },
                                 onSetProfilePicture = { profile, uri ->
                                     settingsViewModel.setProfilePicture(profile, uri)
+                                },
+                                currentTheme = appTheme,
+                                onThemeChange = { theme ->
+                                    settingsViewModel.setTheme(theme)
+                                },
+                                onAccentThemeChange = { theme ->
+                                    settingsViewModel.setAccentTheme(theme)
                                 },
                                 onComplete = {
                                     settingsViewModel.completeOnboarding()

@@ -47,6 +47,7 @@ class AudiobookPlayer(private val context: Context) {
     private var normalizeAudio: Boolean = false
     private var bassBoostLevel: Float = 0f
     private var equalizerPreset: String = "DEFAULT"
+    private var fadeOnPauseResume: Boolean = false
     private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _currentAudiobook = MutableStateFlow<Audiobook?>(null)
@@ -419,17 +420,29 @@ class AudiobookPlayer(private val context: Context) {
     
     fun play() {
         PlaybackService.start(context)
-        exoPlayer?.play()
+        if (fadeOnPauseResume) {
+            SharedMusicPlayer.playWithFade(context)
+        } else {
+            exoPlayer?.play()
+        }
     }
-    
+
     fun pause() {
-        exoPlayer?.pause()
+        if (fadeOnPauseResume) {
+            SharedMusicPlayer.pauseWithFade(context)
+        } else {
+            exoPlayer?.pause()
+        }
     }
-    
+
     fun togglePlayPause() {
         exoPlayer?.let {
             if (it.isPlaying) pause() else play()
         }
+    }
+
+    fun setFadeOnPauseResume(enabled: Boolean) {
+        fadeOnPauseResume = enabled
     }
     
     fun seekTo(position: Long) {

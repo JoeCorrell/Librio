@@ -47,6 +47,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import android.media.audiofx.Equalizer
 import com.librio.player.applyEqualizerPreset
 import com.librio.player.normalizeEqPresetName
+import com.librio.player.SharedMusicPlayer
 import com.librio.navigation.BottomNavItem
 import com.librio.R
 import com.librio.model.LibraryMusic
@@ -387,8 +388,12 @@ fun MusicPlayerScreen(
                 delay(1000)
             }
             if (sleepTimerActive) {
-                // Timer finished - pause playback
-                exoPlayer.pause()
+                // Timer finished - pause playback with fade if enabled
+                if (fadeOnPauseResume) {
+                    SharedMusicPlayer.pauseWithFade(context)
+                } else {
+                    exoPlayer.pause()
+                }
                 sleepTimerActive = false
                 sleepTimerEndTime = null
             }
@@ -652,7 +657,21 @@ fun MusicPlayerScreen(
                             .shadow(8.dp, CircleShape)
                             .clip(CircleShape)
                             .background(palette.buttonGradient())
-                            .clickable { if (isPlaying) exoPlayer.pause() else exoPlayer.play() },
+                            .clickable {
+                                if (isPlaying) {
+                                    if (fadeOnPauseResume) {
+                                        SharedMusicPlayer.pauseWithFade(context)
+                                    } else {
+                                        exoPlayer.pause()
+                                    }
+                                } else {
+                                    if (fadeOnPauseResume) {
+                                        SharedMusicPlayer.playWithFade(context)
+                                    } else {
+                                        exoPlayer.play()
+                                    }
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         if (isLoading) {
