@@ -45,6 +45,7 @@ data class LibraryBook(
     val uri: Uri,
     val title: String,
     val author: String = "Unknown Author",
+    val narrator: String? = null, // Narrator (for audiobook-style EPUBs or read-aloud)
     val coverArt: Bitmap? = null,
     val coverArtUri: String? = null, // Custom cover art URI
     val totalPages: Int = 0,
@@ -73,6 +74,8 @@ data class LibraryAudiobook(
     val title: String,
     val author: String = "Unknown Author",
     val narrator: String? = null,
+    val track: Int? = null, // Track number for multi-file audiobooks
+    val album: String? = null, // Album/Series name from embedded metadata
     val coverArtUri: Uri? = null,
     val coverArt: Bitmap? = null,
     val duration: Long = 0L,
@@ -118,6 +121,7 @@ data class LibraryMusic(
     val title: String,
     val artist: String = "Unknown Artist",
     val album: String? = null,
+    val track: Int? = null, // Track number in album
     val coverArt: Bitmap? = null,
     val coverArtUri: String? = null, // Custom cover art URI
     val duration: Long = 0L,

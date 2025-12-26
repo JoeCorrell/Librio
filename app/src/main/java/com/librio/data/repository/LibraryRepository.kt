@@ -2,6 +2,7 @@ package com.librio.data.repository
 
 import android.content.Context
 import android.net.Uri
+import com.librio.data.LibraryFileManager
 import com.librio.data.PlaylistFolderManager
 import com.librio.data.ProgressFileManager
 import com.librio.model.Category
@@ -20,12 +21,17 @@ import org.json.JSONObject
 import java.util.UUID
 
 /**
- * Repository for persisting library data using SharedPreferences
+ * Repository for persisting library data using JSON files
  * Supports per-profile library storage for content isolation
+ * Data is stored in library.json file per profile in Librio/Profiles/{ProfileName}/
  */
 class LibraryRepository(private val context: Context) {
 
+    // Legacy SharedPreferences for migration only
     private val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+
+    // File-based library storage (replaces SharedPreferences)
+    private val libraryFileManager = LibraryFileManager()
 
     // Playlist folder manager for folder-based playlists
     private val playlistFolderManager = PlaylistFolderManager()
@@ -50,69 +56,109 @@ class LibraryRepository(private val context: Context) {
     fun getPlaylistFolderManager(): PlaylistFolderManager = playlistFolderManager
 
     /**
-     * Get profile-specific key for storage
+     * Get the library file manager for external access
+     */
+    fun getLibraryFileManager(): LibraryFileManager = libraryFileManager
+
+    /**
+     * Get profile-specific key for storage (legacy, for migration)
      */
     private fun getProfileKey(baseKey: String): String {
         return "${baseKey}_profile_${currentProfileName.replace(Regex("[^a-zA-Z0-9]"), "_")}"
     }
 
     /**
-     * Save the library to persistent storage (per-profile)
+     * Check if migration from SharedPreferences to JSON file is needed
      */
-    suspend fun saveLibrary(audiobooks: List<LibraryAudiobook>) = withContext(Dispatchers.IO) {
-        val jsonArray = JSONArray()
-        audiobooks.forEach { audiobook ->
-            val jsonObject = JSONObject().apply {
-                put("id", audiobook.id)
-                put("uri", audiobook.uri.toString())
-                put("title", audiobook.title)
-                put("author", audiobook.author)
-                put("narrator", audiobook.narrator ?: "")
-                put("coverArtUri", audiobook.coverArtUri?.toString() ?: "")
-                put("duration", audiobook.duration)
-                put("lastPosition", audiobook.lastPosition)
-                put("lastPlayed", audiobook.lastPlayed)
-                put("dateAdded", audiobook.dateAdded)
-                put("isCompleted", audiobook.isCompleted)
-                put("categoryId", audiobook.categoryId ?: "")
-                put("seriesId", audiobook.seriesId ?: "")
-                put("seriesOrder", audiobook.seriesOrder)
-                put("fileType", audiobook.fileType)
-            }
-            jsonArray.put(jsonObject)
-        }
-        prefs.edit().putString(getProfileKey(KEY_LIBRARY), jsonArray.toString()).apply()
+    fun needsMigration(): Boolean {
+        val hasSharedPrefsData = prefs.getString(getProfileKey(KEY_LIBRARY), null) != null ||
+                prefs.getString(getProfileKey(KEY_BOOKS), null) != null ||
+                prefs.getString(getProfileKey(KEY_MUSIC), null) != null
+        val hasJsonFile = libraryFileManager.libraryFileExists(currentProfileName)
+        return hasSharedPrefsData && !hasJsonFile
     }
 
     /**
-     * Load the library from persistent storage (per-profile)
+     * Migrate data from SharedPreferences to JSON file
      */
-    suspend fun loadLibrary(): List<LibraryAudiobook> = withContext(Dispatchers.IO) {
-        val jsonString = prefs.getString(getProfileKey(KEY_LIBRARY), null) ?: return@withContext emptyList()
-
+    suspend fun migrateToJsonFile(): Boolean = withContext(Dispatchers.IO) {
         try {
+            // Load all data from SharedPreferences using legacy methods
+            val audiobooks = loadLibraryFromPrefs()
+            val books = loadBooksFromPrefs()
+            val music = loadMusicFromPrefs()
+            val comics = loadComicsFromPrefs()
+            val movies = loadMoviesFromPrefs()
+            val series = loadSeriesFromPrefs()
+            val categories = loadCategoriesFromPrefs()
+            val lastPlayedId = prefs.getString(getProfileKey(KEY_LAST_PLAYED), null)
+            val playbackSpeed = prefs.getFloat(getProfileKey(KEY_PLAYBACK_SPEED), 1.0f)
+
+            // Save to JSON file
+            val success = libraryFileManager.saveLibrary(
+                profileName = currentProfileName,
+                audiobooks = audiobooks,
+                books = books,
+                music = music,
+                comics = comics,
+                movies = movies,
+                series = series,
+                categories = categories,
+                lastPlayedId = lastPlayedId,
+                playbackSpeed = playbackSpeed
+            )
+
+            if (success) {
+                // Clear SharedPreferences after successful migration
+                prefs.edit().apply {
+                    remove(getProfileKey(KEY_LIBRARY))
+                    remove(getProfileKey(KEY_BOOKS))
+                    remove(getProfileKey(KEY_MUSIC))
+                    remove(getProfileKey(KEY_COMICS))
+                    remove(getProfileKey(KEY_MOVIES))
+                    remove(getProfileKey(KEY_SERIES))
+                    remove(getProfileKey(KEY_CATEGORIES))
+                    remove(getProfileKey(KEY_LAST_PLAYED))
+                    remove(getProfileKey(KEY_PLAYBACK_SPEED))
+                    apply()
+                }
+            }
+
+            success
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    // ==================== Legacy SharedPreferences Load Methods (for migration) ====================
+
+    private fun loadLibraryFromPrefs(): List<LibraryAudiobook> {
+        val jsonString = prefs.getString(getProfileKey(KEY_LIBRARY), null) ?: return emptyList()
+        return try {
             val jsonArray = JSONArray(jsonString)
             val audiobooks = mutableListOf<LibraryAudiobook>()
-
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
                 val audiobook = LibraryAudiobook(
                     id = jsonObject.getString("id"),
                     uri = Uri.parse(jsonObject.getString("uri")),
                     title = jsonObject.getString("title"),
-                    author = jsonObject.getString("author"),
-                    narrator = jsonObject.getString("narrator").takeIf { it.isNotEmpty() },
+                    author = jsonObject.optString("author", "Unknown Author"),
+                    narrator = jsonObject.optString("narrator").takeIf { it.isNotEmpty() },
+                    track = jsonObject.optInt("track", -1).takeIf { it >= 0 },
+                    album = jsonObject.optString("album").takeIf { it.isNotEmpty() },
                     coverArtUri = jsonObject.optString("coverArtUri").takeIf { it.isNotEmpty() }?.let { Uri.parse(it) },
-                    duration = jsonObject.getLong("duration"),
-                    lastPosition = jsonObject.getLong("lastPosition"),
-                    lastPlayed = jsonObject.getLong("lastPlayed"),
-                    dateAdded = jsonObject.getLong("dateAdded"),
-                    isCompleted = jsonObject.getBoolean("isCompleted"),
+                    duration = jsonObject.optLong("duration", 0L),
+                    lastPosition = jsonObject.optLong("lastPosition", 0L),
+                    lastPlayed = jsonObject.optLong("lastPlayed", 0L),
+                    dateAdded = jsonObject.optLong("dateAdded", System.currentTimeMillis()),
+                    isCompleted = jsonObject.optBoolean("isCompleted", false),
                     categoryId = jsonObject.optString("categoryId").takeIf { it.isNotEmpty() },
                     seriesId = jsonObject.optString("seriesId").takeIf { it.isNotEmpty() },
                     seriesOrder = jsonObject.optInt("seriesOrder", 0),
                     fileType = jsonObject.optString("fileType", "mp3"),
-                    coverArt = null // Cover art will be reloaded
+                    coverArt = null
                 )
                 audiobooks.add(audiobook)
             }
@@ -123,110 +169,11 @@ class LibraryRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Save the last played audiobook ID (per-profile)
-     */
-    fun saveLastPlayedId(audiobookId: String?) {
-        prefs.edit().putString(getProfileKey(KEY_LAST_PLAYED), audiobookId).apply()
-    }
-
-    /**
-     * Get the last played audiobook ID (per-profile)
-     */
-    fun getLastPlayedId(): String? {
-        return prefs.getString(getProfileKey(KEY_LAST_PLAYED), null)
-    }
-
-    /**
-     * Save playback settings (per-profile)
-     */
-    fun savePlaybackSpeed(speed: Float) {
-        prefs.edit().putFloat(getProfileKey(KEY_PLAYBACK_SPEED), speed).apply()
-    }
-
-    fun getPlaybackSpeed(): Float {
-        return prefs.getFloat(getProfileKey(KEY_PLAYBACK_SPEED), 1.0f)
-    }
-
-    /**
-     * Save categories to persistent storage (per-profile)
-     */
-    suspend fun saveCategories(categories: List<Category>) = withContext(Dispatchers.IO) {
-        val jsonArray = JSONArray()
-        categories.forEach { category ->
-            val jsonObject = JSONObject().apply {
-                put("id", category.id)
-                put("name", category.name)
-                put("dateCreated", category.dateCreated)
-            }
-            jsonArray.put(jsonObject)
-        }
-        prefs.edit().putString(getProfileKey(KEY_CATEGORIES), jsonArray.toString()).apply()
-    }
-
-    /**
-     * Load categories from persistent storage (per-profile)
-     */
-    suspend fun loadCategories(): List<Category> = withContext(Dispatchers.IO) {
-        val jsonString = prefs.getString(getProfileKey(KEY_CATEGORIES), null) ?: return@withContext emptyList()
-
-        try {
-            val jsonArray = JSONArray(jsonString)
-            val categories = mutableListOf<Category>()
-
-            for (i in 0 until jsonArray.length()) {
-                val jsonObject = jsonArray.getJSONObject(i)
-                val category = Category(
-                    id = jsonObject.getString("id"),
-                    name = jsonObject.getString("name"),
-                    dateCreated = jsonObject.optLong("dateCreated", System.currentTimeMillis())
-                )
-                categories.add(category)
-            }
-            categories
-        } catch (e: Exception) {
-            e.printStackTrace()
-            emptyList()
-        }
-    }
-
-    /**
-     * Save books to persistent storage
-     */
-    suspend fun saveBooks(books: List<LibraryBook>) = withContext(Dispatchers.IO) {
-        val jsonArray = JSONArray()
-        books.forEach { book ->
-            val jsonObject = JSONObject().apply {
-                put("id", book.id)
-                put("uri", book.uri.toString())
-                put("title", book.title)
-                put("author", book.author)
-                put("coverArtUri", book.coverArtUri ?: "")
-                put("totalPages", book.totalPages)
-                put("currentPage", book.currentPage)
-                put("lastRead", book.lastRead)
-                put("dateAdded", book.dateAdded)
-                put("isCompleted", book.isCompleted)
-                put("categoryId", book.categoryId ?: "")
-                put("seriesId", book.seriesId ?: "")
-                put("seriesOrder", book.seriesOrder)
-                put("fileType", book.fileType)
-            }
-            jsonArray.put(jsonObject)
-        }
-        prefs.edit().putString(getProfileKey(KEY_BOOKS), jsonArray.toString()).apply()
-    }
-
-    /**
-     * Load books from persistent storage (per-profile)
-     */
-    suspend fun loadBooks(): List<LibraryBook> = withContext(Dispatchers.IO) {
-        val jsonString = prefs.getString(getProfileKey(KEY_BOOKS), null) ?: return@withContext emptyList()
-
-        try {
+    private fun loadBooksFromPrefs(): List<LibraryBook> {
+        val jsonString = prefs.getString(getProfileKey(KEY_BOOKS), null) ?: return emptyList()
+        return try {
             val jsonArray = JSONArray(jsonString)
             val books = mutableListOf<LibraryBook>()
-
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
                 val book = LibraryBook(
@@ -234,6 +181,7 @@ class LibraryRepository(private val context: Context) {
                     uri = Uri.parse(jsonObject.getString("uri")),
                     title = jsonObject.getString("title"),
                     author = jsonObject.optString("author", "Unknown Author"),
+                    narrator = jsonObject.optString("narrator").takeIf { it.isNotEmpty() },
                     coverArtUri = jsonObject.optString("coverArtUri").takeIf { it.isNotEmpty() },
                     totalPages = jsonObject.optInt("totalPages", 0),
                     currentPage = jsonObject.optInt("currentPage", 0),
@@ -243,7 +191,7 @@ class LibraryRepository(private val context: Context) {
                     categoryId = jsonObject.optString("categoryId").takeIf { it.isNotEmpty() },
                     seriesId = jsonObject.optString("seriesId").takeIf { it.isNotEmpty() },
                     seriesOrder = jsonObject.optInt("seriesOrder", 0),
-                    fileType = jsonObject.optString("fileType", "txt")
+                    fileType = jsonObject.optString("fileType", "pdf")
                 )
                 books.add(book)
             }
@@ -254,70 +202,24 @@ class LibraryRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Save music to persistent storage
-     * Deduplicates by URI before saving to prevent duplicate entries
-     */
-    suspend fun saveMusic(music: List<LibraryMusic>) = withContext(Dispatchers.IO) {
-        val jsonArray = JSONArray()
-        val seenUris = mutableSetOf<String>()
-
-        // Deduplicate by URI before saving
-        music.forEach { track ->
-            val uriString = track.uri.toString()
-            if (uriString in seenUris) return@forEach
-            seenUris.add(uriString)
-
-            val jsonObject = JSONObject().apply {
-                put("id", track.id)
-                put("uri", uriString)
-                put("title", track.title)
-                put("artist", track.artist)
-                put("album", track.album ?: "")
-                put("coverArtUri", track.coverArtUri ?: "")
-                put("duration", track.duration)
-                put("lastPosition", track.lastPosition)
-                put("lastPlayed", track.lastPlayed)
-                put("dateAdded", track.dateAdded)
-                put("isCompleted", track.isCompleted)
-                put("categoryId", track.categoryId ?: "")
-                put("seriesId", track.seriesId ?: "")
-                put("seriesOrder", track.seriesOrder)
-                put("fileType", track.fileType)
-                put("timesListened", track.timesListened)
-                put("contentType", track.contentType.name)
-            }
-            jsonArray.put(jsonObject)
-        }
-        prefs.edit().putString(getProfileKey(KEY_MUSIC), jsonArray.toString()).apply()
-    }
-
-    /**
-     * Load music from persistent storage (per-profile)
-     * Deduplicates by URI to prevent duplicate entries
-     */
-    suspend fun loadMusic(): List<LibraryMusic> = withContext(Dispatchers.IO) {
-        val jsonString = prefs.getString(getProfileKey(KEY_MUSIC), null) ?: return@withContext emptyList()
-
-        try {
+    private fun loadMusicFromPrefs(): List<LibraryMusic> {
+        val jsonString = prefs.getString(getProfileKey(KEY_MUSIC), null) ?: return emptyList()
+        return try {
             val jsonArray = JSONArray(jsonString)
             val music = mutableListOf<LibraryMusic>()
             val seenUris = mutableSetOf<String>()
-
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
                 val uriString = jsonObject.getString("uri")
-
-                // Skip duplicates by URI
                 if (uriString in seenUris) continue
                 seenUris.add(uriString)
-
                 val track = LibraryMusic(
                     id = jsonObject.getString("id"),
                     uri = Uri.parse(uriString),
                     title = jsonObject.getString("title"),
                     artist = jsonObject.optString("artist", "Unknown Artist"),
                     album = jsonObject.optString("album").takeIf { it.isNotEmpty() },
+                    track = jsonObject.optInt("track", -1).takeIf { it >= 0 },
                     coverArtUri = jsonObject.optString("coverArtUri").takeIf { it.isNotEmpty() },
                     duration = jsonObject.optLong("duration", 0L),
                     lastPosition = jsonObject.optLong("lastPosition", 0L),
@@ -342,44 +244,11 @@ class LibraryRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Save comics to persistent storage
-     */
-    suspend fun saveComics(comics: List<LibraryComic>) = withContext(Dispatchers.IO) {
-        val jsonArray = JSONArray()
-        comics.forEach { comic ->
-            val jsonObject = JSONObject().apply {
-                put("id", comic.id)
-                put("uri", comic.uri.toString())
-                put("title", comic.title)
-                put("author", comic.author)
-                put("series", comic.series ?: "")
-                put("coverArtUri", comic.coverArtUri ?: "")
-                put("totalPages", comic.totalPages)
-                put("currentPage", comic.currentPage)
-                put("lastRead", comic.lastRead)
-                put("dateAdded", comic.dateAdded)
-                put("isCompleted", comic.isCompleted)
-                put("categoryId", comic.categoryId ?: "")
-                put("seriesId", comic.seriesId ?: "")
-                put("seriesOrder", comic.seriesOrder)
-                put("fileType", comic.fileType)
-            }
-            jsonArray.put(jsonObject)
-        }
-        prefs.edit().putString(getProfileKey(KEY_COMICS), jsonArray.toString()).apply()
-    }
-
-    /**
-     * Load comics from persistent storage (per-profile)
-     */
-    suspend fun loadComics(): List<LibraryComic> = withContext(Dispatchers.IO) {
-        val jsonString = prefs.getString(getProfileKey(KEY_COMICS), null) ?: return@withContext emptyList()
-
-        try {
+    private fun loadComicsFromPrefs(): List<LibraryComic> {
+        val jsonString = prefs.getString(getProfileKey(KEY_COMICS), null) ?: return emptyList()
+        return try {
             val jsonArray = JSONArray(jsonString)
             val comics = mutableListOf<LibraryComic>()
-
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
                 val comic = LibraryComic(
@@ -408,43 +277,11 @@ class LibraryRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Save movies to persistent storage
-     */
-    suspend fun saveMovies(movies: List<LibraryMovie>) = withContext(Dispatchers.IO) {
-        val jsonArray = JSONArray()
-        movies.forEach { movie ->
-            val jsonObject = JSONObject().apply {
-                put("id", movie.id)
-                put("uri", movie.uri.toString())
-                put("title", movie.title)
-                put("duration", movie.duration)
-                put("lastPosition", movie.lastPosition)
-                put("lastPlayed", movie.lastPlayed)
-                put("dateAdded", movie.dateAdded)
-                put("isCompleted", movie.isCompleted)
-                put("categoryId", movie.categoryId ?: "")
-                put("seriesId", movie.seriesId ?: "")
-                put("seriesOrder", movie.seriesOrder)
-                put("thumbnailUri", movie.thumbnailUri?.toString() ?: "")
-                put("coverArtUri", movie.coverArtUri ?: "")
-                put("fileType", movie.fileType)
-            }
-            jsonArray.put(jsonObject)
-        }
-        prefs.edit().putString(getProfileKey(KEY_MOVIES), jsonArray.toString()).apply()
-    }
-
-    /**
-     * Load movies from persistent storage (per-profile)
-     */
-    suspend fun loadMovies(): List<LibraryMovie> = withContext(Dispatchers.IO) {
-        val jsonString = prefs.getString(getProfileKey(KEY_MOVIES), null) ?: return@withContext emptyList()
-
-        try {
+    private fun loadMoviesFromPrefs(): List<LibraryMovie> {
+        val jsonString = prefs.getString(getProfileKey(KEY_MOVIES), null) ?: return emptyList()
+        return try {
             val jsonArray = JSONArray(jsonString)
             val movies = mutableListOf<LibraryMovie>()
-
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
                 val movie = LibraryMovie(
@@ -472,36 +309,11 @@ class LibraryRepository(private val context: Context) {
         }
     }
 
-    /**
-     * Save series to persistent storage
-     */
-    suspend fun saveSeries(series: List<LibrarySeries>) = withContext(Dispatchers.IO) {
-        val jsonArray = JSONArray()
-        series.forEach { s ->
-            val jsonObject = JSONObject().apply {
-                put("id", s.id)
-                put("name", s.name)
-                put("contentType", s.contentType.name)
-                put("categoryId", s.categoryId ?: "")
-                put("order", s.order)
-                put("dateCreated", s.dateCreated)
-                put("coverArtUri", s.coverArtUri ?: "")
-            }
-            jsonArray.put(jsonObject)
-        }
-        prefs.edit().putString(getProfileKey(KEY_SERIES), jsonArray.toString()).apply()
-    }
-
-    /**
-     * Load series from persistent storage (per-profile)
-     */
-    suspend fun loadSeries(): List<LibrarySeries> = withContext(Dispatchers.IO) {
-        val jsonString = prefs.getString(getProfileKey(KEY_SERIES), null) ?: return@withContext emptyList()
-
-        try {
+    private fun loadSeriesFromPrefs(): List<LibrarySeries> {
+        val jsonString = prefs.getString(getProfileKey(KEY_SERIES), null) ?: return emptyList()
+        return try {
             val jsonArray = JSONArray(jsonString)
             val series = mutableListOf<LibrarySeries>()
-
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
                 val s = LibrarySeries(
@@ -524,6 +336,181 @@ class LibraryRepository(private val context: Context) {
             e.printStackTrace()
             emptyList()
         }
+    }
+
+    private fun loadCategoriesFromPrefs(): List<Category> {
+        val jsonString = prefs.getString(getProfileKey(KEY_CATEGORIES), null) ?: return emptyList()
+        return try {
+            val jsonArray = JSONArray(jsonString)
+            val categories = mutableListOf<Category>()
+            for (i in 0 until jsonArray.length()) {
+                val jsonObject = jsonArray.getJSONObject(i)
+                val category = Category(
+                    id = jsonObject.getString("id"),
+                    name = jsonObject.getString("name"),
+                    dateCreated = jsonObject.optLong("dateCreated", System.currentTimeMillis())
+                )
+                categories.add(category)
+            }
+            categories
+        } catch (e: Exception) {
+            e.printStackTrace()
+            emptyList()
+        }
+    }
+
+    // ==================== Main Save/Load Methods (using JSON files) ====================
+
+    /**
+     * Save the library to persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun saveLibrary(audiobooks: List<LibraryAudiobook>) = withContext(Dispatchers.IO) {
+        libraryFileManager.saveAudiobooks(currentProfileName, audiobooks)
+    }
+
+    /**
+     * Load the library from persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun loadLibrary(): List<LibraryAudiobook> = withContext(Dispatchers.IO) {
+        libraryFileManager.loadAudiobooks(currentProfileName)
+    }
+
+    /**
+     * Save the last played audiobook ID (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    fun saveLastPlayedId(audiobookId: String?) {
+        kotlinx.coroutines.runBlocking {
+            libraryFileManager.saveLastPlayedId(currentProfileName, audiobookId)
+        }
+    }
+
+    /**
+     * Get the last played audiobook ID (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    fun getLastPlayedId(): String? {
+        return kotlinx.coroutines.runBlocking {
+            libraryFileManager.loadLastPlayedId(currentProfileName)
+        }
+    }
+
+    /**
+     * Save playback settings (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    fun savePlaybackSpeed(speed: Float) {
+        kotlinx.coroutines.runBlocking {
+            libraryFileManager.savePlaybackSpeed(currentProfileName, speed)
+        }
+    }
+
+    /**
+     * Get playback speed (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    fun getPlaybackSpeed(): Float {
+        return kotlinx.coroutines.runBlocking {
+            libraryFileManager.loadPlaybackSpeed(currentProfileName)
+        }
+    }
+
+    /**
+     * Save categories to persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun saveCategories(categories: List<Category>) = withContext(Dispatchers.IO) {
+        libraryFileManager.saveCategories(currentProfileName, categories)
+    }
+
+    /**
+     * Load categories from persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun loadCategories(): List<Category> = withContext(Dispatchers.IO) {
+        libraryFileManager.loadCategories(currentProfileName)
+    }
+
+    /**
+     * Save books to persistent storage
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun saveBooks(books: List<LibraryBook>) = withContext(Dispatchers.IO) {
+        libraryFileManager.saveBooks(currentProfileName, books)
+    }
+
+    /**
+     * Load books from persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun loadBooks(): List<LibraryBook> = withContext(Dispatchers.IO) {
+        libraryFileManager.loadBooks(currentProfileName)
+    }
+
+    /**
+     * Save music to persistent storage
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun saveMusic(music: List<LibraryMusic>) = withContext(Dispatchers.IO) {
+        libraryFileManager.saveMusic(currentProfileName, music)
+    }
+
+    /**
+     * Load music from persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun loadMusic(): List<LibraryMusic> = withContext(Dispatchers.IO) {
+        libraryFileManager.loadMusic(currentProfileName)
+    }
+
+    /**
+     * Save comics to persistent storage
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun saveComics(comics: List<LibraryComic>) = withContext(Dispatchers.IO) {
+        libraryFileManager.saveComics(currentProfileName, comics)
+    }
+
+    /**
+     * Load comics from persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun loadComics(): List<LibraryComic> = withContext(Dispatchers.IO) {
+        libraryFileManager.loadComics(currentProfileName)
+    }
+
+    /**
+     * Save movies to persistent storage
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun saveMovies(movies: List<LibraryMovie>) = withContext(Dispatchers.IO) {
+        libraryFileManager.saveMovies(currentProfileName, movies)
+    }
+
+    /**
+     * Load movies from persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun loadMovies(): List<LibraryMovie> = withContext(Dispatchers.IO) {
+        libraryFileManager.loadMovies(currentProfileName)
+    }
+
+    /**
+     * Save series to persistent storage
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun saveSeries(series: List<LibrarySeries>) = withContext(Dispatchers.IO) {
+        libraryFileManager.saveSeries(currentProfileName, series)
+    }
+
+    /**
+     * Load series from persistent storage (per-profile)
+     * Now uses JSON file instead of SharedPreferences
+     */
+    suspend fun loadSeries(): List<LibrarySeries> = withContext(Dispatchers.IO) {
+        libraryFileManager.loadSeries(currentProfileName)
     }
 
     // ==================== Folder-Based Playlist Operations ====================
@@ -718,119 +705,52 @@ class LibraryRepository(private val context: Context) {
     /**
      * Export all library data for the current profile as a JSON object
      * This includes audiobooks, books, music, comics, movies, series, and categories
+     * Now uses JSON file instead of SharedPreferences
      */
     suspend fun exportLibraryData(): JSONObject = withContext(Dispatchers.IO) {
-        JSONObject().apply {
-            prefs.getString(getProfileKey(KEY_LIBRARY), null)?.let { put("audiobooks", JSONArray(it)) }
-            prefs.getString(getProfileKey(KEY_BOOKS), null)?.let { put("books", JSONArray(it)) }
-            prefs.getString(getProfileKey(KEY_MUSIC), null)?.let { put("music", JSONArray(it)) }
-            prefs.getString(getProfileKey(KEY_COMICS), null)?.let { put("comics", JSONArray(it)) }
-            prefs.getString(getProfileKey(KEY_MOVIES), null)?.let { put("movies", JSONArray(it)) }
-            prefs.getString(getProfileKey(KEY_SERIES), null)?.let { put("series", JSONArray(it)) }
-            prefs.getString(getProfileKey(KEY_CATEGORIES), null)?.let { put("categories", JSONArray(it)) }
-            prefs.getString(getProfileKey(KEY_LAST_PLAYED), null)?.let { put("lastPlayed", it) }
-            put("playbackSpeed", prefs.getFloat(getProfileKey(KEY_PLAYBACK_SPEED), 1.0f).toDouble())
-        }
+        libraryFileManager.exportLibraryData(currentProfileName)
     }
 
     /**
      * Import library data from a JSON object into the current profile
      * This restores audiobooks, books, music, comics, movies, series, and categories
+     * Now uses JSON file instead of SharedPreferences
      */
     suspend fun importLibraryData(data: JSONObject) = withContext(Dispatchers.IO) {
-        prefs.edit().apply {
-            data.optJSONArray("audiobooks")?.let { putString(getProfileKey(KEY_LIBRARY), it.toString()) }
-            data.optJSONArray("books")?.let { putString(getProfileKey(KEY_BOOKS), it.toString()) }
-            data.optJSONArray("music")?.let { putString(getProfileKey(KEY_MUSIC), it.toString()) }
-            data.optJSONArray("comics")?.let { putString(getProfileKey(KEY_COMICS), it.toString()) }
-            data.optJSONArray("movies")?.let { putString(getProfileKey(KEY_MOVIES), it.toString()) }
-            data.optJSONArray("series")?.let { putString(getProfileKey(KEY_SERIES), it.toString()) }
-            data.optJSONArray("categories")?.let { putString(getProfileKey(KEY_CATEGORIES), it.toString()) }
-            data.optString("lastPlayed").takeIf { it.isNotEmpty() }?.let { putString(getProfileKey(KEY_LAST_PLAYED), it) }
-            if (data.has("playbackSpeed")) {
-                putFloat(getProfileKey(KEY_PLAYBACK_SPEED), data.optDouble("playbackSpeed", 1.0).toFloat())
-            }
-            commit()
-        }
+        libraryFileManager.importLibraryData(currentProfileName, data)
     }
 
     /**
      * Export library data for a specific profile name (not necessarily the current one)
+     * Now uses JSON file instead of SharedPreferences
      */
     suspend fun exportLibraryDataForProfile(profileName: String): JSONObject = withContext(Dispatchers.IO) {
-        val profileKey = { baseKey: String -> "${baseKey}_profile_${profileName.replace(Regex("[^a-zA-Z0-9]"), "_")}" }
-        JSONObject().apply {
-            prefs.getString(profileKey(KEY_LIBRARY), null)?.let { put("audiobooks", JSONArray(it)) }
-            prefs.getString(profileKey(KEY_BOOKS), null)?.let { put("books", JSONArray(it)) }
-            prefs.getString(profileKey(KEY_MUSIC), null)?.let { put("music", JSONArray(it)) }
-            prefs.getString(profileKey(KEY_COMICS), null)?.let { put("comics", JSONArray(it)) }
-            prefs.getString(profileKey(KEY_MOVIES), null)?.let { put("movies", JSONArray(it)) }
-            prefs.getString(profileKey(KEY_SERIES), null)?.let { put("series", JSONArray(it)) }
-            prefs.getString(profileKey(KEY_CATEGORIES), null)?.let { put("categories", JSONArray(it)) }
-            prefs.getString(profileKey(KEY_LAST_PLAYED), null)?.let { put("lastPlayed", it) }
-            put("playbackSpeed", prefs.getFloat(profileKey(KEY_PLAYBACK_SPEED), 1.0f).toDouble())
-        }
+        libraryFileManager.exportLibraryData(profileName)
     }
 
     /**
      * Import library data for a specific profile name (not necessarily the current one)
+     * Now uses JSON file instead of SharedPreferences
      */
     suspend fun importLibraryDataForProfile(profileName: String, data: JSONObject) = withContext(Dispatchers.IO) {
-        val profileKey = { baseKey: String -> "${baseKey}_profile_${profileName.replace(Regex("[^a-zA-Z0-9]"), "_")}" }
-        prefs.edit().apply {
-            data.optJSONArray("audiobooks")?.let { putString(profileKey(KEY_LIBRARY), it.toString()) }
-            data.optJSONArray("books")?.let { putString(profileKey(KEY_BOOKS), it.toString()) }
-            data.optJSONArray("music")?.let { putString(profileKey(KEY_MUSIC), it.toString()) }
-            data.optJSONArray("comics")?.let { putString(profileKey(KEY_COMICS), it.toString()) }
-            data.optJSONArray("movies")?.let { putString(profileKey(KEY_MOVIES), it.toString()) }
-            data.optJSONArray("series")?.let { putString(profileKey(KEY_SERIES), it.toString()) }
-            data.optJSONArray("categories")?.let { putString(profileKey(KEY_CATEGORIES), it.toString()) }
-            data.optString("lastPlayed").takeIf { it.isNotEmpty() }?.let { putString(profileKey(KEY_LAST_PLAYED), it) }
-            if (data.has("playbackSpeed")) {
-                putFloat(profileKey(KEY_PLAYBACK_SPEED), data.optDouble("playbackSpeed", 1.0).toFloat())
-            }
-            commit()
-        }
+        libraryFileManager.importLibraryData(profileName, data)
     }
 
     /**
-     * Migrate all library data from old profile key to new profile key
+     * Migrate all library data from old profile to new profile
      * This should be called when a profile is renamed to preserve library data
+     * Now uses file-based migration (rename library.json location)
      */
     suspend fun migrateLibraryDataForRename(oldName: String, newName: String) = withContext(Dispatchers.IO) {
-        val oldKey = { baseKey: String -> "${baseKey}_profile_${oldName.replace(Regex("[^a-zA-Z0-9]"), "_")}" }
-        val newKey = { baseKey: String -> "${baseKey}_profile_${newName.replace(Regex("[^a-zA-Z0-9]"), "_")}" }
-
-        // List of all keys that need to be migrated
-        val keysToMigrate = listOf(
-            KEY_LIBRARY,
-            KEY_BOOKS,
-            KEY_MUSIC,
-            KEY_COMICS,
-            KEY_MOVIES,
-            KEY_SERIES,
-            KEY_LAST_PLAYED,
-            KEY_CATEGORIES
-        )
-
-        prefs.edit().apply {
-            // Migrate string data
-            keysToMigrate.forEach { key ->
-                prefs.getString(oldKey(key), null)?.let { value ->
-                    putString(newKey(key), value)
-                    remove(oldKey(key)) // Remove old key after migration
-                }
+        // Export from old profile, import to new profile
+        val data = libraryFileManager.exportLibraryData(oldName)
+        if (data.length() > 0) {
+            libraryFileManager.importLibraryData(newName, data)
+            // Delete old library file
+            val oldFile = libraryFileManager.getLibraryFile(oldName)
+            if (oldFile.exists()) {
+                oldFile.delete()
             }
-
-            // Migrate playback speed (float)
-            val oldSpeedKey = oldKey(KEY_PLAYBACK_SPEED)
-            if (prefs.contains(oldSpeedKey)) {
-                val speed = prefs.getFloat(oldSpeedKey, 1.0f)
-                putFloat(newKey(KEY_PLAYBACK_SPEED), speed)
-                remove(oldSpeedKey)
-            }
-
-            commit()
         }
     }
 

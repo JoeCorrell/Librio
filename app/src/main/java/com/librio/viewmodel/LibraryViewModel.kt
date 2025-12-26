@@ -9,6 +9,9 @@ import android.os.Environment
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.librio.data.metadata.FileMetadata
+import com.librio.data.metadata.MetadataWriteResult
+import com.librio.data.metadata.MetadataWriterFactory
 import com.librio.data.repository.LibraryRepository
 import com.librio.data.repository.SettingsRepository
 import com.librio.model.Category
@@ -1356,20 +1359,81 @@ class LibraryViewModel : ViewModel() {
     }
 
     /**
-     * Update audiobook metadata (title and author) manually
+     * Update audiobook metadata with optional file writing
+     * @param audiobookId The audiobook ID
+     * @param newTitle New title
+     * @param newAuthor New author
+     * @param newNarrator New narrator (optional)
+     * @param newTrack Track number (optional)
+     * @param newAlbum Album name (optional)
+     * @param saveToFile If true, write metadata to the actual file
      */
-    fun updateAudiobookMetadata(audiobookId: String, newTitle: String, newAuthor: String) {
+    fun updateAudiobookMetadata(
+        audiobookId: String,
+        newTitle: String,
+        newAuthor: String,
+        newNarrator: String? = null,
+        newTrack: Int? = null,
+        newAlbum: String? = null,
+        saveToFile: Boolean = false
+    ) {
         val currentList = _libraryState.value.audiobooks.toMutableList()
         val index = currentList.indexOfFirst { it.id == audiobookId }
 
         if (index >= 0) {
             val audiobook = currentList[index]
-            currentList[index] = audiobook.copy(
+            val updatedAudiobook = audiobook.copy(
                 title = newTitle.ifBlank { audiobook.title },
-                author = newAuthor.ifBlank { audiobook.author }
+                author = newAuthor.ifBlank { audiobook.author },
+                narrator = newNarrator?.ifBlank { null } ?: audiobook.narrator,
+                track = newTrack ?: audiobook.track,
+                album = newAlbum?.ifBlank { null } ?: audiobook.album
             )
+            currentList[index] = updatedAudiobook
             _libraryState.value = _libraryState.value.copy(audiobooks = currentList)
             saveLibrary()
+
+            // Write metadata to file if requested
+            if (saveToFile && appContext != null) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    writeMetadataToFile(
+                        uriString = audiobook.uri.toString(),
+                        fileType = audiobook.fileType,
+                        metadata = FileMetadata(
+                            title = updatedAudiobook.title,
+                            author = updatedAudiobook.author,
+                            narrator = updatedAudiobook.narrator,
+                            track = updatedAudiobook.track,
+                            album = updatedAudiobook.album
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /**
+     * Write metadata to a file using the appropriate writer
+     */
+    private suspend fun writeMetadataToFile(
+        uriString: String,
+        fileType: String,
+        metadata: FileMetadata
+    ): MetadataWriteResult {
+        val context = appContext ?: return MetadataWriteResult.Error("Context not available")
+        val writer = MetadataWriterFactory.getWriter(fileType)
+            ?: return MetadataWriteResult.UnsupportedFormat
+        val uri = Uri.parse(uriString)
+
+        return try {
+            val result = writer.writeMetadata(context, uri, metadata)
+            if (result is MetadataWriteResult.Error) {
+                android.util.Log.e("LibraryViewModel", "Metadata write error: ${result.message}")
+            }
+            result
+        } catch (e: Exception) {
+            android.util.Log.e("LibraryViewModel", "Failed to write metadata", e)
+            MetadataWriteResult.Error(e.message ?: "Unknown error")
         }
     }
 
@@ -1835,21 +1899,49 @@ class LibraryViewModel : ViewModel() {
     }
 
     /**
-     * Update book metadata (title and author) manually
+     * Update book metadata with optional file writing
+     * @param bookId The book ID
+     * @param newTitle New title
+     * @param newAuthor New author
+     * @param newNarrator New narrator (optional)
+     * @param saveToFile If true, write metadata to the actual file (EPUB only)
      */
-    fun updateBookMetadata(bookId: String, newTitle: String, newAuthor: String) {
+    fun updateBookMetadata(
+        bookId: String,
+        newTitle: String,
+        newAuthor: String,
+        newNarrator: String? = null,
+        saveToFile: Boolean = false
+    ) {
         val currentBooks = _libraryState.value.books.toMutableList()
         val index = currentBooks.indexOfFirst { it.id == bookId }
 
         if (index >= 0) {
             val book = currentBooks[index]
-            currentBooks[index] = book.copy(
+            val updatedBook = book.copy(
                 title = newTitle.ifBlank { book.title },
-                author = newAuthor.ifBlank { book.author }
+                author = newAuthor.ifBlank { book.author },
+                narrator = newNarrator?.ifBlank { null } ?: book.narrator
             )
+            currentBooks[index] = updatedBook
             _libraryState.value = _libraryState.value.copy(books = currentBooks)
             // Persist immediately so edits survive app restarts
             saveBooksImmediately(currentBooks)
+
+            // Write metadata to file if requested (EPUB only)
+            if (saveToFile && appContext != null && book.fileType.lowercase() == "epub") {
+                viewModelScope.launch(Dispatchers.IO) {
+                    writeMetadataToFile(
+                        uriString = book.uri.toString(),
+                        fileType = book.fileType,
+                        metadata = FileMetadata(
+                            title = updatedBook.title,
+                            author = updatedBook.author,
+                            narrator = updatedBook.narrator
+                        )
+                    )
+                }
+            }
         }
     }
 
@@ -2692,21 +2784,53 @@ class LibraryViewModel : ViewModel() {
     }
 
     /**
-     * Update music metadata (title and artist) manually
+     * Update music metadata with optional file writing
+     * @param musicId The music ID
+     * @param newTitle New title
+     * @param newArtist New artist
+     * @param newTrack Track number (optional)
+     * @param newAlbum Album name (optional)
+     * @param saveToFile If true, write metadata to the actual file
      */
-    fun updateMusicMetadata(musicId: String, newTitle: String, newArtist: String) {
+    fun updateMusicMetadata(
+        musicId: String,
+        newTitle: String,
+        newArtist: String,
+        newTrack: Int? = null,
+        newAlbum: String? = null,
+        saveToFile: Boolean = false
+    ) {
         val currentMusic = _libraryState.value.music.toMutableList()
         val index = currentMusic.indexOfFirst { it.id == musicId }
 
         if (index >= 0) {
             val music = currentMusic[index]
-            currentMusic[index] = music.copy(
+            val updatedMusic = music.copy(
                 title = newTitle.ifBlank { music.title },
-                artist = newArtist.ifBlank { music.artist }
+                artist = newArtist.ifBlank { music.artist },
+                track = newTrack ?: music.track,
+                album = newAlbum?.ifBlank { null } ?: music.album
             )
+            currentMusic[index] = updatedMusic
             _libraryState.value = _libraryState.value.copy(music = currentMusic)
             // Persist immediately so edits survive app restarts
             saveMusicImmediately(currentMusic)
+
+            // Write metadata to file if requested
+            if (saveToFile && appContext != null) {
+                viewModelScope.launch(Dispatchers.IO) {
+                    writeMetadataToFile(
+                        uriString = music.uri.toString(),
+                        fileType = music.fileType,
+                        metadata = FileMetadata(
+                            title = updatedMusic.title,
+                            author = updatedMusic.artist,
+                            track = updatedMusic.track,
+                            album = updatedMusic.album
+                        )
+                    )
+                }
+            }
         }
     }
 

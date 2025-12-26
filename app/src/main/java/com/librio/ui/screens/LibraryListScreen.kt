@@ -93,8 +93,8 @@ fun LibraryListScreen(
     onAddMovie: (Uri) -> Unit = {},
     onDeleteAudiobook: (LibraryAudiobook) -> Unit,
     onDeleteBook: (LibraryBook) -> Unit = {},
-    onEditAudiobook: (LibraryAudiobook, String, String) -> Unit,
-    onEditBook: (LibraryBook, String, String) -> Unit = { _, _, _ -> },
+    onEditAudiobook: (LibraryAudiobook, String, String, String?, Int?, String?, Boolean) -> Unit,
+    onEditBook: (LibraryBook, String, String, String?, Boolean) -> Unit = { _, _, _, _, _ -> },
     searchQuery: String,
     onSearchQueryChange: (String) -> Unit,
     isSearchVisible: Boolean,
@@ -107,7 +107,7 @@ fun LibraryListScreen(
     onDeleteCategory: (String) -> Unit = {},
     onRenameCategory: (String, String) -> Unit = { _, _ -> },
     onSetAudiobookCategory: (String, String?) -> Unit = { _, _ -> },
-    onEditMusic: (LibraryMusic, String, String) -> Unit = { _, _, _ -> },
+    onEditMusic: (LibraryMusic, String, String, Int?, String?, Boolean) -> Unit = { _, _, _, _, _, _ -> },
     onDeleteMusic: (LibraryMusic) -> Unit = {},
     onEditComic: (LibraryComic, String, String) -> Unit = { _, _, _ -> },
     onDeleteComic: (LibraryComic) -> Unit = {},
@@ -324,8 +324,8 @@ fun LibraryListScreen(
             categories = categories,
             seriesList = seriesList.filter { it.contentType == ContentType.AUDIOBOOK },
             onDismiss = { showEditDialog = null },
-            onSave = { title, author, categoryId ->
-                onEditAudiobook(audiobook, title, author)
+            onSave = { title, author, categoryId, narrator, track, album, saveToFile ->
+                onEditAudiobook(audiobook, title, author, narrator, track, album, saveToFile)
                 onSetAudiobookCategory(audiobook.id, categoryId)
                 showEditDialog = null
             },
@@ -350,8 +350,8 @@ fun LibraryListScreen(
             book = book,
             seriesList = seriesList.filter { it.contentType == ContentType.EBOOK },
             onDismiss = { showEditBookDialog = null },
-            onSave = { title, author ->
-                onEditBook(book, title, author)
+            onSave = { title, author, narrator, saveToFile ->
+                onEditBook(book, title, author, narrator, saveToFile)
                 showEditBookDialog = null
             },
             onSetSeries = { seriesId ->
@@ -375,8 +375,8 @@ fun LibraryListScreen(
             music = musicItem,
             seriesList = seriesList.filter { it.contentType == musicItem.contentType },
             onDismiss = { showEditMusicDialog = null },
-            onSave = { title: String, artist: String ->
-                onEditMusic(musicItem, title, artist)
+            onSave = { title, artist, track, album, saveToFile ->
+                onEditMusic(musicItem, title, artist, track, album, saveToFile)
                 showEditMusicDialog = null
             },
             onSetSeries = { seriesId ->
@@ -2159,7 +2159,7 @@ private fun EditMetadataDialog(
     categories: List<Category>,
     seriesList: List<LibrarySeries> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (String, String, String?) -> Unit,
+    onSave: (title: String, author: String, categoryId: String?, narrator: String?, track: Int?, album: String?, saveToFile: Boolean) -> Unit,
     onSetSeries: (String?) -> Unit = {},
     onSetCoverArt: () -> Unit = {},
     onDelete: () -> Unit = {},
@@ -2168,7 +2168,16 @@ private fun EditMetadataDialog(
 ) {
     var title by remember { mutableStateOf(audiobook.title) }
     var author by remember { mutableStateOf(audiobook.author) }
+    var narrator by remember { mutableStateOf(audiobook.narrator ?: "") }
+    var track by remember { mutableStateOf(audiobook.track?.toString() ?: "") }
+    var album by remember { mutableStateOf(audiobook.album ?: "") }
+    var saveToFile by remember { mutableStateOf(false) }
     var selectedSeriesId by remember { mutableStateOf(audiobook.seriesId) }
+
+    // Check if this file type supports metadata writing
+    val canWriteToFile = remember(audiobook.fileType) {
+        audiobook.fileType.lowercase() in setOf("mp3", "m4a", "m4b", "ogg", "flac", "wav", "aiff")
+    }
     var showSeriesDropdown by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
     var showAddSeriesDialog by remember { mutableStateOf(false) }
@@ -2337,6 +2346,56 @@ private fun EditMetadataDialog(
                         unfocusedTextColor = palette.textPrimary
                     )
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = narrator,
+                    onValueChange = { narrator = it },
+                    label = { Text("Narrator") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primary,
+                        unfocusedBorderColor = palette.shade4,
+                        cursorColor = palette.primary,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
+                    )
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = album,
+                    onValueChange = { album = it },
+                    label = { Text("Album") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primary,
+                        unfocusedBorderColor = palette.shade4,
+                        cursorColor = palette.primary,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
+                    )
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = track,
+                    onValueChange = { newValue ->
+                        // Only allow digits
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            track = newValue
+                        }
+                    },
+                    label = { Text("Track #") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primary,
+                        unfocusedBorderColor = palette.shade4,
+                        cursorColor = palette.primary,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
+                    )
+                )
 
                 // Series selection - always show (category removed for audiobooks)
                 Spacer(modifier = Modifier.height(12.dp))
@@ -2434,6 +2493,37 @@ private fun EditMetadataDialog(
                     }
                 }
 
+                // Save to file checkbox (only show for supported formats)
+                if (canWriteToFile) {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = saveToFile,
+                            onCheckedChange = { saveToFile = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = palette.primary,
+                                uncheckedColor = palette.shade4
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                "Save to file",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.textPrimary
+                            )
+                            Text(
+                                "Write metadata to the audio file",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.textMuted
+                            )
+                        }
+                    }
+                }
+
                 // Set Cover Art button
                 Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
@@ -2460,7 +2550,16 @@ private fun EditMetadataDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onSave(title, author, null)
+                    val trackNum = track.toIntOrNull()
+                    onSave(
+                        title,
+                        author,
+                        null,
+                        narrator.takeIf { it.isNotBlank() },
+                        trackNum,
+                        album.takeIf { it.isNotBlank() },
+                        saveToFile
+                    )
                     onSetSeries(selectedSeriesId)
                 },
                 enabled = title.isNotBlank()
@@ -2879,7 +2978,7 @@ private fun EditBookMetadataDialog(
     book: LibraryBook,
     seriesList: List<LibrarySeries> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit,
+    onSave: (title: String, author: String, narrator: String?, saveToFile: Boolean) -> Unit,
     onSetSeries: (String?) -> Unit = {},
     onSetCoverArt: () -> Unit = {},
     onDelete: () -> Unit = {},
@@ -2888,6 +2987,9 @@ private fun EditBookMetadataDialog(
 ) {
     var title by remember { mutableStateOf(book.title) }
     var author by remember { mutableStateOf(book.author) }
+    var narrator by remember { mutableStateOf(book.narrator ?: "") }
+    var saveToFile by remember { mutableStateOf(false) }
+    val canSaveToFile = book.fileType.lowercase() == "epub"
     var selectedSeriesId by remember { mutableStateOf(book.seriesId) }
     var showSeriesDropdown by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -3056,6 +3158,21 @@ private fun EditBookMetadataDialog(
                         unfocusedTextColor = palette.textPrimary
                     )
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = narrator,
+                    onValueChange = { narrator = it },
+                    label = { Text("Narrator") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primary,
+                        unfocusedBorderColor = palette.shade4,
+                        cursorColor = palette.primary,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
+                    )
+                )
 
                 // Series selection - always show
                 Spacer(modifier = Modifier.height(12.dp))
@@ -3174,12 +3291,46 @@ private fun EditBookMetadataDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Set Cover Art")
                 }
+
+                // Save to file checkbox (only for EPUB)
+                if (canSaveToFile) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { saveToFile = !saveToFile }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = saveToFile,
+                            onCheckedChange = { saveToFile = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = palette.primary,
+                                uncheckedColor = palette.shade4
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                "Save to file",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.textPrimary
+                            )
+                            Text(
+                                "Write metadata to EPUB file",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.textMuted
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    onSave(title, author)
+                    onSave(title, author, narrator.ifBlank { null }, saveToFile)
                     onSetSeries(selectedSeriesId)
                 },
                 enabled = title.isNotBlank()
@@ -3789,7 +3940,7 @@ private fun EditMusicMetadataDialog(
     music: LibraryMusic,
     seriesList: List<LibrarySeries> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (String, String) -> Unit,
+    onSave: (title: String, artist: String, track: Int?, album: String?, saveToFile: Boolean) -> Unit,
     onSetSeries: (String?) -> Unit = {},
     onSetCoverArt: () -> Unit = {},
     onDelete: () -> Unit = {},
@@ -3798,6 +3949,10 @@ private fun EditMusicMetadataDialog(
 ) {
     var title by remember { mutableStateOf(music.title) }
     var artist by remember { mutableStateOf(music.artist) }
+    var track by remember { mutableStateOf(music.track?.toString() ?: "") }
+    var album by remember { mutableStateOf(music.album ?: "") }
+    var saveToFile by remember { mutableStateOf(false) }
+    val canSaveToFile = com.librio.data.metadata.MetadataWriterFactory.canWriteMetadata(music.fileType)
     var selectedSeriesId by remember { mutableStateOf(music.seriesId) }
     var showSeriesDropdown by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
@@ -3966,6 +4121,41 @@ private fun EditMusicMetadataDialog(
                         unfocusedTextColor = palette.textPrimary
                     )
                 )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = album,
+                    onValueChange = { album = it },
+                    label = { Text("Album") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primary,
+                        unfocusedBorderColor = palette.shade4,
+                        cursorColor = palette.primary,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
+                    )
+                )
+                Spacer(modifier = Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = track,
+                    onValueChange = { newValue ->
+                        // Only allow digits
+                        if (newValue.isEmpty() || newValue.all { it.isDigit() }) {
+                            track = newValue
+                        }
+                    },
+                    label = { Text("Track #") },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = palette.primary,
+                        unfocusedBorderColor = palette.shade4,
+                        cursorColor = palette.primary,
+                        focusedTextColor = palette.textPrimary,
+                        unfocusedTextColor = palette.textPrimary
+                    )
+                )
 
                 // Series/Playlist selection - always show
                 Spacer(modifier = Modifier.height(12.dp))
@@ -4084,12 +4274,52 @@ private fun EditMusicMetadataDialog(
                     Spacer(modifier = Modifier.width(8.dp))
                     Text("Set Cover Art")
                 }
+
+                // Save to file checkbox (for supported audio formats)
+                if (canSaveToFile) {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { saveToFile = !saveToFile }
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Checkbox(
+                            checked = saveToFile,
+                            onCheckedChange = { saveToFile = it },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = palette.primary,
+                                uncheckedColor = palette.shade4
+                            )
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Column {
+                            Text(
+                                "Save to file",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = palette.textPrimary
+                            )
+                            Text(
+                                "Write metadata to ${music.fileType.uppercase()} file",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = palette.textMuted
+                            )
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
             TextButton(
                 onClick = {
-                    onSave(title, artist)
+                    onSave(
+                        title,
+                        artist,
+                        track.toIntOrNull(),
+                        album.ifBlank { null },
+                        saveToFile
+                    )
                     onSetSeries(selectedSeriesId)
                 },
                 enabled = title.isNotBlank()

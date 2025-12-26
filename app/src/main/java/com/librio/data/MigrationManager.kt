@@ -88,6 +88,9 @@ class MigrationManager(
                 // Migrate series to playlist folders
                 migrateSeriesAsPlaylistFolders(profile.name)
 
+                // Migrate library data to JSON file
+                migrateLibraryData(profile.name)
+
                 // Ensure content folders exist
                 playlistFolderManager.ensureContentFoldersExist(profile.name)
 
@@ -290,6 +293,19 @@ class MigrationManager(
         )
 
         profileFileManager.saveComicSettings(profileName, settings)
+    }
+
+    /**
+     * Migrate library data from SharedPreferences to JSON file
+     * This is handled by LibraryRepository when it detects needsMigration()
+     * Here we just trigger the repository to do it on first load
+     */
+    private suspend fun migrateLibraryData(profileName: String) {
+        // Library migration is handled automatically by LibraryRepository
+        // when it detects SharedPreferences data but no JSON file.
+        // The repository's needsMigration() and migrateToJsonFile() methods
+        // handle this when loadLibrary() is called.
+        // This method serves as a placeholder in the migration flow.
     }
 
     /**

@@ -1014,14 +1014,35 @@ class MainActivity : ComponentActivity() {
                                 onDeleteBook = { book ->
                                     libraryViewModel.removeBook(book)
                                 },
-                                onEditAudiobook = { audiobook, title, author ->
-                                    libraryViewModel.updateAudiobookMetadata(audiobook.id, title, author)
+                                onEditAudiobook = { audiobook, title, author, narrator, track, album, saveToFile ->
+                                    libraryViewModel.updateAudiobookMetadata(
+                                        audiobookId = audiobook.id,
+                                        newTitle = title,
+                                        newAuthor = author,
+                                        newNarrator = narrator,
+                                        newTrack = track,
+                                        newAlbum = album,
+                                        saveToFile = saveToFile
+                                    )
                                 },
-                                onEditBook = { book, title, author ->
-                                    libraryViewModel.updateBookMetadata(book.id, title, author)
+                                onEditBook = { book, title, author, narrator, saveToFile ->
+                                    libraryViewModel.updateBookMetadata(
+                                        bookId = book.id,
+                                        newTitle = title,
+                                        newAuthor = author,
+                                        newNarrator = narrator,
+                                        saveToFile = saveToFile
+                                    )
                                 },
-                                onEditMusic = { music, title, artist ->
-                                    libraryViewModel.updateMusicMetadata(music.id, title, artist)
+                                onEditMusic = { music, title, artist, track, album, saveToFile ->
+                                    libraryViewModel.updateMusicMetadata(
+                                        musicId = music.id,
+                                        newTitle = title,
+                                        newArtist = artist,
+                                        newTrack = track,
+                                        newAlbum = album,
+                                        saveToFile = saveToFile
+                                    )
                                 },
                                 onDeleteMusic = { music ->
                                     libraryViewModel.removeMusic(music)

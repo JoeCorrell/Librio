@@ -98,6 +98,9 @@ dependencies {
     // RAR/CBR support for comic reader
     implementation("com.github.junrar:junrar:7.5.5")
 
+    // Audio metadata reading/writing (ID3, M4A, OGG, FLAC tags)
+    implementation("net.jthink:jaudiotagger:3.0.1")
+
     // Lifecycle
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.6.2")
