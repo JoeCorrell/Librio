@@ -171,7 +171,7 @@ fun ProgressSlider(
     val displayPosition = sliderPosition ?: (currentPosition.toFloat() / duration.coerceAtLeast(1).toFloat())
 
     Column(modifier = modifier) {
-        Slider(
+        MinimalProgressSlider(
             value = displayPosition.coerceIn(0f, 1f),
             onValueChange = { sliderPosition = it },
             onValueChangeFinished = {
@@ -180,11 +180,6 @@ fun ProgressSlider(
                 }
                 sliderPosition = null
             },
-            colors = SliderDefaults.colors(
-                thumbColor = palette.accent,
-                activeTrackColor = palette.accent,
-                inactiveTrackColor = palette.accent.copy(alpha = 0.2f),
-            ),
             modifier = Modifier.fillMaxWidth()
         )
 

@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
+import com.librio.ui.components.MinimalSlider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -444,16 +445,11 @@ private fun SliderRow(
             Text(title, color = palette.textPrimary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             Text(valueLabel, color = palette.textMuted, fontSize = 13.sp)
         }
-        Slider(
+        MinimalSlider(
             value = value.coerceIn(valueRange.start, valueRange.endInclusive),
             onValueChange = onChange,
             valueRange = valueRange,
-            steps = step,
-            colors = androidx.compose.material3.SliderDefaults.colors(
-                thumbColor = palette.accent,
-                activeTrackColor = palette.accent,
-                inactiveTrackColor = palette.accent.copy(alpha = 0.3f)
-            )
+            steps = step
         )
     }
 }

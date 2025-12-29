@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.librio.ui.theme.cornerRadius
+import com.librio.ui.components.MinimalSlider
 import androidx.compose.material3.*
 import com.librio.ui.theme.AppIcons
 import androidx.compose.runtime.*
@@ -923,18 +924,13 @@ fun MoviePlayerScreen(
                                     tint = palette.textMuted,
                                     modifier = Modifier.size(settingsIconSize)
                                 )
-                                Slider(
+                                MinimalSlider(
                                     value = brightness,
                                     onValueChange = { onBrightnessChange(it) },
                                     valueRange = 0.1f..1f,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(horizontal = 4.dp),
-                                    colors = SliderDefaults.colors(
-                                        thumbColor = palette.accent,
-                                        activeTrackColor = palette.accent,
-                                        inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
-                                    )
+                                        .padding(horizontal = 4.dp)
                                 )
                                 Icon(
                                     AppIcons.BrightnessHigh,

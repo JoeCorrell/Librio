@@ -834,6 +834,8 @@ fun LibraryListScreen(
                         labelColor = palette.primary
                     ),
                     border = FilterChipDefaults.filterChipBorder(
+                        enabled = true,
+                        selected = isSelected,
                         borderColor = palette.primary.copy(alpha = 0.5f),
                         selectedBorderColor = palette.primary
                     )
@@ -1214,7 +1216,7 @@ fun LibraryListScreen(
                                         onLongClick = { showEditMusicDialog = musicItem },
                                         showPlaceholderIcons = showPlaceholderIcons,
                                         modifier = Modifier
-                                            .animateItemPlacement()
+                                            .animateItem()
                                     )
                                 }
 
@@ -1312,7 +1314,7 @@ fun LibraryListScreen(
                                         onClick = { onSelectComic(comicItem) },
                                         onLongClick = { showEditComicDialog = comicItem },
                                         showPlaceholderIcons = showPlaceholderIcons,
-                                        modifier = Modifier.animateItemPlacement()
+                                        modifier = Modifier.animateItem()
                                     )
                                 }
                                 item {
@@ -1409,7 +1411,7 @@ fun LibraryListScreen(
                                         onClick = { onSelectMovie(movieItem) },
                                         onLongClick = { showEditMovieDialog = movieItem },
                                         showPlaceholderIcons = showPlaceholderIcons,
-                                        modifier = Modifier.animateItemPlacement()
+                                        modifier = Modifier.animateItem()
                                     )
                                 }
                                 item {
@@ -1819,7 +1821,7 @@ private fun CategoryPlaylistBar(
 
                 // Divider before playlists
                 if (playlists.isNotEmpty()) {
-                    Divider(color = palette.divider.copy(alpha = 0.3f))
+                    HorizontalDivider(color = palette.divider.copy(alpha = 0.3f))
                 }
 
                 // Playlist items filtered by current content type
@@ -1889,7 +1891,7 @@ private fun CategoryPlaylistBar(
                 }
 
                 // Divider before add option
-                Divider(color = palette.divider.copy(alpha = 0.3f))
+                HorizontalDivider(color = palette.divider.copy(alpha = 0.3f))
 
                 // Add new playlist option
                 DropdownMenuItem(
@@ -2121,7 +2123,7 @@ fun AudiobookListItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         LinearProgressIndicator(
-                            progress = progress,
+                            progress = { progress },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(4.dp)
@@ -2457,7 +2459,7 @@ private fun EditMetadataDialog(
                             }
                         )
                         if (seriesList.isNotEmpty()) {
-                            Divider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
+                            HorizontalDivider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
                         }
                         seriesList.forEach { series ->
                             DropdownMenuItem(
@@ -2768,7 +2770,7 @@ fun BookListItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         LinearProgressIndicator(
-                            progress = book.progress,
+                            progress = { book.progress },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(4.dp)
@@ -3234,7 +3236,7 @@ private fun EditBookMetadataDialog(
                             }
                         )
                         if (seriesList.isNotEmpty()) {
-                            Divider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
+                            HorizontalDivider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
                         }
                         seriesList.forEach { series ->
                             DropdownMenuItem(
@@ -3500,7 +3502,7 @@ fun ComicListItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         LinearProgressIndicator(
-                            progress = progress,
+                            progress = { progress },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(6.dp)
@@ -3664,7 +3666,7 @@ fun MovieListItem(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         LinearProgressIndicator(
-                            progress = progress,
+                            progress = { progress },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(6.dp)
@@ -4217,7 +4219,7 @@ private fun EditMusicMetadataDialog(
                             }
                         )
                         if (seriesList.isNotEmpty()) {
-                            Divider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
+                            HorizontalDivider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
                         }
                         seriesList.forEach { series ->
                             DropdownMenuItem(
@@ -4582,7 +4584,7 @@ private fun EditComicMetadataDialog(
                             }
                         )
                         if (seriesList.isNotEmpty()) {
-                            Divider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
+                            HorizontalDivider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
                         }
                         seriesList.forEach { series ->
                             DropdownMenuItem(
@@ -4891,7 +4893,7 @@ private fun EditMovieMetadataDialog(
                             }
                         )
                         if (seriesList.isNotEmpty()) {
-                            Divider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
+                            HorizontalDivider(color = palette.divider, modifier = Modifier.padding(vertical = 4.dp))
                         }
                         seriesList.forEach { series ->
                             DropdownMenuItem(
@@ -5550,7 +5552,7 @@ private fun AudiobookGridItem(
         if (audiobook.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
-                progress = audiobook.progress,
+                progress = { audiobook.progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)
@@ -5640,7 +5642,7 @@ private fun BookGridItem(
         if (book.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
-                progress = book.progress,
+                progress = { book.progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)
@@ -5730,7 +5732,7 @@ private fun MusicGridItem(
         if (music.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
-                progress = music.progress,
+                progress = { music.progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)
@@ -5820,7 +5822,7 @@ private fun ComicGridItem(
         if (comic.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
-                progress = comic.progress,
+                progress = { comic.progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)
@@ -5926,7 +5928,7 @@ private fun MovieGridItem(
         if (movie.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
             LinearProgressIndicator(
-                progress = movie.progress,
+                progress = { movie.progress },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(3.dp)

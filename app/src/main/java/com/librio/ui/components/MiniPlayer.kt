@@ -289,7 +289,7 @@ fun MiniPlayer(
                                 maxLines = 1,
                                 modifier = Modifier.basicMarquee(
                                     iterations = Int.MAX_VALUE,
-                                    delayMillis = 2000,
+                                    repeatDelayMillis = 2000,
                                     initialDelayMillis = 1500,
                                     velocity = 30.dp
                                 )

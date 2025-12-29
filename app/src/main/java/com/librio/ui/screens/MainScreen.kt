@@ -11,7 +11,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.remember
@@ -885,7 +885,7 @@ private fun StatItem(
 private fun SectionHeader(title: String, palette: ThemePalette, showDivider: Boolean = true) {
     Column {
         if (showDivider) {
-            Divider(
+            HorizontalDivider(
                 color = palette.divider,
                 thickness = 1.dp,
                 modifier = Modifier.padding(horizontal = 16.dp)

@@ -121,7 +121,7 @@ fun ContentGridItem(
             if (progress > 0f) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 LinearProgressIndicator(
-                    progress = progress,
+                    progress = { progress },
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(3.dp)

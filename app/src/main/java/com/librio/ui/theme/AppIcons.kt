@@ -1,6 +1,7 @@
 package com.librio.ui.theme
 
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -13,14 +14,14 @@ import androidx.compose.ui.graphics.vector.ImageVector
 object AppIcons {
     // Content Type Icons
     val Audiobook: ImageVector = Icons.Rounded.Headphones
-    val Book: ImageVector = Icons.Rounded.MenuBook
+    val Book: ImageVector = Icons.AutoMirrored.Rounded.MenuBook
     val Music: ImageVector = Icons.Rounded.MusicNote
     val Comic: ImageVector = Icons.Rounded.CollectionsBookmark
 
     // Navigation & Actions
-    val Back: ImageVector = Icons.Rounded.ArrowBack
-    val ArrowBack: ImageVector = Icons.Rounded.ArrowBack
-    val ArrowForward: ImageVector = Icons.Rounded.ArrowForward
+    val Back: ImageVector = Icons.AutoMirrored.Rounded.ArrowBack
+    val ArrowBack: ImageVector = Icons.AutoMirrored.Rounded.ArrowBack
+    val ArrowForward: ImageVector = Icons.AutoMirrored.Rounded.ArrowForward
     val Search: ImageVector = Icons.Rounded.Search
     val Settings: ImageVector = Icons.Rounded.Settings
     val Add: ImageVector = Icons.Rounded.Add
@@ -29,7 +30,7 @@ object AppIcons {
     val Close: ImageVector = Icons.Rounded.Close
     val Check: ImageVector = Icons.Rounded.Check
     val Clear: ImageVector = Icons.Rounded.Clear
-    val Sort: ImageVector = Icons.Rounded.Sort
+    val Sort: ImageVector = Icons.AutoMirrored.Rounded.Sort
     val Refresh: ImageVector = Icons.Rounded.Refresh
     val MoreVert: ImageVector = Icons.Rounded.MoreVert
     val Remove: ImageVector = Icons.Rounded.RemoveCircleOutline
@@ -51,8 +52,8 @@ object AppIcons {
     // Library & Organization
     val Folder: ImageVector = Icons.Rounded.Folder
     val FolderOpen: ImageVector = Icons.Rounded.FolderOpen
-    val Playlist: ImageVector = Icons.Rounded.QueueMusic
-    val Library: ImageVector = Icons.Rounded.LibraryBooks
+    val Playlist: ImageVector = Icons.AutoMirrored.Rounded.QueueMusic
+    val Library: ImageVector = Icons.AutoMirrored.Rounded.LibraryBooks
     val LibraryMusic: ImageVector = Icons.Rounded.LibraryMusic
 
     // UI & Display
@@ -62,7 +63,7 @@ object AppIcons {
     val ExpandLess: ImageVector = Icons.Rounded.ExpandLess
     val KeyboardArrowDown: ImageVector = Icons.Rounded.KeyboardArrowDown
     val GridView: ImageVector = Icons.Rounded.GridView
-    val ListView: ImageVector = Icons.Rounded.ViewList
+    val ListView: ImageVector = Icons.AutoMirrored.Rounded.ViewList
 
     // Profile & User
     val Person: ImageVector = Icons.Rounded.Person
@@ -78,7 +79,7 @@ object AppIcons {
     // Text & Formatting
     val TextFields: ImageVector = Icons.Rounded.TextFields
     val FormatBold: ImageVector = Icons.Rounded.FormatBold
-    val FormatAlignLeft: ImageVector = Icons.Rounded.FormatAlignLeft
+    val FormatAlignLeft: ImageVector = Icons.AutoMirrored.Rounded.FormatAlignLeft
     val FormatAlignCenter: ImageVector = Icons.Rounded.FormatAlignCenter
     val FormatAlignJustify: ImageVector = Icons.Rounded.FormatAlignJustify
     val FormatLineSpacing: ImageVector = Icons.Rounded.FormatLineSpacing
@@ -86,7 +87,7 @@ object AppIcons {
     // Settings Categories
     val Timer: ImageVector = Icons.Rounded.Timer
     val Equalizer: ImageVector = Icons.Rounded.Equalizer
-    val VolumeUp: ImageVector = Icons.Rounded.VolumeUp
+    val VolumeUp: ImageVector = Icons.AutoMirrored.Rounded.VolumeUp
     val Vibration: ImageVector = Icons.Rounded.Vibration
     val Notifications: ImageVector = Icons.Rounded.Notifications
     val Bookmark: ImageVector = Icons.Rounded.Bookmark

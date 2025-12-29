@@ -189,7 +189,7 @@ fun ContentListItem(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
                         LinearProgressIndicator(
-                            progress = progress,
+                            progress = { progress },
                             modifier = Modifier
                                 .weight(1f)
                                 .height(4.dp)
