@@ -2420,7 +2420,7 @@ private fun EditMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -3197,7 +3197,7 @@ private fun EditBookMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -4180,7 +4180,7 @@ private fun EditMusicMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -4545,7 +4545,7 @@ private fun EditComicMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -4854,7 +4854,7 @@ private fun EditMovieMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(),
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,

@@ -14,7 +14,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.librio.ui.components.MinimalSlider
+import com.librio.ui.components.LibrioSlider
 import com.librio.ui.theme.*
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -201,12 +201,18 @@ fun SettingsScreen(
                             checked = rememberLastPosition,
                             onCheckedChange = onRememberLastPositionChange
                         )
-                        MinimalSliderRow(
-                            title = "Auto-rewind",
+                        Text(
+                            text = "Auto-rewind",
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            color = palette.textPrimary,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 4.dp)
+                        )
+                        LibrioSlider(
                             value = autoRewind.toFloat(),
                             onValueChange = { onAutoRewindChange(it.toInt()) },
                             valueRange = 0f..60f,
-                            steps = 11,
+                            stepSize = 5f,
                             valueLabel = if (autoRewind == 0) "Off" else "${autoRewind}s"
                         )
                     }
@@ -543,53 +549,6 @@ private fun SettingsActionRow(
             contentDescription = null,
             tint = palette.textMuted,
             modifier = Modifier.size(24.dp)
-        )
-    }
-}
-
-@Composable
-private fun MinimalSliderRow(
-    title: String,
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float>,
-    steps: Int,
-    valueLabel: String
-) {
-    val palette = currentPalette()
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Medium,
-                color = palette.textPrimary
-            )
-            Text(
-                text = valueLabel,
-                style = MaterialTheme.typography.bodySmall,
-                fontWeight = FontWeight.Medium,
-                color = palette.accent
-            )
-        }
-
-        Spacer(modifier = Modifier.height(8.dp))
-
-        MinimalSlider(
-            value = value,
-            onValueChange = onValueChange,
-            valueRange = valueRange,
-            steps = steps,
-            modifier = Modifier.fillMaxWidth()
         )
     }
 }

@@ -22,8 +22,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.material3.*
-import com.librio.ui.components.MinimalSlider
-import com.librio.ui.components.MinimalProgressSlider
 import com.librio.ui.theme.cornerRadius
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -645,7 +643,7 @@ fun EbookReaderScreen(
                         currentPage.toFloat() / (pages.size - 1)
                     } else 0f
 
-                    MinimalProgressSlider(
+                    Slider(
                         value = progress,
                         onValueChange = { newProgress ->
                             val newPage = (newProgress * (pages.size - 1)).toInt().coerceIn(0, pages.size - 1)
@@ -656,7 +654,12 @@ fun EbookReaderScreen(
                                 pagerState.animateScrollToPage(pagerIndex.coerceIn(0, totalDisplayPages - 1))
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = palette.accent,
+                            activeTrackColor = palette.accent,
+                            inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                        )
                     )
 
                     Row(
@@ -896,7 +899,7 @@ fun EbookReaderScreen(
                                     tint = palette.textMuted,
                                     modifier = Modifier.size(settingsIconSize)
                                 )
-                                MinimalSlider(
+                                Slider(
                                     value = brightness,
                                     onValueChange = {
                                         brightness = it
@@ -905,7 +908,12 @@ fun EbookReaderScreen(
                                     valueRange = 0.3f..1f,
                                     modifier = Modifier
                                         .weight(1f)
-                                        .padding(horizontal = 4.dp)
+                                        .padding(horizontal = 4.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = palette.accent,
+                                        activeTrackColor = palette.accent,
+                                        inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                    )
                                 )
                                 Icon(
                                     AppIcons.BrightnessHigh,
@@ -1063,7 +1071,7 @@ fun EbookReaderScreen(
                                     Text("Gap", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
                                     Text("${pageGap}dp", style = MaterialTheme.typography.labelSmall, color = palette.accent)
                                 }
-                                MinimalSlider(
+                                Slider(
                                     value = pageGap.toFloat(),
                                     onValueChange = {
                                         pageGap = it.toInt()
@@ -1071,7 +1079,12 @@ fun EbookReaderScreen(
                                     },
                                     valueRange = 0f..16f,
                                     steps = 7,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier.fillMaxWidth().height(20.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = palette.accent,
+                                        activeTrackColor = palette.accent,
+                                        inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                    )
                                 )
                             }
                         }
@@ -1110,7 +1123,7 @@ fun EbookReaderScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text("A", fontSize = settingsFontSize, color = palette.textMuted)
-                                MinimalSlider(
+                                Slider(
                                     value = fontSize.toFloat(),
                                     onValueChange = {
                                         // Snap to nearest valid value
@@ -1120,7 +1133,12 @@ fun EbookReaderScreen(
                                     },
                                     valueRange = 12f..32f,
                                     steps = 4, // 6 choices: 12, 16, 20, 24, 28, 32
-                                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp)
+                                    modifier = Modifier.weight(1f).padding(horizontal = 4.dp).height(20.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = palette.accent,
+                                        activeTrackColor = palette.accent,
+                                        inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                    )
                                 )
                                 Text("A", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = palette.textMuted)
                                 Spacer(modifier = Modifier.width(4.dp))
@@ -1290,14 +1308,19 @@ fun EbookReaderScreen(
                                 Text("Lines", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
                                 Text("${"%.1f".format(java.util.Locale.US, lineSpacing)}x", style = MaterialTheme.typography.labelSmall, color = palette.accent)
                             }
-                            MinimalSlider(
+                            Slider(
                                 value = lineSpacing,
                                 onValueChange = {
                                     lineSpacing = it
                                     onLineSpacingChange(it)
                                 },
                                 valueRange = 1f..2.5f,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().height(24.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = palette.accent,
+                                    activeTrackColor = palette.accent,
+                                    inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                )
                             )
 
                             // Paragraph spacing
@@ -1309,7 +1332,7 @@ fun EbookReaderScreen(
                                 Text("Paragraphs", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
                                 Text("${paragraphSpacing}dp", style = MaterialTheme.typography.labelSmall, color = palette.accent)
                             }
-                            MinimalSlider(
+                            Slider(
                                 value = paragraphSpacing.toFloat(),
                                 onValueChange = {
                                     paragraphSpacing = it.toInt()
@@ -1317,7 +1340,12 @@ fun EbookReaderScreen(
                                 },
                                 valueRange = 0f..32f,
                                 steps = 7,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().height(24.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = palette.accent,
+                                    activeTrackColor = palette.accent,
+                                    inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                )
                             )
 
                             // Margins
@@ -1329,7 +1357,7 @@ fun EbookReaderScreen(
                                 Text("Margins", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
                                 Text("${marginSize}dp", style = MaterialTheme.typography.labelSmall, color = palette.accent)
                             }
-                            MinimalSlider(
+                            Slider(
                                 value = marginSize.toFloat(),
                                 onValueChange = {
                                     marginSize = it.toInt()
@@ -1337,7 +1365,12 @@ fun EbookReaderScreen(
                                 },
                                 valueRange = 8f..48f,
                                 steps = 9,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().height(24.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = palette.accent,
+                                    activeTrackColor = palette.accent,
+                                    inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                )
                             )
 
                             // Word spacing
@@ -1349,7 +1382,7 @@ fun EbookReaderScreen(
                                 Text("Words", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
                                 Text("$wordSpacing", style = MaterialTheme.typography.labelSmall, color = palette.accent)
                             }
-                            MinimalSlider(
+                            Slider(
                                 value = wordSpacing.toFloat(),
                                 onValueChange = {
                                     wordSpacing = it.toInt()
@@ -1357,7 +1390,12 @@ fun EbookReaderScreen(
                                 },
                                 valueRange = -2f..8f,
                                 steps = 9,
-                                modifier = Modifier.fillMaxWidth()
+                                modifier = Modifier.fillMaxWidth().height(24.dp),
+                                colors = SliderDefaults.colors(
+                                    thumbColor = palette.accent,
+                                    activeTrackColor = palette.accent,
+                                    inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                )
                             )
                         }
                     }

@@ -21,8 +21,6 @@ import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
-import com.librio.ui.components.MinimalSlider
-import com.librio.ui.components.MinimalProgressSlider
 import com.librio.ui.theme.cornerRadius
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -500,7 +498,7 @@ fun ComicReaderScreen(
                         currentPage.toFloat() / (pages.size - 1)
                     } else 0f
 
-                    MinimalProgressSlider(
+                    Slider(
                         value = progress,
                         onValueChange = { newProgress ->
                             val newPage = (newProgress * (pages.size - 1)).toInt().coerceIn(0, pages.size - 1)
@@ -511,7 +509,12 @@ fun ComicReaderScreen(
                                 pagerState.animateScrollToPage(pagerIndex.coerceIn(0, totalDisplayPages - 1))
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = SliderDefaults.colors(
+                            thumbColor = palette.accent,
+                            activeTrackColor = palette.accent,
+                            inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                        )
                     )
 
                     Row(
@@ -894,12 +897,19 @@ fun ComicReaderScreen(
                                     Text("Gap", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
                                     Text("${pageGap}dp", style = MaterialTheme.typography.labelSmall, color = palette.accent)
                                 }
-                                MinimalSlider(
+                                Slider(
                                     value = pageGap.toFloat(),
                                     onValueChange = { newValue: Float -> onPageGapChange(newValue.toInt()) },
                                     valueRange = 0f..16f,
                                     steps = 7,
-                                    modifier = Modifier.fillMaxWidth()
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(20.dp),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = palette.accent,
+                                        activeTrackColor = palette.accent,
+                                        inactiveTrackColor = palette.accent.copy(alpha = 0.2f)
+                                    )
                                 )
                             }
                         }

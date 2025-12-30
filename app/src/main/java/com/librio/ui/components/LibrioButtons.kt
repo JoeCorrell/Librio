@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.LocalIndication
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
@@ -179,7 +179,7 @@ fun LibrioIconButton(
                 onClick = onClick,
                 role = Role.Button,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = LocalIndication.current
+                indication = null
             ),
         contentAlignment = Alignment.Center
     ) {
@@ -222,7 +222,7 @@ fun LibrioAccentIconButton(
                 onClick = onClick,
                 role = Role.Button,
                 interactionSource = remember { MutableInteractionSource() },
-                indication = LocalIndication.current
+                indication = null
             ),
         contentAlignment = Alignment.Center
     ) {

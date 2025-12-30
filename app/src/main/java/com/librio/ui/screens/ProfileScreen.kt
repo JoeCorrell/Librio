@@ -20,7 +20,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import com.librio.ui.theme.AppIcons
-import com.librio.ui.components.MinimalSlider
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -885,12 +884,12 @@ fun ProfileScreen(
                     // Red slider
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("R", color = Color.Red, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
-                        MinimalSlider(
+                        Slider(
                             value = customPrimaryR.toFloat(),
                             onValueChange = { customPrimaryR = it.toInt() },
                             valueRange = 0f..255f,
                             modifier = Modifier.weight(1f),
-                            activeColor = Color.Red
+                            colors = SliderDefaults.colors(thumbColor = Color.Red, activeTrackColor = Color.Red)
                         )
                         Text(customPrimaryR.toString(), color = palette.textMuted, modifier = Modifier.width(36.dp))
                     }
@@ -898,12 +897,12 @@ fun ProfileScreen(
                     // Green slider
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("G", color = Color.Green, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
-                        MinimalSlider(
+                        Slider(
                             value = customPrimaryG.toFloat(),
                             onValueChange = { customPrimaryG = it.toInt() },
                             valueRange = 0f..255f,
                             modifier = Modifier.weight(1f),
-                            activeColor = Color.Green
+                            colors = SliderDefaults.colors(thumbColor = Color.Green, activeTrackColor = Color.Green)
                         )
                         Text(customPrimaryG.toString(), color = palette.textMuted, modifier = Modifier.width(36.dp))
                     }
@@ -911,12 +910,12 @@ fun ProfileScreen(
                     // Blue slider
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text("B", color = Color.Blue, fontWeight = FontWeight.Bold, modifier = Modifier.width(24.dp))
-                        MinimalSlider(
+                        Slider(
                             value = customPrimaryB.toFloat(),
                             onValueChange = { customPrimaryB = it.toInt() },
                             valueRange = 0f..255f,
                             modifier = Modifier.weight(1f),
-                            activeColor = Color.Blue
+                            colors = SliderDefaults.colors(thumbColor = Color.Blue, activeTrackColor = Color.Blue)
                         )
                         Text(customPrimaryB.toString(), color = palette.textMuted, modifier = Modifier.width(36.dp))
                     }
@@ -1249,11 +1248,16 @@ fun ProfileScreen(
                                 }
                             }
                             Spacer(modifier = Modifier.height(12.dp))
-                            MinimalSlider(
+                            Slider(
                                 value = appScale,
                                 onValueChange = { onAppScaleChange(it.coerceIn(0.85f, 1.3f)) },
                                 valueRange = 0.85f..1.3f,
-                                steps = 8
+                                steps = 8,
+                                colors = SliderDefaults.colors(
+                                    thumbColor = palette.accent,
+                                    activeTrackColor = palette.accent,
+                                    inactiveTrackColor = palette.surfaceLight
+                                )
                             )
                         }
                     }
@@ -1325,7 +1329,7 @@ fun ProfileScreen(
                                     color = palette.primary,
                                     modifier = Modifier.width(40.dp)
                                 )
-                                MinimalSlider(
+                                Slider(
                                     value = currentScaleIndex.toFloat(),
                                     onValueChange = {
                                         val index = it.roundToInt().coerceIn(0, fontScaleOptions.size - 1)
@@ -1333,7 +1337,12 @@ fun ProfileScreen(
                                     },
                                     valueRange = 0f..(fontScaleOptions.size - 1).toFloat(),
                                     steps = fontScaleOptions.size - 2, // 4 steps = 6 choices
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = palette.accent,
+                                        activeTrackColor = palette.accent,
+                                        inactiveTrackColor = palette.surfaceLight
+                                    )
                                 )
                                 Text(
                                     text = "${(uiFontScale * 100).roundToInt()}%",
@@ -1362,7 +1371,7 @@ fun ProfileScreen(
                                     color = palette.primary,
                                     modifier = Modifier.width(40.dp)
                                 )
-                                MinimalSlider(
+                                Slider(
                                     value = selectedFontIndex.toFloat(),
                                     onValueChange = { value ->
                                         val index = value.roundToInt().coerceIn(fontFamilies.indices)
@@ -1370,7 +1379,12 @@ fun ProfileScreen(
                                     },
                                     valueRange = 0f..(fontFamilies.size - 1).toFloat(),
                                     steps = (fontFamilies.size - 2).coerceAtLeast(0),
-                                    modifier = Modifier.weight(1f)
+                                    modifier = Modifier.weight(1f),
+                                    colors = SliderDefaults.colors(
+                                        thumbColor = palette.accent,
+                                        activeTrackColor = palette.accent,
+                                        inactiveTrackColor = palette.surfaceLight
+                                    )
                                 )
                                 Text(
                                     text = fontFamilies.getOrElse(selectedFontIndex) { "Default" },

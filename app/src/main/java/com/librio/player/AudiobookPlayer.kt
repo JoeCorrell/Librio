@@ -4,6 +4,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import android.net.Uri
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaMetadata
@@ -36,9 +39,16 @@ class AudiobookPlayer(private val context: Context) {
     private var exoPlayer: androidx.media3.exoplayer.ExoPlayer? = null
     private var playerListener: Player.Listener? = null
     private var positionUpdateJob: Job? = null
+    private var loudnessEnhancer: LoudnessEnhancer? = null
+    private var bassBoost: BassBoost? = null
+    private var equalizer: Equalizer? = null
+    private var volumeBoostEnabled: Boolean = false
+    private var volumeBoostLevel: Float = 1.0f
+    private var normalizeAudio: Boolean = false
+    private var bassBoostLevel: Float = 0f
+    private var equalizerPreset: String = "DEFAULT"
     private var fadeOnPauseResume: Boolean = false
-    private val scopeJob = Job()
-    private val scope = CoroutineScope(scopeJob + Dispatchers.Main)
+    private val scope = CoroutineScope(Dispatchers.Main)
     
     private val _currentAudiobook = MutableStateFlow<Audiobook?>(null)
     val currentAudiobook: StateFlow<Audiobook?> = _currentAudiobook.asStateFlow()
@@ -61,7 +71,7 @@ class AudiobookPlayer(private val context: Context) {
                             isLoading = false,
                             duration = player.duration
                         )
-                        // Audio effects are managed by SharedMusicPlayer's AudioSettingsManager
+                        applyAudioEffects(player.audioSessionId)
                     }
                     Player.STATE_BUFFERING -> {
                         _playbackState.value = _playbackState.value.copy(isLoading = true)
@@ -104,6 +114,56 @@ class AudiobookPlayer(private val context: Context) {
         playerListener = listener
     }
 
+    private fun applyAudioEffects(audioSessionId: Int) {
+        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0) return
+        try { loudnessEnhancer?.release() } catch (_: Exception) { }
+        try { bassBoost?.release() } catch (_: Exception) { }
+        try { equalizer?.release() } catch (_: Exception) { }
+        loudnessEnhancer = runCatching { LoudnessEnhancer(audioSessionId) }.getOrNull()
+        // Only enable hardware BassBoost if not using equalizer bass preset (avoid stacking)
+        val useHardwareBassBoost = bassBoostLevel > 0f && equalizerPreset != "BASS_INCREASED"
+        bassBoost = runCatching { BassBoost(0, audioSessionId).apply { enabled = useHardwareBassBoost } }.getOrNull()
+        equalizer = runCatching { Equalizer(0, audioSessionId).apply { enabled = true } }.getOrNull()
+        equalizerPreset = normalizeEqPresetName(equalizerPreset)
+        equalizer?.let { runCatching { applyEqualizerPreset(it, equalizerPreset) } }
+        applyLoudness()
+        applyBassBoost()
+    }
+
+    private fun applyLoudness() {
+        loudnessEnhancer?.let { enhancer ->
+            runCatching {
+                val baseGain = when {
+                    volumeBoostEnabled -> ((volumeBoostLevel - 1f) * 1500).toInt().coerceAtLeast(0)
+                    normalizeAudio -> 600  // Normalize audio with moderate gain boost
+                    else -> 0
+                }
+                // Only add compensation if using volume boost or normalize - bass effects don't need it
+                // This prevents the "foggy" sound from over-amplification
+                val gainMb = baseGain.coerceIn(0, 2000)
+                enhancer.setTargetGain(gainMb)
+                enhancer.enabled = volumeBoostEnabled || normalizeAudio
+            }
+        }
+    }
+
+    private fun applyBassBoost() {
+        bassBoost?.let { boost ->
+            runCatching {
+                // Don't apply hardware bass boost if equalizer is handling bass
+                // This prevents stacking effects that cause muddy/foggy audio
+                val shouldApply = bassBoostLevel > 0f && equalizerPreset != "BASS_INCREASED"
+                val strength = if (shouldApply) {
+                    // Use a more moderate strength curve for cleaner sound
+                    (bassBoostLevel * 700f).toInt().coerceIn(0, 700)
+                } else {
+                    0
+                }
+                boost.setStrength(strength.toShort())
+                boost.enabled = strength > 0
+            }
+        }
+    }
     
     /**
      * Load an audiobook from a URI
@@ -411,19 +471,27 @@ class AudiobookPlayer(private val context: Context) {
     }
 
     fun setEqualizerPreset(preset: String) {
-        SharedMusicPlayer.setEqualizerPreset(context, preset)
+        equalizerPreset = normalizeEqPresetName(preset)
+        equalizer?.let { runCatching { applyEqualizerPreset(it, equalizerPreset) } }
+        applyBassBoost()
+        applyLoudness()
     }
 
     fun setVolumeBoost(enabled: Boolean, level: Float) {
-        SharedMusicPlayer.setVolumeBoost(context, enabled, level)
+        volumeBoostEnabled = enabled
+        volumeBoostLevel = level
+        applyLoudness()
     }
 
     fun setNormalizeAudio(enabled: Boolean) {
-        SharedMusicPlayer.setNormalizeAudio(context, enabled)
+        normalizeAudio = enabled
+        applyLoudness()
     }
 
     fun setBassBoostLevel(level: Float) {
-        SharedMusicPlayer.setBassBoostLevel(context, level.coerceIn(0f, 1f))
+        bassBoostLevel = level.coerceIn(0f, 1f)
+        applyBassBoost()
+        applyLoudness()
     }
 
     /**
@@ -436,14 +504,16 @@ class AudiobookPlayer(private val context: Context) {
         newBassBoostLevel: Float,
         newEqualizerPreset: String
     ) {
-        SharedMusicPlayer.updateAudioSettings(
-            context,
-            equalizerPreset = newEqualizerPreset,
-            volumeBoostEnabled = newVolumeBoostEnabled,
-            volumeBoostLevel = newVolumeBoostLevel,
-            normalizeAudio = newNormalizeAudio,
-            bassBoostLevel = newBassBoostLevel.coerceIn(0f, 1f)
-        )
+        volumeBoostEnabled = newVolumeBoostEnabled
+        volumeBoostLevel = newVolumeBoostLevel
+        normalizeAudio = newNormalizeAudio
+        bassBoostLevel = newBassBoostLevel.coerceIn(0f, 1f)
+        equalizerPreset = normalizeEqPresetName(newEqualizerPreset)
+
+        // Re-apply all effects if we have valid audio objects
+        equalizer?.let { runCatching { applyEqualizerPreset(it, equalizerPreset) } }
+        applyBassBoost()
+        applyLoudness()
     }
 
     /**
@@ -451,7 +521,22 @@ class AudiobookPlayer(private val context: Context) {
      * Useful when resuming playback or after loading settings from JSON
      */
     fun refreshAudioEffects() {
-        SharedMusicPlayer.refreshAudioEffects(context)
+        val player = exoPlayer ?: return
+        val state = player.playbackState
+        val isReady = state == Player.STATE_READY || state == Player.STATE_BUFFERING
+        if (!isReady) return
+
+        val sessionId = player.audioSessionId
+        if (sessionId == C.AUDIO_SESSION_ID_UNSET) return
+
+        // Re-initialize effects if needed, or just reapply settings
+        if (equalizer == null || bassBoost == null || loudnessEnhancer == null) {
+            applyAudioEffects(sessionId)
+        } else {
+            equalizer?.also { runCatching { applyEqualizerPreset(it, equalizerPreset) } }
+            applyBassBoost()
+            applyLoudness()
+        }
     }
 
     fun skipToChapter(chapterIndex: Int) {
@@ -475,15 +560,12 @@ class AudiobookPlayer(private val context: Context) {
         val currentIndex = _playbackState.value.currentChapterIndex
         val position = exoPlayer?.currentPosition ?: 0
         val chapters = _currentAudiobook.value?.chapters ?: return
-
-        // Validate index bounds
-        if (currentIndex < 0 || currentIndex >= chapters.size) return
-
+        
         // If we're more than 3 seconds into the chapter, go to start of current chapter
         // Otherwise go to previous chapter
         if (currentIndex > 0 && position < 3000) {
             skipToChapter(currentIndex - 1)
-        } else {
+        } else if (currentIndex < chapters.size) {
             seekTo(chapters[currentIndex].startTime)
         }
     }
@@ -530,12 +612,16 @@ class AudiobookPlayer(private val context: Context) {
     
     fun release() {
         stopPositionUpdates()
-        scopeJob.cancel()
         playerListener?.let { listener ->
             exoPlayer?.removeListener(listener)
         }
         playerListener = null
-        // Audio effects are managed by SharedMusicPlayer and will be released there
+        try { loudnessEnhancer?.release() } catch (_: Exception) { }
+        try { bassBoost?.release() } catch (_: Exception) { }
+        try { equalizer?.release() } catch (_: Exception) { }
+        loudnessEnhancer = null
+        bassBoost = null
+        equalizer = null
         SharedMusicPlayer.release()
         exoPlayer = null
     }

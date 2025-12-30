@@ -2,21 +2,15 @@ package com.librio.player
 
 import android.animation.ValueAnimator
 import android.content.Context
-import android.media.audiofx.BassBoost
-import android.media.audiofx.Equalizer
-import android.media.audiofx.LoudnessEnhancer
 import android.view.animation.DecelerateInterpolator
 import androidx.annotation.OptIn
 import androidx.media3.common.C
-import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.common.AudioAttributes
-import com.librio.player.applyEqualizerPreset
-import com.librio.player.normalizeEqPresetName
 
 /**
  * Manages audio settings for ExoPlayer including:
@@ -25,10 +19,6 @@ import com.librio.player.normalizeEqPresetName
  * - Mono audio mixing
  * - Channel balance (L/R)
  * - Gapless playback
- * - Equalizer presets
- * - Bass boost
- * - Volume boost (loudness enhancer)
- * - Audio normalization
  */
 @OptIn(UnstableApi::class)
 class AudioSettingsManager(private val context: Context) {
@@ -47,25 +37,12 @@ class AudioSettingsManager(private val context: Context) {
     var gaplessPlayback: Boolean = true
         private set
 
-    // Audio effects settings
-    private var volumeBoostEnabled: Boolean = false
-    private var volumeBoostLevel: Float = 1.0f
-    private var normalizeAudio: Boolean = false
-    private var bassBoostLevel: Float = 0f
-    private var equalizerPreset: String = "DEFAULT"
-
     private var currentPlayer: ExoPlayer? = null
     private var fadeAnimator: ValueAnimator? = null
-    private var playerListener: Player.Listener? = null
 
     // Audio processors
     private var silenceProcessor: SilenceSkippingAudioProcessor? = null
     private var channelProcessor: ChannelMixingAudioProcessor? = null
-
-    // Audio effects (hardware)
-    private var loudnessEnhancer: LoudnessEnhancer? = null
-    private var bassBoost: BassBoost? = null
-    private var equalizer: Equalizer? = null
 
     /**
      * Create an ExoPlayer configured with current audio settings
@@ -116,89 +93,7 @@ class AudioSettingsManager(private val context: Context) {
         updateSilenceSkipping()
         updateChannelMixing()
 
-        // Add listener to apply audio effects when player is ready
-        val listener = object : Player.Listener {
-            override fun onPlaybackStateChanged(playbackState: Int) {
-                if (playbackState == Player.STATE_READY) {
-                    val sessionId = player.audioSessionId
-                    if (sessionId != C.AUDIO_SESSION_ID_UNSET && sessionId != 0) {
-                        // Only apply if effects aren't already initialized or session changed
-                        if (equalizer == null || bassBoost == null || loudnessEnhancer == null) {
-                            applyAudioEffects(sessionId)
-                        }
-                    }
-                }
-            }
-        }
-        player.addListener(listener)
-        playerListener = listener
-
         return player
-    }
-
-    /**
-     * Apply hardware audio effects (equalizer, bass boost, volume boost)
-     */
-    private fun applyAudioEffects(audioSessionId: Int) {
-        if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0) return
-
-        try {
-            // Release old effects
-            loudnessEnhancer?.release()
-            bassBoost?.release()
-            equalizer?.release()
-
-            // Create new effects
-            loudnessEnhancer = runCatching { LoudnessEnhancer(audioSessionId) }.getOrNull()
-
-            // Only enable hardware BassBoost if not using equalizer bass preset (avoid stacking)
-            val useHardwareBassBoost = bassBoostLevel > 0f && equalizerPreset != "BASS_INCREASED"
-            bassBoost = runCatching {
-                BassBoost(0, audioSessionId).apply { enabled = useHardwareBassBoost }
-            }.getOrNull()
-
-            equalizer = runCatching {
-                Equalizer(0, audioSessionId).apply { enabled = true }
-            }.getOrNull()
-
-            // Apply current settings
-            val normalizedPreset = normalizeEqPresetName(equalizerPreset)
-            equalizer?.let { runCatching { applyEqualizerPreset(it, normalizedPreset) } }
-            applyLoudness()
-            applyBassBoost()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun applyLoudness() {
-        loudnessEnhancer?.let { enhancer ->
-            runCatching {
-                val baseGain = when {
-                    volumeBoostEnabled -> ((volumeBoostLevel - 1f) * 1500).toInt().coerceAtLeast(0)
-                    normalizeAudio -> 600  // Normalize audio with moderate gain boost
-                    else -> 0
-                }
-                enhancer.setTargetGain(baseGain)
-                enhancer.enabled = volumeBoostEnabled || normalizeAudio
-            }
-        }
-    }
-
-    private fun applyBassBoost() {
-        bassBoost?.let { boost ->
-            runCatching {
-                // Only apply hardware bass boost if not using equalizer bass preset
-                val useHardwareBassBoost = bassBoostLevel > 0f && equalizerPreset != "BASS_INCREASED"
-                if (useHardwareBassBoost) {
-                    val strength = (bassBoostLevel * 1000).toInt().coerceIn(0, 1000).toShort()
-                    boost.setStrength(strength)
-                    boost.enabled = true
-                } else {
-                    boost.enabled = false
-                }
-            }
-        }
     }
 
     /**
@@ -328,73 +223,13 @@ class AudioSettingsManager(private val context: Context) {
     }
 
     /**
-     * Set equalizer preset
-     */
-    fun setEqualizerPreset(preset: String) {
-        equalizerPreset = normalizeEqPresetName(preset)
-        equalizer?.let { runCatching { applyEqualizerPreset(it, equalizerPreset) } }
-        applyBassBoost()  // Update bass boost based on new preset
-        applyLoudness()
-    }
-
-    /**
-     * Set volume boost
-     */
-    fun setVolumeBoost(enabled: Boolean, level: Float) {
-        volumeBoostEnabled = enabled
-        volumeBoostLevel = level.coerceIn(1f, 3f)
-        applyLoudness()
-    }
-
-    /**
-     * Set audio normalization
-     */
-    fun setNormalizeAudio(enabled: Boolean) {
-        normalizeAudio = enabled
-        applyLoudness()
-    }
-
-    /**
-     * Set bass boost level (0.0 to 1.0)
-     */
-    fun setBassBoostLevel(level: Float) {
-        bassBoostLevel = level.coerceIn(0f, 1f)
-        applyBassBoost()
-    }
-
-    /**
-     * Refresh audio effects - call when audio session changes
-     */
-    fun refreshAudioEffects() {
-        val player = currentPlayer ?: return
-        val sessionId = player.audioSessionId
-        if (sessionId != C.AUDIO_SESSION_ID_UNSET && sessionId != 0) {
-            applyAudioEffects(sessionId)
-        }
-    }
-
-    /**
      * Release resources
      */
     fun release() {
         fadeAnimator?.cancel()
         fadeAnimator = null
-
-        // Remove player listener
-        playerListener?.let { listener ->
-            currentPlayer?.removeListener(listener)
-        }
-        playerListener = null
         currentPlayer = null
         silenceProcessor = null
         channelProcessor = null
-
-        // Release audio effects
-        try { loudnessEnhancer?.release() } catch (_: Exception) { }
-        try { bassBoost?.release() } catch (_: Exception) { }
-        try { equalizer?.release() } catch (_: Exception) { }
-        loudnessEnhancer = null
-        bassBoost = null
-        equalizer = null
     }
 }
