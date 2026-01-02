@@ -19,6 +19,8 @@ import com.librio.model.Chapter
 import com.librio.model.PlaybackState
 import com.librio.player.SharedMusicPlayer
 import com.librio.player.PlaybackService
+import com.librio.player.applyEqualizerPreset
+import com.librio.player.normalizeEqPresetName
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -48,7 +50,8 @@ class AudiobookPlayer(private val context: Context) {
     private var bassBoostLevel: Float = 0f
     private var equalizerPreset: String = "DEFAULT"
     private var fadeOnPauseResume: Boolean = false
-    private val scope = CoroutineScope(Dispatchers.Main)
+    private val scopeJob = Job()
+    private val scope = CoroutineScope(scopeJob + Dispatchers.Main)
     
     private val _currentAudiobook = MutableStateFlow<Audiobook?>(null)
     val currentAudiobook: StateFlow<Audiobook?> = _currentAudiobook.asStateFlow()
@@ -560,12 +563,15 @@ class AudiobookPlayer(private val context: Context) {
         val currentIndex = _playbackState.value.currentChapterIndex
         val position = exoPlayer?.currentPosition ?: 0
         val chapters = _currentAudiobook.value?.chapters ?: return
-        
+
+        // Validate index bounds
+        if (currentIndex < 0 || currentIndex >= chapters.size) return
+
         // If we're more than 3 seconds into the chapter, go to start of current chapter
         // Otherwise go to previous chapter
         if (currentIndex > 0 && position < 3000) {
             skipToChapter(currentIndex - 1)
-        } else if (currentIndex < chapters.size) {
+        } else {
             seekTo(chapters[currentIndex].startTime)
         }
     }
@@ -598,7 +604,7 @@ class AudiobookPlayer(private val context: Context) {
     private fun startPositionUpdates() {
         positionUpdateJob?.cancel()
         positionUpdateJob = scope.launch {
-            while (true) {
+            while (isActive) {
                 updatePlaybackState()
                 delay(500) // Update every 500ms to save battery
             }
@@ -612,6 +618,7 @@ class AudiobookPlayer(private val context: Context) {
     
     fun release() {
         stopPositionUpdates()
+        scopeJob.cancel()
         playerListener?.let { listener ->
             exoPlayer?.removeListener(listener)
         }

@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -120,13 +119,11 @@ fun ContentGridItem(
             // Progress indicator
             if (progress > 0f) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                LinearProgressIndicator(
-                    progress = { progress },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(3.dp)
-                        .clip(cornerRadius(CornerSize.xs)),
-                    color = palette.primary,
+                LibrioProgressBar(
+                    progress = progress,
+                    modifier = Modifier.fillMaxWidth(),
+                    height = 3.dp,
+                    activeColor = palette.primary,
                     trackColor = palette.shade5.copy(alpha = 0.3f)
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))

@@ -30,7 +30,6 @@ import androidx.compose.ui.unit.sp
 import com.librio.model.PlaybackState
 import com.librio.ui.theme.*
 import com.librio.utils.formatTime
-import com.librio.ui.components.LibrioProgressSlider
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -172,10 +171,10 @@ fun ProgressSlider(
     val displayPosition = sliderPosition ?: (currentPosition.toFloat() / duration.coerceAtLeast(1).toFloat())
 
     Column(modifier = modifier) {
-        LibrioProgressSlider(
-            progress = displayPosition.coerceIn(0f, 1f),
-            onProgressChange = { sliderPosition = it },
-            onProgressChangeFinished = {
+        MinimalProgressSlider(
+            value = displayPosition.coerceIn(0f, 1f),
+            onValueChange = { sliderPosition = it },
+            onValueChangeFinished = {
                 sliderPosition?.let { position ->
                     onSeekTo((position * duration).toLong())
                 }

@@ -29,6 +29,7 @@ import androidx.compose.foundation.text.BasicTextField
 import com.librio.ui.theme.AppIcons
 import com.librio.ui.components.CoverArt
 import com.librio.ui.components.CoverArtContentType
+import com.librio.ui.components.LibrioProgressBar
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.derivedStateOf
@@ -2122,13 +2123,11 @@ fun AudiobookListItem(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(4.dp)
-                                .clip(shape4),
-                            color = palette.accent,
+                        LibrioProgressBar(
+                            progress = progress,
+                            modifier = Modifier.weight(1f),
+                            height = 4.dp,
+                            activeColor = palette.accent,
                             trackColor = palette.accent.copy(alpha = 0.2f)
                         )
                         Text(
@@ -2420,7 +2419,7 @@ private fun EditMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -2769,13 +2768,11 @@ fun BookListItem(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        LinearProgressIndicator(
-                            progress = { book.progress },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(4.dp)
-                                .clip(shape4),
-                            color = palette.accent,
+                        LibrioProgressBar(
+                            progress = book.progress,
+                            modifier = Modifier.weight(1f),
+                            height = 4.dp,
+                            activeColor = palette.accent,
                             trackColor = palette.accent.copy(alpha = 0.2f)
                         )
                         Text(
@@ -3197,7 +3194,7 @@ private fun EditBookMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -3501,13 +3498,11 @@ fun ComicListItem(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(6.dp)
-                                .clip(shape3),
-                            color = palette.accent,
+                        LibrioProgressBar(
+                            progress = progress,
+                            modifier = Modifier.weight(1f),
+                            height = 6.dp,
+                            activeColor = palette.accent,
                             trackColor = palette.accent.copy(alpha = 0.2f)
                         )
                         Text(
@@ -3665,13 +3660,11 @@ fun MovieListItem(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(6.dp)
-                                .clip(shape3),
-                            color = palette.accent,
+                        LibrioProgressBar(
+                            progress = progress,
+                            modifier = Modifier.weight(1f),
+                            height = 6.dp,
+                            activeColor = palette.accent,
                             trackColor = palette.accent.copy(alpha = 0.2f)
                         )
                         Text(
@@ -4180,7 +4173,7 @@ private fun EditMusicMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -4545,7 +4538,7 @@ private fun EditComicMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -4854,7 +4847,7 @@ private fun EditMovieMetadataDialog(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable),
+                            .menuAnchor(),
                         colors = OutlinedTextFieldDefaults.colors(
                             focusedBorderColor = palette.primary,
                             unfocusedBorderColor = palette.shade4,
@@ -5551,13 +5544,11 @@ private fun AudiobookGridItem(
         // Progress indicator - positioned under cover art
         if (audiobook.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { audiobook.progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(shape6),
-                color = palette.primary,
+            LibrioProgressBar(
+                progress = audiobook.progress,
+                modifier = Modifier.fillMaxWidth(),
+                height = 3.dp,
+                activeColor = palette.primary,
                 trackColor = palette.shade5.copy(alpha = 0.3f)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -5641,13 +5632,11 @@ private fun BookGridItem(
         // Progress indicator - positioned under cover art
         if (book.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { book.progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(shape6),
-                color = palette.primary,
+            LibrioProgressBar(
+                progress = book.progress,
+                modifier = Modifier.fillMaxWidth(),
+                height = 3.dp,
+                activeColor = palette.primary,
                 trackColor = palette.shade5.copy(alpha = 0.3f)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -5731,13 +5720,11 @@ private fun MusicGridItem(
         // Progress indicator - positioned under cover art
         if (music.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { music.progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(shape6),
-                color = palette.primary,
+            LibrioProgressBar(
+                progress = music.progress,
+                modifier = Modifier.fillMaxWidth(),
+                height = 3.dp,
+                activeColor = palette.primary,
                 trackColor = palette.shade5.copy(alpha = 0.3f)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -5821,13 +5808,11 @@ private fun ComicGridItem(
         // Progress indicator - positioned under cover art
         if (comic.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { comic.progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(shape6),
-                color = palette.primary,
+            LibrioProgressBar(
+                progress = comic.progress,
+                modifier = Modifier.fillMaxWidth(),
+                height = 3.dp,
+                activeColor = palette.primary,
                 trackColor = palette.shade5.copy(alpha = 0.3f)
             )
             Spacer(modifier = Modifier.height(4.dp))
@@ -5927,13 +5912,11 @@ private fun MovieGridItem(
         // Progress indicator - positioned under cover art
         if (movie.progress > 0f) {
             Spacer(modifier = Modifier.height(4.dp))
-            LinearProgressIndicator(
-                progress = { movie.progress },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(3.dp)
-                    .clip(shape6),
-                color = palette.primary,
+            LibrioProgressBar(
+                progress = movie.progress,
+                modifier = Modifier.fillMaxWidth(),
+                height = 3.dp,
+                activeColor = palette.primary,
                 trackColor = palette.shade5.copy(alpha = 0.3f)
             )
             Spacer(modifier = Modifier.height(4.dp))

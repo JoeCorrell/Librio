@@ -54,6 +54,7 @@ import com.librio.R
 import com.librio.model.LibraryMusic
 import com.librio.ui.components.CoverArt
 import com.librio.ui.components.CoverArtContentType
+import com.librio.ui.components.MinimalProgressSlider
 import com.librio.ui.screens.MusicSettingsScreen
 import com.librio.ui.theme.*
 import com.librio.ui.theme.AppIcons
@@ -400,7 +401,7 @@ fun MusicPlayerScreen(
     // Update position periodically - only runs while playing to save battery
     LaunchedEffect(isPlaying) {
         if (!isPlaying) return@LaunchedEffect
-        while (true) {
+        while (isActive) {
             currentPosition = exoPlayer.currentPosition
             if (exoPlayer.duration > 0) {
                 duration = exoPlayer.duration
@@ -412,7 +413,7 @@ fun MusicPlayerScreen(
     // Save position periodically while playing
     LaunchedEffect(isPlaying) {
         if (!isPlaying) return@LaunchedEffect
-        while (true) {
+        while (isActive) {
             delay(5000)
             onPositionChange(exoPlayer.currentPosition)
         }
@@ -562,18 +563,15 @@ fun MusicPlayerScreen(
                 val progress = if (duration > 0) currentPosition.toFloat() / duration else 0f
 
                 Column(modifier = Modifier.fillMaxWidth()) {
-                    Slider(
+                    MinimalProgressSlider(
                         value = progress,
                         onValueChange = { newProgress ->
                             val newPosition = (newProgress * duration).toLong()
                             exoPlayer.seekTo(newPosition)
                             currentPosition = newPosition
                         },
-                        colors = SliderDefaults.colors(
-                            thumbColor = palette.accent,
-                            activeTrackColor = palette.accent,
-                            inactiveTrackColor = palette.surfaceMedium
-                        )
+                        activeColor = palette.accent,
+                        inactiveColor = palette.surfaceMedium.copy(alpha = 0.4f)
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),

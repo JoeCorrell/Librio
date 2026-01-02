@@ -8,6 +8,7 @@ import com.librio.model.ComicSettings
 import com.librio.model.MovieSettings
 import com.librio.model.ProfileSettings
 import com.librio.model.ReaderSettings
+import com.librio.player.SharedMusicPlayer
 import com.librio.ui.screens.UserProfile
 import com.librio.ui.theme.AppTheme
 import com.librio.ui.theme.BackgroundTheme
@@ -1715,12 +1716,16 @@ class SettingsRepository(private val context: Context) {
         _volumeBoostEnabled.value = enabled
         prefs.edit().putBoolean(KEY_VOLUME_BOOST_ENABLED, enabled).apply()
         saveAudioSettingsToFile()
+        // Apply to active player
+        SharedMusicPlayer.setVolumeBoost(context, enabled, _volumeBoostLevel.value)
     }
 
     fun setVolumeBoostLevel(level: Float) {
         _volumeBoostLevel.value = level
         prefs.edit().putFloat(KEY_VOLUME_BOOST_LEVEL, level).apply()
         saveAudioSettingsToFile()
+        // Apply to active player
+        SharedMusicPlayer.setVolumeBoost(context, _volumeBoostEnabled.value, level)
     }
 
     fun setLibraryOwnerName(name: String) {
@@ -2109,6 +2114,11 @@ class SettingsRepository(private val context: Context) {
         }
         _profiles.value = updatedProfiles
         saveProfiles(updatedProfiles)
+        // Apply to active player
+        val activeProfile = updatedProfiles.find { it.id == activeId }
+        activeProfile?.let {
+            SharedMusicPlayer.setVolumeBoost(context, enabled, it.volumeBoostLevel)
+        }
     }
 
     fun setProfileVolumeBoostLevel(level: Float) {
@@ -2118,6 +2128,11 @@ class SettingsRepository(private val context: Context) {
         }
         _profiles.value = updatedProfiles
         saveProfiles(updatedProfiles)
+        // Apply to active player
+        val activeProfile = updatedProfiles.find { it.id == activeId }
+        activeProfile?.let {
+            SharedMusicPlayer.setVolumeBoost(context, it.volumeBoostEnabled, level)
+        }
     }
 
     fun setProfileNormalizeAudio(enabled: Boolean) {
@@ -2127,6 +2142,8 @@ class SettingsRepository(private val context: Context) {
         }
         _profiles.value = updatedProfiles
         saveProfiles(updatedProfiles)
+        // Apply to active player
+        SharedMusicPlayer.setNormalizeAudio(context, enabled)
     }
 
     fun setProfileBassBoostLevel(level: Float) {
@@ -2136,6 +2153,8 @@ class SettingsRepository(private val context: Context) {
         }
         _profiles.value = updatedProfiles
         saveProfiles(updatedProfiles)
+        // Apply to active player
+        SharedMusicPlayer.setBassBoostLevel(context, level)
     }
 
     fun setProfileEqualizerPreset(preset: String) {
@@ -2146,6 +2165,8 @@ class SettingsRepository(private val context: Context) {
         }
         _profiles.value = updatedProfiles
         saveProfiles(updatedProfiles)
+        // Apply to active player
+        SharedMusicPlayer.setEqualizerPreset(context, normalized)
     }
 
     fun setProfileSleepTimer(minutes: Int) {
@@ -2425,12 +2446,16 @@ class SettingsRepository(private val context: Context) {
         _normalizeAudio.value = enabled
         prefs.edit().putBoolean(KEY_NORMALIZE_AUDIO, enabled).apply()
         saveAudioSettingsToFile()
+        // Apply to active player
+        SharedMusicPlayer.setNormalizeAudio(context, enabled)
     }
 
     fun setBassBoostLevel(level: Int) {
         _bassBoostLevel.value = level
         prefs.edit().putInt(KEY_BASS_BOOST_LEVEL, level).apply()
         saveAudioSettingsToFile()
+        // Apply to active player
+        SharedMusicPlayer.setBassBoostLevel(context, level.toFloat() / 100f)
     }
 
     fun setEqualizerPreset(preset: String) {
@@ -2438,6 +2463,8 @@ class SettingsRepository(private val context: Context) {
         _equalizerPreset.value = normalized
         prefs.edit().putString(KEY_EQUALIZER_PRESET, normalized).apply()
         saveAudioSettingsToFile()
+        // Apply to active player
+        SharedMusicPlayer.setEqualizerPreset(context, normalized)
     }
 
     // Playback Control setters

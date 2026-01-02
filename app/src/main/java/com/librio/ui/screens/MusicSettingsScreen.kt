@@ -32,6 +32,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Slider
+import com.librio.ui.components.MinimalSlider
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -48,7 +49,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.librio.ui.components.LibrioSlider
 import com.librio.ui.theme.*
 import com.librio.ui.theme.AppIcons
 import kotlin.math.abs
@@ -179,7 +179,7 @@ fun MusicSettingsScreen(
                                 onPlaybackSpeedChange(snapped)
                             },
                             valueRange = 0.25f..2f,
-                            stepSize = 0.25f
+                            step = 6
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         SliderRow(
@@ -188,7 +188,7 @@ fun MusicSettingsScreen(
                             value = skipBack.toFloat().coerceAtLeast(0f),
                             onChange = { onSkipBackChange(it.roundToInt().coerceIn(5, 90)) },
                             valueRange = 5f..90f,
-                            stepSize = 5f
+                            step = 17
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         SliderRow(
@@ -197,7 +197,7 @@ fun MusicSettingsScreen(
                             value = skipForward.toFloat().coerceAtLeast(0f),
                             onChange = { onSkipForwardChange(it.roundToInt().coerceIn(5, 90)) },
                             valueRange = 5f..90f,
-                            stepSize = 5f
+                            step = 17
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         SliderRow(
@@ -206,7 +206,7 @@ fun MusicSettingsScreen(
                             value = autoRewind.coerceAtLeast(0).toFloat(),
                             onChange = { onAutoRewindChange(it.toInt()) },
                             valueRange = 0f..60f,
-                            stepSize = 5f
+                            step = 12
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         ToggleRow(
@@ -241,7 +241,7 @@ fun MusicSettingsScreen(
                             value = volumeBoostLevel.coerceIn(1f, 3f),
                             onChange = { onVolumeBoostLevelChange(it.coerceIn(1f, 3f)) },
                             valueRange = 1f..3f,
-                            stepSize = 0.5f
+                            step = 4
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         SliderRow(
@@ -250,7 +250,7 @@ fun MusicSettingsScreen(
                             value = bassBoostLevel.coerceIn(0f, 1f),
                             onChange = { onBassBoostLevelChange(it.coerceIn(0f, 1f)) },
                             valueRange = 0f..1f,
-                            stepSize = 0.25f
+                            step = 10
                         )
                         Spacer(modifier = Modifier.height(6.dp))
                         EqualizerList(
@@ -280,7 +280,7 @@ fun MusicSettingsScreen(
                             value = sleepTimerMinutes.coerceAtLeast(0).toFloat(),
                             onChange = { onSleepTimerChange(it.toInt()) },
                             valueRange = 0f..120f,
-                            stepSize = 5f
+                            step = 12
                         )
                     }
 
@@ -342,7 +342,7 @@ fun MusicSettingsScreen(
                                 value = channelBalance,
                                 onChange = { onChannelBalanceChange(it.coerceIn(-1f, 1f)) },
                                 valueRange = -1f..1f,
-                                stepSize = 0.25f
+                                step = 20
                             )
                         }
                         Spacer(modifier = Modifier.height(6.dp))
@@ -434,7 +434,7 @@ private fun SliderRow(
     value: Float,
     onChange: (Float) -> Unit,
     valueRange: ClosedFloatingPointRange<Float>,
-    stepSize: Float = 5f
+    step: Int = 0
 ) {
     val palette = currentPalette()
     Column(modifier = Modifier.fillMaxWidth()) {
@@ -445,12 +445,11 @@ private fun SliderRow(
             Text(title, color = palette.textPrimary, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             Text(valueLabel, color = palette.textMuted, fontSize = 13.sp)
         }
-        LibrioSlider(
+        MinimalSlider(
             value = value.coerceIn(valueRange.start, valueRange.endInclusive),
             onValueChange = onChange,
             valueRange = valueRange,
-            stepSize = stepSize,
-            showTickMarks = true
+            steps = step
         )
     }
 }

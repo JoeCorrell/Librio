@@ -2308,39 +2308,140 @@ class LibraryViewModel : ViewModel() {
                     val existingFilenames = currentMusic.mapNotNull { music ->
                         music.uri.lastPathSegment?.substringAfterLast("/")?.lowercase()
                     }.toSet()
-                    val newMusic = mutableListOf<LibraryMusic>()
 
-                    musicFiles.forEach { file ->
+                    // Phase 1: INSTANT - Create basic entries with file info only (no I/O)
+                    val newFilesWithSeriesId = musicFiles.mapNotNull { file ->
                         val uri = file.toUri()
                         val filename = file.name.lowercase()
                         if (uri.toString() !in existingUris && filename !in existingFilenames) {
-                            // Check if file is in a playlist folder
                             val playlistName = getPlaylistFolderName(file, "Music")
-                            val seriesId = if (playlistName != null) {
-                                withContext(Dispatchers.Main) {
-                                    findOrCreateSeriesForPlaylist(playlistName, ContentType.MUSIC)
-                                }
-                            } else null
+                            file to playlistName
+                        } else null
+                    }
 
-                            val music = createMusicFromFile(context, file, seriesId, ContentType.MUSIC)
-                            newMusic.add(music)
+                    if (newFilesWithSeriesId.isEmpty()) return@withLock
+
+                    // Create series for playlist folders on main thread
+                    val fileToSeriesId = mutableMapOf<File, String?>()
+                    withContext(Dispatchers.Main) {
+                        newFilesWithSeriesId.forEach { (file, playlistName) ->
+                            val seriesId = if (playlistName != null) {
+                                findOrCreateSeriesForPlaylist(playlistName, ContentType.MUSIC)
+                            } else null
+                            fileToSeriesId[file] = seriesId
                         }
                     }
 
-                    if (newMusic.isNotEmpty()) {
-                        withContext(Dispatchers.Main) {
-                            val updatedMusic = (_libraryState.value.music + newMusic)
-                                .distinctBy { it.uri.toString() }
-                            _libraryState.value = _libraryState.value.copy(music = updatedMusic)
-                            saveMusic()
-                            saveSeries()
+                    // Create basic music entries instantly (no metadata extraction)
+                    val basicMusic = newFilesWithSeriesId.map { (file, _) ->
+                        createMusicFromFileBasic(file, fileToSeriesId[file], ContentType.MUSIC)
+                    }
+
+                    // Immediately update UI with basic entries
+                    withContext(Dispatchers.Main) {
+                        val updatedMusic = (_libraryState.value.music + basicMusic)
+                            .distinctBy { it.uri.toString() }
+                        _libraryState.value = _libraryState.value.copy(music = updatedMusic)
+                        saveSeries()
+                    }
+
+                    // Phase 2: BACKGROUND - Enrich with metadata in parallel
+                    val enrichedMusic = newFilesWithSeriesId.map { (file, _) ->
+                        async {
+                            enrichMusicMetadata(context, file, fileToSeriesId[file], ContentType.MUSIC)
                         }
+                    }.awaitAll()
+
+                    // Update with enriched metadata
+                    withContext(Dispatchers.Main) {
+                        val currentList = _libraryState.value.music.toMutableList()
+                        enrichedMusic.forEach { enriched ->
+                            val index = currentList.indexOfFirst { it.uri == enriched.uri }
+                            if (index >= 0) {
+                                currentList[index] = enriched
+                            }
+                        }
+                        _libraryState.value = _libraryState.value.copy(music = currentList)
+                        saveMusic()
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
             }
         }
+    }
+
+    /**
+     * Create a basic LibraryMusic from a file - INSTANT, no I/O
+     * Only uses file info, no metadata extraction
+     */
+    private fun createMusicFromFileBasic(
+        file: File,
+        seriesId: String? = null,
+        contentType: ContentType = ContentType.MUSIC
+    ): LibraryMusic {
+        return LibraryMusic(
+            id = UUID.randomUUID().toString(),
+            uri = file.toUri(),
+            title = file.nameWithoutExtension,
+            artist = "Loading...",
+            album = null,
+            coverArt = null,
+            duration = 0L,
+            fileType = file.extension.lowercase(),
+            timesListened = 0,
+            seriesId = seriesId,
+            contentType = contentType
+        )
+    }
+
+    /**
+     * Enrich music metadata from file - runs in background
+     * Extracts title, artist, album, duration, and cover art
+     */
+    private fun enrichMusicMetadata(
+        context: Context,
+        file: File,
+        seriesId: String? = null,
+        contentType: ContentType = ContentType.MUSIC
+    ): LibraryMusic {
+        val uri = file.toUri()
+        var title = file.nameWithoutExtension
+        var artist = "Unknown Artist"
+        var album: String? = null
+        var duration = 0L
+
+        try {
+            val retriever = MediaMetadataRetriever()
+            retriever.setDataSource(context, uri)
+
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)?.let { title = it }
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)?.let { artist = it }
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)?.let { album = it }
+            retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_DURATION)?.let {
+                duration = it.toLongOrNull() ?: 0L
+            }
+            retriever.release()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        // Extract cover art using robust method with fallback handling
+        val coverArt = extractCoverArtRobust(context, uri, file, 512)
+
+        return LibraryMusic(
+            id = UUID.randomUUID().toString(),
+            uri = uri,
+            title = title,
+            artist = artist,
+            album = album,
+            coverArt = coverArt,
+            duration = duration,
+            fileType = file.extension.lowercase(),
+            timesListened = 0,
+            seriesId = seriesId,
+            contentType = contentType
+        )
     }
 
     /**

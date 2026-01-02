@@ -14,6 +14,10 @@ import androidx.media3.exoplayer.ExoPlayer
  * - Mono audio mixing
  * - Channel balance (L/R)
  * - Gapless playback
+ * - Equalizer presets
+ * - Bass boost
+ * - Volume boost
+ * - Audio normalization
  */
 object SharedMusicPlayer {
     private var player: ExoPlayer? = null
@@ -25,20 +29,24 @@ object SharedMusicPlayer {
      */
     @Synchronized
     fun getAudioSettingsManager(context: Context): AudioSettingsManager {
-        if (audioSettingsManager == null) {
-            audioSettingsManager = AudioSettingsManager(context.applicationContext)
+        return audioSettingsManager ?: AudioSettingsManager(context.applicationContext).also {
+            audioSettingsManager = it
         }
-        return audioSettingsManager!!
     }
 
     @Synchronized
     fun acquire(context: Context): ExoPlayer {
-        if (player == null) {
-            val manager = getAudioSettingsManager(context)
-            player = manager.createConfiguredPlayer()
+        val currentPlayer = player
+        if (currentPlayer != null) {
+            refCount++
+            return currentPlayer
         }
-        refCount++
-        return player!!
+        // Create new player
+        val manager = getAudioSettingsManager(context)
+        val newPlayer = manager.createConfiguredPlayer()
+        player = newPlayer
+        refCount = 1
+        return newPlayer
     }
 
     /**
@@ -51,7 +59,12 @@ object SharedMusicPlayer {
         monoAudio: Boolean? = null,
         channelBalance: Float? = null,
         fadeOnPauseResume: Boolean? = null,
-        gaplessPlayback: Boolean? = null
+        gaplessPlayback: Boolean? = null,
+        equalizerPreset: String? = null,
+        volumeBoostEnabled: Boolean? = null,
+        volumeBoostLevel: Float? = null,
+        normalizeAudio: Boolean? = null,
+        bassBoostLevel: Float? = null
     ) {
         val manager = getAudioSettingsManager(context)
         trimSilence?.let { manager.setTrimSilence(it) }
@@ -59,6 +72,52 @@ object SharedMusicPlayer {
         channelBalance?.let { manager.setChannelBalance(it) }
         fadeOnPauseResume?.let { manager.setFadeOnPauseResume(it) }
         gaplessPlayback?.let { manager.setGaplessPlayback(it) }
+        equalizerPreset?.let { manager.setEqualizerPreset(it) }
+        if (volumeBoostEnabled != null && volumeBoostLevel != null) {
+            manager.setVolumeBoost(volumeBoostEnabled, volumeBoostLevel)
+        }
+        normalizeAudio?.let { manager.setNormalizeAudio(it) }
+        bassBoostLevel?.let { manager.setBassBoostLevel(it) }
+    }
+
+    /**
+     * Set equalizer preset
+     */
+    @Synchronized
+    fun setEqualizerPreset(context: Context, preset: String) {
+        getAudioSettingsManager(context).setEqualizerPreset(preset)
+    }
+
+    /**
+     * Set volume boost
+     */
+    @Synchronized
+    fun setVolumeBoost(context: Context, enabled: Boolean, level: Float) {
+        getAudioSettingsManager(context).setVolumeBoost(enabled, level)
+    }
+
+    /**
+     * Set audio normalization
+     */
+    @Synchronized
+    fun setNormalizeAudio(context: Context, enabled: Boolean) {
+        getAudioSettingsManager(context).setNormalizeAudio(enabled)
+    }
+
+    /**
+     * Set bass boost level
+     */
+    @Synchronized
+    fun setBassBoostLevel(context: Context, level: Float) {
+        getAudioSettingsManager(context).setBassBoostLevel(level)
+    }
+
+    /**
+     * Refresh audio effects (call when resuming playback)
+     */
+    @Synchronized
+    fun refreshAudioEffects(context: Context) {
+        getAudioSettingsManager(context).refreshAudioEffects()
     }
 
     /**
@@ -91,14 +150,16 @@ object SharedMusicPlayer {
 
     @Synchronized
     fun release() {
-        if (refCount > 0) {
-            refCount--
-            if (refCount == 0) {
-                player?.release()
-                player = null
-                audioSettingsManager?.release()
-                audioSettingsManager = null
-            }
+        if (refCount <= 0) {
+            // Already released or never acquired - prevent double-release
+            return
+        }
+        refCount--
+        if (refCount == 0) {
+            player?.release()
+            player = null
+            audioSettingsManager?.release()
+            audioSettingsManager = null
         }
     }
 }

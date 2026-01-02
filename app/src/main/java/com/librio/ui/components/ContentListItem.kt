@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.Icon
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -188,13 +187,11 @@ fun ContentListItem(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        LinearProgressIndicator(
-                            progress = { progress },
-                            modifier = Modifier
-                                .weight(1f)
-                                .height(4.dp)
-                                .clip(cornerRadius(CornerSize.xs)),
-                            color = palette.accent,
+                        LibrioProgressBar(
+                            progress = progress,
+                            modifier = Modifier.weight(1f),
+                            height = 4.dp,
+                            activeColor = palette.accent,
                             trackColor = palette.accent.copy(alpha = 0.2f)
                         )
                         Text(
