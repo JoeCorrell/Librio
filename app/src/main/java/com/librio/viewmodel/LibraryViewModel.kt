@@ -9,6 +9,8 @@ import android.os.Environment
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.librio.data.ContentFingerprint
+import com.librio.data.ProgressSaveManager
 import com.librio.data.metadata.FileMetadata
 import com.librio.data.metadata.MetadataWriteResult
 import com.librio.data.metadata.MetadataWriterFactory
@@ -244,7 +246,16 @@ class LibraryViewModel : ViewModel() {
     private var appContext: Context? = null
     private var isInitialLoadComplete = false // Flag to prevent race condition
     private var currentProfileName: String = "Default" // Current active profile for folder scanning
+
+    // Mutexes to prevent race conditions during scanning
+    private val audiobookScanMutex = Mutex()
+    private val bookScanMutex = Mutex()
     private val musicScanMutex = Mutex()
+    private val comicScanMutex = Mutex()
+    private val movieScanMutex = Mutex()
+
+    // Instant-save progress manager (initialized in init())
+    private var progressSaveManager: ProgressSaveManager? = null
 
     private val _libraryState = MutableStateFlow(LibraryState())
     val libraryState: StateFlow<LibraryState> = _libraryState.asStateFlow()
@@ -304,6 +315,9 @@ class LibraryViewModel : ViewModel() {
             appContext = context.applicationContext
             isInitialLoadComplete = false // Reset flag for fresh initialization
 
+            // Initialize instant-save progress manager
+            progressSaveManager = ProgressSaveManager(context.applicationContext, viewModelScope)
+
             // Create Librio folder structure if it doesn't exist
             createLibrioFolders()
 
@@ -344,6 +358,118 @@ class LibraryViewModel : ViewModel() {
                 loadLibraryAndScan(context)
             }
         }
+    }
+
+    /**
+     * Recover unsaved progress from buffer file (crash recovery).
+     * Called automatically on app startup.
+     */
+    private suspend fun recoverProgressFromBuffer() {
+        val manager = progressSaveManager ?: return
+        val updates = manager.recoverFromBuffer()
+
+        if (updates.isEmpty()) return
+
+        // Apply recovered updates to library state
+        withContext(Dispatchers.Main) {
+            updates.forEach { (contentType, progressList) ->
+                when (contentType) {
+                    ContentType.AUDIOBOOK -> {
+                        val currentList = _libraryState.value.audiobooks.toMutableList()
+                        progressList.forEach { update ->
+                            if (update is com.librio.data.ProgressUpdate.AudiobookProgress) {
+                                val index = currentList.indexOfFirst { it.id == update.id }
+                                if (index >= 0) {
+                                    currentList[index] = currentList[index].copy(
+                                        lastPosition = update.position,
+                                        isCompleted = update.isCompleted,
+                                        lastPlayed = update.timestamp
+                                    )
+                                }
+                            }
+                        }
+                        _libraryState.value = _libraryState.value.copy(audiobooks = currentList)
+                        saveLibrary()
+                    }
+                    ContentType.EBOOK -> {
+                        val currentList = _libraryState.value.books.toMutableList()
+                        progressList.forEach { update ->
+                            if (update is com.librio.data.ProgressUpdate.BookProgress) {
+                                val index = currentList.indexOfFirst { it.id == update.id }
+                                if (index >= 0) {
+                                    currentList[index] = currentList[index].copy(
+                                        currentPage = update.currentPage,
+                                        isCompleted = update.isCompleted,
+                                        lastRead = update.timestamp
+                                    )
+                                }
+                            }
+                        }
+                        _libraryState.value = _libraryState.value.copy(books = currentList)
+                        saveBooks()
+                    }
+                    ContentType.MUSIC -> {
+                        val currentList = _libraryState.value.music.toMutableList()
+                        progressList.forEach { update ->
+                            if (update is com.librio.data.ProgressUpdate.MusicProgress) {
+                                val index = currentList.indexOfFirst { it.id == update.id }
+                                if (index >= 0) {
+                                    currentList[index] = currentList[index].copy(
+                                        lastPosition = update.position,
+                                        isCompleted = update.isCompleted,
+                                        lastPlayed = update.timestamp
+                                    )
+                                }
+                            }
+                        }
+                        _libraryState.value = _libraryState.value.copy(music = currentList)
+                        saveMusic()
+                    }
+                    ContentType.COMICS -> {
+                        val currentList = _libraryState.value.comics.toMutableList()
+                        progressList.forEach { update ->
+                            if (update is com.librio.data.ProgressUpdate.ComicProgress) {
+                                val index = currentList.indexOfFirst { it.id == update.id }
+                                if (index >= 0) {
+                                    currentList[index] = currentList[index].copy(
+                                        currentPage = update.currentPage,
+                                        isCompleted = update.isCompleted,
+                                        lastRead = update.timestamp
+                                    )
+                                }
+                            }
+                        }
+                        _libraryState.value = _libraryState.value.copy(comics = currentList)
+                        saveComics()
+                    }
+                    ContentType.MOVIE -> {
+                        val currentList = _libraryState.value.movies.toMutableList()
+                        progressList.forEach { update ->
+                            if (update is com.librio.data.ProgressUpdate.MovieProgress) {
+                                val index = currentList.indexOfFirst { it.id == update.id }
+                                if (index >= 0) {
+                                    currentList[index] = currentList[index].copy(
+                                        lastPosition = update.position,
+                                        isCompleted = update.isCompleted,
+                                        lastPlayed = update.timestamp
+                                    )
+                                }
+                            }
+                        }
+                        _libraryState.value = _libraryState.value.copy(movies = currentList)
+                        saveMovies()
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Flush all pending progress updates to storage immediately.
+     * Call this when the app is pausing or going to background to ensure no data loss.
+     */
+    suspend fun flushPendingProgress() {
+        progressSaveManager?.flushPendingUpdates()
     }
 
     /**
@@ -658,6 +784,10 @@ class LibraryViewModel : ViewModel() {
                     // Mark initial load as complete - CRITICAL: this must happen BEFORE auto-refresh starts scanning
                     isInitialLoadComplete = true
 
+                    // Recover any unsaved progress from buffer (crash recovery)
+                    // This applies progress updates that were saved to buffer but not yet to library.json
+                    recoverProgressFromBuffer()
+
                     // Clean up files that no longer exist on disk
                     launch { cleanupDeletedFiles(context) }
 
@@ -811,33 +941,54 @@ class LibraryViewModel : ViewModel() {
 
     /**
      * Silent scan that doesn't show loading state or error messages for "no new audiobooks"
+     * Uses fingerprint-based matching to detect duplicates even if files are moved/renamed
      */
     private fun scanAudiobooksFolderSilent(context: Context) {
         viewModelScope.launch {
-            try {
-                val audioFiles = withContext(Dispatchers.IO) {
-                    findAudioFilesInAudiobooksFolder()
-                }
+            audiobookScanMutex.withLock {
+                try {
+                    val audioFiles = withContext(Dispatchers.IO) {
+                        findAudioFilesInAudiobooksFolder()
+                    }
 
-                if (audioFiles.isEmpty()) return@launch
+                    if (audioFiles.isEmpty()) return@withLock
 
-                val currentList = _libraryState.value.audiobooks.toMutableList()
-                // Use both URI and filename for duplicate detection to prevent duplicates
-                // when same file is accessed via different URI schemes (content:// vs file://)
-                val existingUris = currentList.map { it.uri.toString() }.toSet()
-                val existingFilenames = currentList.mapNotNull { audiobook ->
-                    audiobook.uri.lastPathSegment?.substringAfterLast("/")?.lowercase()
-                }.toSet()
+                    val currentList = _libraryState.value.audiobooks.toMutableList()
 
-                var addedCount = 0
+                    // Build fingerprint index for existing items
+                    val fingerprintIndex = withContext(Dispatchers.IO) {
+                        buildAudiobookFingerprintIndex(currentList)
+                    }
+                    val uriIndex = currentList.associateBy { it.uri.toString() }
 
-                for (file in audioFiles) {
-                    val uri = file.toUri()
-                    val filename = file.name.lowercase()
-                    // Check if this exact URI OR filename is already in the library
-                    if (uri.toString() !in existingUris && filename !in existingFilenames) {
+                    var addedCount = 0
+                    var updatedCount = 0
+
+                    for (file in audioFiles) {
+                        val uri = file.toUri()
+                        val uriString = uri.toString()
+
+                        // Check URI match first (fastest)
+                        if (uriIndex.containsKey(uriString)) continue
+
+                        // Check fingerprint match (catches moved/renamed files)
+                        val fingerprint = withContext(Dispatchers.IO) {
+                            ContentFingerprint.fromFile(file)
+                        }
+                        val existingMatch = fingerprint?.let { fingerprintIndex[it.toKey()] }
+
+                        if (existingMatch != null) {
+                            // File was moved/renamed - update URI but preserve all user data
+                            val index = currentList.indexOfFirst { it.id == existingMatch.id }
+                            if (index >= 0) {
+                                currentList[index] = existingMatch.copy(uri = uri)
+                                updatedCount++
+                            }
+                            continue
+                        }
+
+                        // Truly new file - add it
                         try {
-                            // Detect playlist folder and assign series
                             val playlistName = getPlaylistFolderName(file, "Audiobooks")
                             val seriesId = if (playlistName != null) {
                                 findOrCreateSeriesForPlaylist(playlistName, ContentType.AUDIOBOOK)
@@ -853,18 +1004,33 @@ class LibraryViewModel : ViewModel() {
                             // Skip files that can't be read
                         }
                     }
-                }
 
-                if (addedCount > 0) {
-                    _libraryState.value = _libraryState.value.copy(audiobooks = currentList)
-                    saveLibrary()
-                    // Save series if any were created
-                    saveSeries()
+                    if (addedCount > 0 || updatedCount > 0) {
+                        _libraryState.value = _libraryState.value.copy(audiobooks = currentList)
+                        saveLibrary()
+                        if (addedCount > 0) saveSeries()
+                    }
+                } catch (e: Exception) {
+                    // Silently fail - don't show error for background scan
                 }
-            } catch (e: Exception) {
-                // Silently fail - don't show error for background scan
             }
         }
+    }
+
+    /**
+     * Build a fingerprint index for audiobooks
+     */
+    private fun buildAudiobookFingerprintIndex(items: List<LibraryAudiobook>): Map<String, LibraryAudiobook> {
+        val index = mutableMapOf<String, LibraryAudiobook>()
+        for (item in items) {
+            val file = item.uri.path?.let { File(it) }
+            if (file != null && file.exists()) {
+                ContentFingerprint.fromFile(file)?.let { fp ->
+                    index[fp.toKey()] = item
+                }
+            }
+        }
+        return index
     }
 
 
@@ -1316,27 +1482,24 @@ class LibraryViewModel : ViewModel() {
 
         if (index >= 0) {
             val audiobook = currentList[index]
+            val isCompleted = position >= duration - 1000
+
             currentList[index] = audiobook.copy(
                 lastPosition = position,
                 duration = if (duration > 0) duration else audiobook.duration,
                 lastPlayed = System.currentTimeMillis(),
-                isCompleted = position >= duration - 1000
+                isCompleted = isCompleted
             )
             _libraryState.value = _libraryState.value.copy(audiobooks = currentList)
 
-            // Auto-save progress periodically (every ~5 seconds)
-            if (position % 5000 < 1000) {
-                saveLibrary()
-                // Also save to progress.json file for persistence
-                viewModelScope.launch {
-                    repository?.updateProgressInFile(
-                        uri = audiobook.uri.toString(),
-                        type = "AUDIOBOOK",
-                        position = position,
-                        total = if (duration > 0) duration else audiobook.duration
-                    )
-                }
-            }
+            // Instant-save progress using ProgressSaveManager (1-second debounced, crash-safe)
+            progressSaveManager?.updateAudiobookProgress(
+                id = audiobookId,
+                uri = audiobook.uri,
+                position = position,
+                duration = if (duration > 0) duration else audiobook.duration,
+                isCompleted = isCompleted
+            )
         }
     }
 
@@ -1841,6 +2004,7 @@ class LibraryViewModel : ViewModel() {
         // Text-based books may have dynamic page counts, but we should never block saving
         val effectiveTotalPages = totalPages.coerceAtLeast(1)
         val effectiveCurrentPage = currentPage.coerceIn(0, effectiveTotalPages - 1)
+        val isCompleted = effectiveCurrentPage >= effectiveTotalPages - 1
 
         // Get the book's URI for progress.json saving
         val book = _libraryState.value.books.find { it.id == bookId }
@@ -1850,7 +2014,7 @@ class LibraryViewModel : ViewModel() {
                 currentPage = effectiveCurrentPage,
                 totalPages = effectiveTotalPages,
                 lastRead = System.currentTimeMillis(),
-                isCompleted = effectiveCurrentPage >= effectiveTotalPages - 1
+                isCompleted = isCompleted
             ) else it
         }
         _libraryState.value = _libraryState.value.copy(books = currentBooks)
@@ -1862,24 +2026,20 @@ class LibraryViewModel : ViewModel() {
                     currentPage = effectiveCurrentPage,
                     totalPages = effectiveTotalPages,
                     lastRead = System.currentTimeMillis(),
-                    isCompleted = effectiveCurrentPage >= effectiveTotalPages - 1
+                    isCompleted = isCompleted
                 )
             }
         }
 
-        // Save books immediately with the updated list (pass directly to avoid state timing issues)
-        saveBooksImmediately(currentBooks)
-
-        // Also save to progress.json file for persistence
+        // Instant-save progress using ProgressSaveManager (1-second debounced, crash-safe)
         book?.let {
-            viewModelScope.launch {
-                repository?.updateProgressInFile(
-                    uri = it.uri.toString(),
-                    type = "EBOOK",
-                    position = effectiveCurrentPage.toLong(),
-                    total = effectiveTotalPages.toLong()
-                )
-            }
+            progressSaveManager?.updateBookProgress(
+                id = bookId,
+                uri = it.uri,
+                currentPage = effectiveCurrentPage,
+                totalPages = effectiveTotalPages,
+                isCompleted = isCompleted
+            )
         }
     }
 
@@ -2128,34 +2288,54 @@ class LibraryViewModel : ViewModel() {
     }
 
     /**
-     * Silent scan for e-book files (used by auto-refresh)
+     * Silent book scan with fingerprint-based matching to detect moved/renamed files
      */
     private fun scanBooksFolderSilent(context: Context) {
         viewModelScope.launch {
-            try {
-                val bookFiles = withContext(Dispatchers.IO) {
-                    findBookFilesInFolders()
-                }
+            bookScanMutex.withLock {
+                try {
+                    val bookFiles = withContext(Dispatchers.IO) {
+                        findBookFilesInFolders()
+                    }
 
-                if (bookFiles.isEmpty()) return@launch
+                    if (bookFiles.isEmpty()) return@withLock
 
-                val currentBooks = _libraryState.value.books.toMutableList()
-                // Use both URI and filename for duplicate detection to prevent duplicates
-                // when same file is accessed via different URI schemes (content:// vs file://)
-                val existingUris = currentBooks.map { it.uri.toString() }.toSet()
-                val existingFilenames = currentBooks.mapNotNull { book ->
-                    book.uri.lastPathSegment?.substringAfterLast("/")?.lowercase()
-                }.toSet()
+                    val currentBooks = _libraryState.value.books.toMutableList()
 
-                var addedCount = 0
+                    // Build fingerprint index for existing items
+                    val fingerprintIndex = withContext(Dispatchers.IO) {
+                        buildBookFingerprintIndex(currentBooks)
+                    }
+                    val uriIndex = currentBooks.associateBy { it.uri.toString() }
 
-                for (file in bookFiles) {
-                    val uri = file.toUri()
-                    val filename = file.name.lowercase()
-                    // Check if this exact URI OR filename is already in the library
-                    if (uri.toString() !in existingUris && filename !in existingFilenames) {
+                    var addedCount = 0
+                    var updatedCount = 0
+
+                    for (file in bookFiles) {
+                        val uri = file.toUri()
+                        val uriString = uri.toString()
+
+                        // Check URI match first (fastest)
+                        if (uriIndex.containsKey(uriString)) continue
+
+                        // Check fingerprint match (catches moved/renamed files)
+                        val fingerprint = withContext(Dispatchers.IO) {
+                            ContentFingerprint.fromFile(file)
+                        }
+                        val existingMatch = fingerprint?.let { fingerprintIndex[it.toKey()] }
+
+                        if (existingMatch != null) {
+                            // File was moved/renamed - update URI but preserve all user data
+                            val index = currentBooks.indexOfFirst { it.id == existingMatch.id }
+                            if (index >= 0) {
+                                currentBooks[index] = existingMatch.copy(uri = uri)
+                                updatedCount++
+                            }
+                            continue
+                        }
+
+                        // Truly new file
                         try {
-                            // Detect playlist folder and assign series
                             val playlistName = getPlaylistFolderName(file, "Books")
                             val seriesId = if (playlistName != null) {
                                 findOrCreateSeriesForPlaylist(playlistName, ContentType.EBOOK)
@@ -2177,18 +2357,33 @@ class LibraryViewModel : ViewModel() {
                             // Skip files that can't be read
                         }
                     }
-                }
 
-                if (addedCount > 0) {
-                    _libraryState.value = _libraryState.value.copy(books = currentBooks)
-                    saveBooks()
-                    // Save series if any were created
-                    saveSeries()
+                    if (addedCount > 0 || updatedCount > 0) {
+                        _libraryState.value = _libraryState.value.copy(books = currentBooks)
+                        saveBooks()
+                        if (addedCount > 0) saveSeries()
+                    }
+                } catch (e: Exception) {
+                    // Silently fail
                 }
-            } catch (e: Exception) {
-                // Silently fail
             }
         }
+    }
+
+    /**
+     * Build a fingerprint index for books
+     */
+    private fun buildBookFingerprintIndex(items: List<LibraryBook>): Map<String, LibraryBook> {
+        val index = mutableMapOf<String, LibraryBook>()
+        for (item in items) {
+            val file = item.uri.path?.let { File(it) }
+            if (file != null && file.exists()) {
+                ContentFingerprint.fromFile(file)?.let { fp ->
+                    index[fp.toKey()] = item
+                }
+            }
+        }
+        return index
     }
 
     /**
@@ -2285,6 +2480,7 @@ class LibraryViewModel : ViewModel() {
 
     /**
      * Scan for and add music files from the profile's Music folder
+     * Uses fingerprint-based matching to detect moved/renamed files
      */
     fun scanForMusicFiles(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
@@ -2303,20 +2499,49 @@ class LibraryViewModel : ViewModel() {
                     }
 
                     val musicFiles = findMusicFilesInFolders()
-                    // Use both URI and filename for duplicate detection
-                    val existingUris = currentMusic.map { it.uri.toString() }.toSet()
-                    val existingFilenames = currentMusic.mapNotNull { music ->
-                        music.uri.lastPathSegment?.substringAfterLast("/")?.lowercase()
-                    }.toSet()
 
-                    // Phase 1: INSTANT - Create basic entries with file info only (no I/O)
-                    val newFilesWithSeriesId = musicFiles.mapNotNull { file ->
+                    // Build fingerprint index for existing items
+                    val fingerprintIndex = buildMusicFingerprintIndex(currentMusic)
+                    val uriIndex = currentMusic.associateBy { it.uri.toString() }
+
+                    val newFilesWithSeriesId = mutableListOf<Pair<File, String?>>()
+                    val updatedItems = mutableListOf<LibraryMusic>()
+
+                    for (file in musicFiles) {
                         val uri = file.toUri()
-                        val filename = file.name.lowercase()
-                        if (uri.toString() !in existingUris && filename !in existingFilenames) {
-                            val playlistName = getPlaylistFolderName(file, "Music")
-                            file to playlistName
-                        } else null
+                        val uriString = uri.toString()
+
+                        // Check URI match first (fastest)
+                        if (uriIndex.containsKey(uriString)) continue
+
+                        // Check fingerprint match (catches moved/renamed files)
+                        val fingerprint = ContentFingerprint.fromFile(file)
+                        val existingMatch = fingerprint?.let { fingerprintIndex[it.toKey()] }
+
+                        if (existingMatch != null) {
+                            // File was moved/renamed - update URI but preserve all user data
+                            updatedItems.add(existingMatch.copy(uri = uri))
+                            continue
+                        }
+
+                        // Truly new file
+                        val playlistName = getPlaylistFolderName(file, "Music")
+                        newFilesWithSeriesId.add(file to playlistName)
+                    }
+
+                    // Update moved files
+                    if (updatedItems.isNotEmpty()) {
+                        withContext(Dispatchers.Main) {
+                            val currentList = _libraryState.value.music.toMutableList()
+                            updatedItems.forEach { updated ->
+                                val index = currentList.indexOfFirst { it.id == updated.id }
+                                if (index >= 0) {
+                                    currentList[index] = updated
+                                }
+                            }
+                            _libraryState.value = _libraryState.value.copy(music = currentList)
+                            saveMusic()
+                        }
                     }
 
                     if (newFilesWithSeriesId.isEmpty()) return@withLock
@@ -2332,7 +2557,7 @@ class LibraryViewModel : ViewModel() {
                         }
                     }
 
-                    // Create basic music entries instantly (no metadata extraction)
+                    // Phase 1: INSTANT - Create basic music entries instantly (no metadata extraction)
                     val basicMusic = newFilesWithSeriesId.map { (file, _) ->
                         createMusicFromFileBasic(file, fileToSeriesId[file], ContentType.MUSIC)
                     }
@@ -2369,6 +2594,22 @@ class LibraryViewModel : ViewModel() {
                 }
             }
         }
+    }
+
+    /**
+     * Build a fingerprint index for music tracks
+     */
+    private fun buildMusicFingerprintIndex(items: List<LibraryMusic>): Map<String, LibraryMusic> {
+        val index = mutableMapOf<String, LibraryMusic>()
+        for (item in items) {
+            val file = item.uri.path?.let { File(it) }
+            if (file != null && file.exists()) {
+                ContentFingerprint.fromFile(file)?.let { fp ->
+                    index[fp.toKey()] = item
+                }
+            }
+        }
+        return index
     }
 
     /**
@@ -2446,23 +2687,44 @@ class LibraryViewModel : ViewModel() {
 
     /**
      * Scan for and add comic files from the profile's Comics folder
+     * Uses fingerprint-based matching to detect moved/renamed files
      */
     fun scanForComicFiles(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val comicFiles = findComicFilesInFolders()
-                // Use both URI and filename for duplicate detection
-                val existingUris = _libraryState.value.comics.map { it.uri.toString() }.toSet()
-                val existingFilenames = _libraryState.value.comics.mapNotNull { comic ->
-                    comic.uri.lastPathSegment?.substringAfterLast("/")?.lowercase()
-                }.toSet()
-                val newComics = mutableListOf<LibraryComic>()
+            comicScanMutex.withLock {
+                try {
+                    val comicFiles = findComicFilesInFolders()
+                    val currentComics = _libraryState.value.comics.toMutableList()
 
-                comicFiles.forEach { file ->
-                    val uri = file.toUri()
-                    val filename = file.name.lowercase()
-                    if (uri.toString() !in existingUris && filename !in existingFilenames) {
-                        // Check if file is in a playlist folder
+                    // Build fingerprint index for existing items
+                    val fingerprintIndex = buildComicFingerprintIndex(currentComics)
+                    val uriIndex = currentComics.associateBy { it.uri.toString() }
+
+                    val newComics = mutableListOf<LibraryComic>()
+                    var updatedCount = 0
+
+                    for (file in comicFiles) {
+                        val uri = file.toUri()
+                        val uriString = uri.toString()
+
+                        // Check URI match first (fastest)
+                        if (uriIndex.containsKey(uriString)) continue
+
+                        // Check fingerprint match (catches moved/renamed files)
+                        val fingerprint = ContentFingerprint.fromFile(file)
+                        val existingMatch = fingerprint?.let { fingerprintIndex[it.toKey()] }
+
+                        if (existingMatch != null) {
+                            // File was moved/renamed - update URI but preserve all user data
+                            val index = currentComics.indexOfFirst { it.id == existingMatch.id }
+                            if (index >= 0) {
+                                currentComics[index] = existingMatch.copy(uri = uri)
+                                updatedCount++
+                            }
+                            continue
+                        }
+
+                        // Truly new file
                         val playlistName = getPlaylistFolderName(file, "Comics")
                         val seriesId = if (playlistName != null) {
                             withContext(Dispatchers.Main) {
@@ -2473,42 +2735,79 @@ class LibraryViewModel : ViewModel() {
                         val comic = createComicFromFile(file, seriesId)
                         newComics.add(comic)
                     }
-                }
 
-                if (newComics.isNotEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        _libraryState.value = _libraryState.value.copy(
-                            comics = _libraryState.value.comics + newComics
-                        )
-                        saveComics()
-                        saveSeries()
+                    if (newComics.isNotEmpty() || updatedCount > 0) {
+                        withContext(Dispatchers.Main) {
+                            _libraryState.value = _libraryState.value.copy(
+                                comics = currentComics + newComics
+                            )
+                            saveComics()
+                            if (newComics.isNotEmpty()) saveSeries()
+                        }
                     }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
         }
     }
 
     /**
+     * Build a fingerprint index for comics
+     */
+    private fun buildComicFingerprintIndex(items: List<LibraryComic>): Map<String, LibraryComic> {
+        val index = mutableMapOf<String, LibraryComic>()
+        for (item in items) {
+            val file = item.uri.path?.let { File(it) }
+            if (file != null && file.exists()) {
+                ContentFingerprint.fromFile(file)?.let { fp ->
+                    index[fp.toKey()] = item
+                }
+            }
+        }
+        return index
+    }
+
+    /**
      * Scan for and add movie files from the profile's Movies folder
+     * Uses fingerprint-based matching to detect moved/renamed files
      */
     fun scanForMovieFiles(context: Context) {
         viewModelScope.launch(Dispatchers.IO) {
-            try {
-                val movieFiles = findMovieFilesInFolders()
-                // Use both URI and filename for duplicate detection
-                val existingUris = _libraryState.value.movies.map { it.uri.toString() }.toSet()
-                val existingFilenames = _libraryState.value.movies.mapNotNull { movie ->
-                    movie.uri.lastPathSegment?.substringAfterLast("/")?.lowercase()
-                }.toSet()
-                val newMovies = mutableListOf<LibraryMovie>()
+            movieScanMutex.withLock {
+                try {
+                    val movieFiles = findMovieFilesInFolders()
+                    val currentMovies = _libraryState.value.movies.toMutableList()
 
-                movieFiles.forEach { file ->
-                    val uri = file.toUri()
-                    val filename = file.name.lowercase()
-                    if (uri.toString() !in existingUris && filename !in existingFilenames) {
-                        // Check if file is in a playlist folder
+                    // Build fingerprint index for existing items
+                    val fingerprintIndex = buildMovieFingerprintIndex(currentMovies)
+                    val uriIndex = currentMovies.associateBy { it.uri.toString() }
+
+                    val newMovies = mutableListOf<LibraryMovie>()
+                    var updatedCount = 0
+
+                    for (file in movieFiles) {
+                        val uri = file.toUri()
+                        val uriString = uri.toString()
+
+                        // Check URI match first (fastest)
+                        if (uriIndex.containsKey(uriString)) continue
+
+                        // Check fingerprint match (catches moved/renamed files)
+                        val fingerprint = ContentFingerprint.fromFile(file)
+                        val existingMatch = fingerprint?.let { fingerprintIndex[it.toKey()] }
+
+                        if (existingMatch != null) {
+                            // File was moved/renamed - update URI but preserve all user data
+                            val index = currentMovies.indexOfFirst { it.id == existingMatch.id }
+                            if (index >= 0) {
+                                currentMovies[index] = existingMatch.copy(uri = uri)
+                                updatedCount++
+                            }
+                            continue
+                        }
+
+                        // Truly new file
                         val playlistName = getPlaylistFolderName(file, "Movies")
                         val seriesId = if (playlistName != null) {
                             withContext(Dispatchers.Main) {
@@ -2519,21 +2818,37 @@ class LibraryViewModel : ViewModel() {
                         val movie = createMovieFromFile(context, file, seriesId)
                         newMovies.add(movie)
                     }
-                }
 
-                if (newMovies.isNotEmpty()) {
-                    withContext(Dispatchers.Main) {
-                        _libraryState.value = _libraryState.value.copy(
-                            movies = _libraryState.value.movies + newMovies
-                        )
-                        saveMovies()
-                        saveSeries()
+                    if (newMovies.isNotEmpty() || updatedCount > 0) {
+                        withContext(Dispatchers.Main) {
+                            _libraryState.value = _libraryState.value.copy(
+                                movies = currentMovies + newMovies
+                            )
+                            saveMovies()
+                            if (newMovies.isNotEmpty()) saveSeries()
+                        }
                     }
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
-            } catch (e: Exception) {
-                e.printStackTrace()
             }
         }
+    }
+
+    /**
+     * Build a fingerprint index for movies
+     */
+    private fun buildMovieFingerprintIndex(items: List<LibraryMovie>): Map<String, LibraryMovie> {
+        val index = mutableMapOf<String, LibraryMovie>()
+        for (item in items) {
+            val file = item.uri.path?.let { File(it) }
+            if (file != null && file.exists()) {
+                ContentFingerprint.fromFile(file)?.let { fp ->
+                    index[fp.toKey()] = item
+                }
+            }
+        }
+        return index
     }
 
     /**
@@ -2841,20 +3156,15 @@ class LibraryViewModel : ViewModel() {
             }
         }
 
-        // Save progress periodically (every ~5 seconds)
-        if (position % 5000 < 1000) {
-            saveMusic()
-            // Also save to progress.json file for persistence
-            musicItem?.let {
-                viewModelScope.launch {
-                    repository?.updateProgressInFile(
-                        uri = it.uri.toString(),
-                        type = "MUSIC",
-                        position = position,
-                        total = it.duration
-                    )
-                }
-            }
+        // Instant-save progress using ProgressSaveManager (1-second debounced, crash-safe)
+        musicItem?.let {
+            progressSaveManager?.updateMusicProgress(
+                id = musicId,
+                uri = it.uri,
+                position = position,
+                duration = it.duration,
+                isCompleted = false // Music completion tracked differently
+            )
         }
     }
 
@@ -2980,20 +3290,15 @@ class LibraryViewModel : ViewModel() {
             }
         }
 
-        // Save progress periodically (every ~5 seconds)
-        if (position % 5000 < 1000) {
-            saveMovies()
-            // Also save to progress.json file for persistence
-            movieItem?.let {
-                viewModelScope.launch {
-                    repository?.updateProgressInFile(
-                        uri = it.uri.toString(),
-                        type = "MOVIE",
-                        position = position,
-                        total = it.duration
-                    )
-                }
-            }
+        // Instant-save progress using ProgressSaveManager (1-second debounced, crash-safe)
+        movieItem?.let {
+            progressSaveManager?.updateMovieProgress(
+                id = movieId,
+                uri = it.uri,
+                position = position,
+                duration = it.duration,
+                isCompleted = false // Movie completion tracked differently
+            )
         }
     }
 
@@ -3067,20 +3372,16 @@ class LibraryViewModel : ViewModel() {
             }
         }
 
-        // Save comic progress immediately with the updated list (to avoid state timing issues)
-        saveComicsImmediately(updatedComics)
-
-        // Also save to progress.json file for persistence
+        // Instant-save progress using ProgressSaveManager (1-second debounced, crash-safe)
         comicItem?.let {
             val effectiveTotalPages = if (totalPages > 0) totalPages else it.totalPages
-            viewModelScope.launch {
-                repository?.updateProgressInFile(
-                    uri = it.uri.toString(),
-                    type = "COMICS",
-                    position = currentPage.toLong(),
-                    total = effectiveTotalPages.toLong()
-                )
-            }
+            progressSaveManager?.updateComicProgress(
+                id = comicId,
+                uri = it.uri,
+                currentPage = currentPage,
+                totalPages = effectiveTotalPages,
+                isCompleted = effectiveTotalPages > 0 && currentPage >= effectiveTotalPages - 1
+            )
         }
     }
 

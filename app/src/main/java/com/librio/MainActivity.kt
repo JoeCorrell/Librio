@@ -66,6 +66,8 @@ import com.librio.player.SharedMusicPlayer
 
 class MainActivity : ComponentActivity() {
 
+    private var libraryViewModelRef: LibraryViewModel? = null
+
     private val requestPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
     ) { permissions ->
@@ -90,6 +92,9 @@ class MainActivity : ComponentActivity() {
             settingsViewModel.initialize(context)
             val player = remember { AudiobookPlayer(context) }
             var introComplete by remember { mutableStateOf(false) }
+
+            // Store reference for lifecycle methods
+            libraryViewModelRef = libraryViewModel
 
             // Initialize library from persistent storage and scan books folder
             LaunchedEffect(Unit) {
@@ -1855,6 +1860,14 @@ class MainActivity : ComponentActivity() {
 
         if (permissionsToRequest.isNotEmpty()) {
             requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+        }
+    }
+
+    override fun onPause() {
+        super.onPause()
+        // Flush all pending progress updates to ensure no data loss
+        CoroutineScope(Dispatchers.Main).launch {
+            libraryViewModelRef?.flushPendingProgress()
         }
     }
 }
