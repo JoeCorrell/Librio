@@ -320,28 +320,43 @@ fun ProfileScreen(
                             cropBitmap?.let { sourceBitmap ->
                                 coroutineScope.launch(Dispatchers.IO) {
                                     try {
-                                        // Create a cropped bitmap based on zoom/pan settings
                                         val outputSize = 512 // Output image size in pixels
                                         val croppedBitmap = Bitmap.createBitmap(outputSize, outputSize, Bitmap.Config.ARGB_8888)
                                         val canvas = android.graphics.Canvas(croppedBitmap)
 
-                                        // Calculate the visible region based on scale and offset
                                         val paint = android.graphics.Paint().apply {
                                             isAntiAlias = true
                                             isFilterBitmap = true
                                         }
 
-                                        // Center and apply transformations
-                                        canvas.translate(outputSize / 2f, outputSize / 2f)
-                                        canvas.scale(cropScale, cropScale)
-                                        canvas.translate(cropOffsetX / (240f / outputSize), cropOffsetY / (240f / outputSize))
-                                        canvas.translate(-sourceBitmap.width / 2f, -sourceBitmap.height / 2f)
+                                        // Fill with background color first
+                                        canvas.drawColor(android.graphics.Color.TRANSPARENT)
 
-                                        // Scale source to fit the crop area
-                                        val scaleFactor = outputSize.toFloat() / minOf(sourceBitmap.width, sourceBitmap.height)
-                                        canvas.scale(scaleFactor, scaleFactor, sourceBitmap.width / 2f, sourceBitmap.height / 2f)
+                                        // Calculate base scale to fit image in crop area
+                                        val previewSize = 240f // UI preview size
+                                        val baseScale = previewSize / minOf(sourceBitmap.width, sourceBitmap.height).toFloat()
+                                        val finalScale = baseScale * cropScale
 
-                                        canvas.drawBitmap(sourceBitmap, 0f, 0f, paint)
+                                        // Calculate the scaled image size
+                                        val scaledWidth = sourceBitmap.width * finalScale
+                                        val scaledHeight = sourceBitmap.height * finalScale
+
+                                        // Calculate position: center of preview + offset
+                                        val centerX = previewSize / 2f + cropOffsetX
+                                        val centerY = previewSize / 2f + cropOffsetY
+
+                                        // Map from preview coordinates to output coordinates
+                                        val scaleToOutput = outputSize / previewSize
+
+                                        // Draw the bitmap scaled and positioned correctly
+                                        val srcRect = android.graphics.Rect(0, 0, sourceBitmap.width, sourceBitmap.height)
+                                        val dstRect = android.graphics.RectF(
+                                            (centerX - scaledWidth / 2f) * scaleToOutput,
+                                            (centerY - scaledHeight / 2f) * scaleToOutput,
+                                            (centerX + scaledWidth / 2f) * scaleToOutput,
+                                            (centerY + scaledHeight / 2f) * scaleToOutput
+                                        )
+                                        canvas.drawBitmap(sourceBitmap, srcRect, dstRect, paint)
 
                                         // Save to app's private directory
                                         val profileDir = java.io.File(context.filesDir, "profile_pictures")

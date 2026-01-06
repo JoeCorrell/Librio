@@ -30,6 +30,7 @@ import com.librio.ui.theme.AppIcons
 import com.librio.ui.components.CoverArt
 import com.librio.ui.components.CoverArtContentType
 import com.librio.ui.components.LibrioProgressBar
+import com.librio.ui.components.rememberResponsiveDimens
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.derivedStateOf
@@ -139,6 +140,8 @@ fun LibraryListScreen(
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
+    val useSquareCorners = LocalUseSquareCorners.current
+    val dimens = rememberResponsiveDimens(denseGrid = useSquareCorners)
     val shape12 = cornerRadius(12.dp)
     var showEditDialog by remember { mutableStateOf<LibraryAudiobook?>(null) }
     var showDeleteDialog by remember { mutableStateOf<LibraryAudiobook?>(null) }
@@ -982,7 +985,7 @@ fun LibraryListScreen(
                         // Flat audiobook list without series dividers
                         if (defaultLibraryView == "GRID_2") {
                             LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
+                                columns = GridCells.Fixed(dimens.columns),
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth(),
@@ -1083,7 +1086,7 @@ fun LibraryListScreen(
                         // Flat books list without series dividers
                         if (defaultLibraryView == "GRID_2") {
                             LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
+                                columns = GridCells.Fixed(dimens.columns),
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth(),
@@ -1183,7 +1186,7 @@ fun LibraryListScreen(
                         // Flat music list without playlist dividers
                         if (defaultLibraryView == "GRID_2") {
                             LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
+                                columns = GridCells.Fixed(dimens.columns),
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth(),
@@ -1283,7 +1286,7 @@ fun LibraryListScreen(
                         // Flat comics list without series dividers
                         if (defaultLibraryView == "GRID_2") {
                             LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
+                                columns = GridCells.Fixed(dimens.columns),
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth(),
@@ -1380,7 +1383,7 @@ fun LibraryListScreen(
                         // Flat movies list without series dividers
                         if (defaultLibraryView == "GRID_2") {
                             LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
+                                columns = GridCells.Fixed(dimens.columns),
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxWidth(),

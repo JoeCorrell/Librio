@@ -67,7 +67,8 @@ fun LibraryScreen(
 ) {
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
-    val dimens = rememberResponsiveDimens()
+    val useSquareCorners = LocalUseSquareCorners.current
+    val dimens = rememberResponsiveDimens(denseGrid = useSquareCorners)
     var showSortMenu by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf<LibraryAudiobook?>(null) }
 

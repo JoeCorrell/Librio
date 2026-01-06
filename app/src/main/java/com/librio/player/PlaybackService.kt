@@ -105,9 +105,13 @@ class PlaybackService : Service() {
                         updateNotification(player)
                     }
                     ACTION_PREVIOUS -> {
-                        // Seek backward 10 seconds (or to start if less than 10s in)
-                        val newPosition = (player.currentPosition - 10_000L).coerceAtLeast(0L)
-                        player.seekTo(newPosition)
+                        // Go to previous track/chapter
+                        if (player.hasPreviousMediaItem()) {
+                            player.seekToPreviousMediaItem()
+                        } else {
+                            // If no previous item, seek to start of current
+                            player.seekTo(0)
+                        }
                         updateNotification(player)
                         // Also send broadcast in case AudiobookPlayer is alive for chapter handling
                         sendBroadcast(Intent(BROADCAST_PREVIOUS_CHAPTER).apply {
@@ -115,10 +119,10 @@ class PlaybackService : Service() {
                         })
                     }
                     ACTION_NEXT -> {
-                        // Seek forward 30 seconds (or to end if near end)
-                        val duration = player.duration.coerceAtLeast(0L)
-                        val newPosition = (player.currentPosition + 30_000L).coerceAtMost(duration)
-                        player.seekTo(newPosition)
+                        // Go to next track/chapter
+                        if (player.hasNextMediaItem()) {
+                            player.seekToNextMediaItem()
+                        }
                         updateNotification(player)
                         // Also send broadcast in case AudiobookPlayer is alive for chapter handling
                         sendBroadcast(Intent(BROADCAST_NEXT_CHAPTER).apply {

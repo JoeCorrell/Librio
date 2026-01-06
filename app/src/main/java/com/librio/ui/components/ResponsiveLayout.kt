@@ -103,10 +103,11 @@ data class ResponsiveDimens(
 
 /**
  * Get responsive dimensions based on window size class
+ * @param denseGrid When true, use more columns for a denser grid (useful for square mode)
  */
 @Suppress("UNUSED_VARIABLE")
 @Composable
-fun rememberResponsiveDimens(): ResponsiveDimens {
+fun rememberResponsiveDimens(denseGrid: Boolean = false): ResponsiveDimens {
     val windowSize = rememberWindowSizeClass()
     val heightSize = rememberHeightSizeClass()
     val configuration = LocalConfiguration.current
@@ -115,128 +116,143 @@ fun rememberResponsiveDimens(): ResponsiveDimens {
     val isCompactHeight = heightSize == HeightSizeClass.COMPACT
     val isWideScreen = windowSize != WindowSizeClass.COMPACT
 
-    return remember(windowSize, heightSize, screenWidthDp, screenHeightDp) {
+    return remember(windowSize, heightSize, screenWidthDp, screenHeightDp, denseGrid) {
         when (windowSize) {
-            WindowSizeClass.COMPACT -> ResponsiveDimens(
-                cardWidth = (screenWidthDp - 68.dp) / 2, // 2 cards with padding
-                cardHeight = if (isCompactHeight) 220.dp else 260.dp,
-                coverArtSize = (screenWidthDp - 68.dp) / 2 - 24.dp,
-                horizontalPadding = 16.dp,
-                verticalPadding = if (isCompactHeight) 8.dp else 12.dp,
-                titleTextSize = 14,
-                bodyTextSize = 12,
-                labelTextSize = 10,
-                iconSize = 24.dp,
-                iconSizeSmall = 18.dp,
-                iconSizeLarge = 32.dp,
-                buttonHeight = if (isCompactHeight) 44.dp else 52.dp,
-                buttonHeightSmall = if (isCompactHeight) 32.dp else 40.dp,
-                carouselHeight = minOf(if (isCompactHeight) 260.dp else 320.dp, screenHeightDp * 0.45f),
-                splashLogoSize = minOf(if (isCompactHeight) 120.dp else 160.dp, screenWidthDp * 0.4f),
-                columns = 2,
-                spacing = if (isCompactHeight) 8.dp else 12.dp,
-                spacingSmall = if (isCompactHeight) 4.dp else 6.dp,
-                spacingLarge = if (isCompactHeight) 12.dp else 16.dp,
-                cornerRadius = 12.dp,
-                cornerRadiusSmall = 8.dp,
-                cornerRadiusLarge = 16.dp,
-                dialogWidth = screenWidthDp * 0.9f,
-                dialogMaxHeight = screenHeightDp * 0.85f,
-                playerCoverArtSize = minOf(screenWidthDp * 0.7f, screenHeightDp * 0.35f, 280.dp),
-                miniPlayerHeight = if (isCompactHeight) 56.dp else 64.dp,
-                navBarHeight = if (isCompactHeight) 52.dp else 56.dp,
-                headerHeight = if (isCompactHeight) 44.dp else 48.dp,
-                tabHeight = if (isCompactHeight) 40.dp else 48.dp,
-                chipHeight = if (isCompactHeight) 28.dp else 32.dp,
-                sliderHeight = 24.dp,
-                progressBarHeight = 4.dp,
-                dividerThickness = 1.dp,
-                touchTargetSize = 48.dp,
-                screenWidthDp = screenWidthDp,
-                screenHeightDp = screenHeightDp,
-                isCompactHeight = isCompactHeight,
-                isWideScreen = false
-            )
-            WindowSizeClass.MEDIUM -> ResponsiveDimens(
-                cardWidth = 180.dp,
-                cardHeight = 280.dp,
-                coverArtSize = 156.dp,
-                horizontalPadding = 20.dp,
-                verticalPadding = 12.dp,
-                titleTextSize = 15,
-                bodyTextSize = 13,
-                labelTextSize = 11,
-                iconSize = 26.dp,
-                iconSizeSmall = 20.dp,
-                iconSizeLarge = 36.dp,
-                buttonHeight = 56.dp,
-                buttonHeightSmall = 44.dp,
-                carouselHeight = 320.dp,
-                splashLogoSize = 180.dp,
-                columns = 3,
-                spacing = 12.dp,
-                spacingSmall = 6.dp,
-                spacingLarge = 20.dp,
-                cornerRadius = 14.dp,
-                cornerRadiusSmall = 10.dp,
-                cornerRadiusLarge = 20.dp,
-                dialogWidth = minOf(screenWidthDp * 0.8f, 480.dp),
-                dialogMaxHeight = screenHeightDp * 0.8f,
-                playerCoverArtSize = minOf(screenWidthDp * 0.5f, screenHeightDp * 0.4f, 320.dp),
-                miniPlayerHeight = 68.dp,
-                navBarHeight = 60.dp,
-                headerHeight = 52.dp,
-                tabHeight = 52.dp,
-                chipHeight = 34.dp,
-                sliderHeight = 28.dp,
-                progressBarHeight = 4.dp,
-                dividerThickness = 1.dp,
-                touchTargetSize = 48.dp,
-                screenWidthDp = screenWidthDp,
-                screenHeightDp = screenHeightDp,
-                isCompactHeight = isCompactHeight,
-                isWideScreen = true
-            )
-            WindowSizeClass.EXPANDED -> ResponsiveDimens(
-                cardWidth = 200.dp,
-                cardHeight = 300.dp,
-                coverArtSize = 176.dp,
-                horizontalPadding = 24.dp,
-                verticalPadding = 16.dp,
-                titleTextSize = 16,
-                bodyTextSize = 14,
-                labelTextSize = 12,
-                iconSize = 28.dp,
-                iconSizeSmall = 22.dp,
-                iconSizeLarge = 40.dp,
-                buttonHeight = 60.dp,
-                buttonHeightSmall = 48.dp,
-                carouselHeight = 340.dp,
-                splashLogoSize = 200.dp,
-                columns = 4,
-                spacing = 16.dp,
-                spacingSmall = 8.dp,
-                spacingLarge = 24.dp,
-                cornerRadius = 16.dp,
-                cornerRadiusSmall = 12.dp,
-                cornerRadiusLarge = 24.dp,
-                dialogWidth = minOf(screenWidthDp * 0.6f, 560.dp),
-                dialogMaxHeight = screenHeightDp * 0.75f,
-                playerCoverArtSize = minOf(screenWidthDp * 0.4f, screenHeightDp * 0.45f, 360.dp),
-                miniPlayerHeight = 72.dp,
-                navBarHeight = 64.dp,
-                headerHeight = 56.dp,
-                tabHeight = 56.dp,
-                chipHeight = 36.dp,
-                sliderHeight = 32.dp,
-                progressBarHeight = 5.dp,
-                dividerThickness = 1.dp,
-                touchTargetSize = 52.dp,
-                screenWidthDp = screenWidthDp,
-                screenHeightDp = screenHeightDp,
-                isCompactHeight = isCompactHeight,
-                isWideScreen = true
-            )
+            WindowSizeClass.COMPACT -> {
+                // In dense grid mode (square corners), fit more tiles
+                val columns = if (denseGrid) 4 else 2
+                val cardWidth = if (denseGrid) {
+                    (screenWidthDp - 48.dp) / 4  // 4 cards with less padding
+                } else {
+                    (screenWidthDp - 68.dp) / 2  // 2 cards with padding
+                }
+                ResponsiveDimens(
+                    cardWidth = cardWidth,
+                    cardHeight = if (denseGrid) 160.dp else if (isCompactHeight) 220.dp else 260.dp,
+                    coverArtSize = if (denseGrid) cardWidth - 16.dp else (screenWidthDp - 68.dp) / 2 - 24.dp,
+                    horizontalPadding = if (denseGrid) 8.dp else 16.dp,
+                    verticalPadding = if (isCompactHeight) 8.dp else 12.dp,
+                    titleTextSize = if (denseGrid) 11 else 14,
+                    bodyTextSize = if (denseGrid) 9 else 12,
+                    labelTextSize = if (denseGrid) 8 else 10,
+                    iconSize = 24.dp,
+                    iconSizeSmall = 18.dp,
+                    iconSizeLarge = 32.dp,
+                    buttonHeight = if (isCompactHeight) 44.dp else 52.dp,
+                    buttonHeightSmall = if (isCompactHeight) 32.dp else 40.dp,
+                    carouselHeight = minOf(if (isCompactHeight) 260.dp else 320.dp, screenHeightDp * 0.45f),
+                    splashLogoSize = minOf(if (isCompactHeight) 120.dp else 160.dp, screenWidthDp * 0.4f),
+                    columns = columns,
+                    spacing = if (denseGrid) 6.dp else if (isCompactHeight) 8.dp else 12.dp,
+                    spacingSmall = if (isCompactHeight) 4.dp else 6.dp,
+                    spacingLarge = if (isCompactHeight) 12.dp else 16.dp,
+                    cornerRadius = 12.dp,
+                    cornerRadiusSmall = 8.dp,
+                    cornerRadiusLarge = 16.dp,
+                    dialogWidth = screenWidthDp * 0.9f,
+                    dialogMaxHeight = screenHeightDp * 0.85f,
+                    playerCoverArtSize = minOf(screenWidthDp * 0.7f, screenHeightDp * 0.35f, 280.dp),
+                    miniPlayerHeight = if (isCompactHeight) 56.dp else 64.dp,
+                    navBarHeight = if (isCompactHeight) 52.dp else 56.dp,
+                    headerHeight = if (isCompactHeight) 44.dp else 48.dp,
+                    tabHeight = if (isCompactHeight) 40.dp else 48.dp,
+                    chipHeight = if (isCompactHeight) 28.dp else 32.dp,
+                    sliderHeight = 24.dp,
+                    progressBarHeight = 4.dp,
+                    dividerThickness = 1.dp,
+                    touchTargetSize = 48.dp,
+                    screenWidthDp = screenWidthDp,
+                    screenHeightDp = screenHeightDp,
+                    isCompactHeight = isCompactHeight,
+                    isWideScreen = false
+                )
+            }
+            WindowSizeClass.MEDIUM -> {
+                val columns = if (denseGrid) 5 else 3
+                ResponsiveDimens(
+                    cardWidth = if (denseGrid) 140.dp else 180.dp,
+                    cardHeight = if (denseGrid) 200.dp else 280.dp,
+                    coverArtSize = if (denseGrid) 116.dp else 156.dp,
+                    horizontalPadding = if (denseGrid) 12.dp else 20.dp,
+                    verticalPadding = 12.dp,
+                    titleTextSize = if (denseGrid) 12 else 15,
+                    bodyTextSize = if (denseGrid) 10 else 13,
+                    labelTextSize = if (denseGrid) 9 else 11,
+                    iconSize = 26.dp,
+                    iconSizeSmall = 20.dp,
+                    iconSizeLarge = 36.dp,
+                    buttonHeight = 56.dp,
+                    buttonHeightSmall = 44.dp,
+                    carouselHeight = 320.dp,
+                    splashLogoSize = 180.dp,
+                    columns = columns,
+                    spacing = if (denseGrid) 8.dp else 12.dp,
+                    spacingSmall = 6.dp,
+                    spacingLarge = 20.dp,
+                    cornerRadius = 14.dp,
+                    cornerRadiusSmall = 10.dp,
+                    cornerRadiusLarge = 20.dp,
+                    dialogWidth = minOf(screenWidthDp * 0.8f, 480.dp),
+                    dialogMaxHeight = screenHeightDp * 0.8f,
+                    playerCoverArtSize = minOf(screenWidthDp * 0.5f, screenHeightDp * 0.4f, 320.dp),
+                    miniPlayerHeight = 68.dp,
+                    navBarHeight = 60.dp,
+                    headerHeight = 52.dp,
+                    tabHeight = 52.dp,
+                    chipHeight = 34.dp,
+                    sliderHeight = 28.dp,
+                    progressBarHeight = 4.dp,
+                    dividerThickness = 1.dp,
+                    touchTargetSize = 48.dp,
+                    screenWidthDp = screenWidthDp,
+                    screenHeightDp = screenHeightDp,
+                    isCompactHeight = isCompactHeight,
+                    isWideScreen = true
+                )
+            }
+            WindowSizeClass.EXPANDED -> {
+                val columns = if (denseGrid) 6 else 4
+                ResponsiveDimens(
+                    cardWidth = if (denseGrid) 160.dp else 200.dp,
+                    cardHeight = if (denseGrid) 220.dp else 300.dp,
+                    coverArtSize = if (denseGrid) 136.dp else 176.dp,
+                    horizontalPadding = if (denseGrid) 16.dp else 24.dp,
+                    verticalPadding = 16.dp,
+                    titleTextSize = if (denseGrid) 13 else 16,
+                    bodyTextSize = if (denseGrid) 11 else 14,
+                    labelTextSize = if (denseGrid) 10 else 12,
+                    iconSize = 28.dp,
+                    iconSizeSmall = 22.dp,
+                    iconSizeLarge = 40.dp,
+                    buttonHeight = 60.dp,
+                    buttonHeightSmall = 48.dp,
+                    carouselHeight = 340.dp,
+                    splashLogoSize = 200.dp,
+                    columns = columns,
+                    spacing = if (denseGrid) 10.dp else 16.dp,
+                    spacingSmall = 8.dp,
+                    spacingLarge = 24.dp,
+                    cornerRadius = 16.dp,
+                    cornerRadiusSmall = 12.dp,
+                    cornerRadiusLarge = 24.dp,
+                    dialogWidth = minOf(screenWidthDp * 0.6f, 560.dp),
+                    dialogMaxHeight = screenHeightDp * 0.75f,
+                    playerCoverArtSize = minOf(screenWidthDp * 0.4f, screenHeightDp * 0.45f, 360.dp),
+                    miniPlayerHeight = 72.dp,
+                    navBarHeight = 64.dp,
+                    headerHeight = 56.dp,
+                    tabHeight = 56.dp,
+                    chipHeight = 36.dp,
+                    sliderHeight = 32.dp,
+                    progressBarHeight = 5.dp,
+                    dividerThickness = 1.dp,
+                    touchTargetSize = 52.dp,
+                    screenWidthDp = screenWidthDp,
+                    screenHeightDp = screenHeightDp,
+                    isCompactHeight = isCompactHeight,
+                    isWideScreen = true
+                )
+            }
         }
     }
 }
