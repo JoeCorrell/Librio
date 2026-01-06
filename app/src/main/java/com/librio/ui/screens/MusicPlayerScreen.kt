@@ -670,7 +670,7 @@ fun MusicPlayerScreen(
                             CircularProgressIndicator(
                                 modifier = Modifier.size(playIconSize * 0.6f),
                                 color = palette.onPrimary,
-                                strokeWidth = 3.dp
+                                strokeWidth = 5.dp
                             )
                         } else {
                             Icon(

@@ -46,8 +46,8 @@ fun MinimalSlider(
     valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
     steps: Int = 0,
     onValueChangeFinished: (() -> Unit)? = null,
-    thumbSize: Dp = 14.dp,
-    trackHeight: Dp = 4.dp,
+    thumbSize: Dp = 16.dp,
+    trackHeight: Dp = 6.dp,
     activeColor: Color? = null,
     inactiveColor: Color? = null
 ) {
@@ -246,8 +246,8 @@ fun MinimalProgressSlider(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     onValueChangeFinished: (() -> Unit)? = null,
-    thumbSize: Dp = 12.dp,
-    trackHeight: Dp = 3.dp,
+    thumbSize: Dp = 14.dp,
+    trackHeight: Dp = 5.dp,
     activeColor: Color? = null,
     inactiveColor: Color? = null
 ) {
@@ -274,10 +274,10 @@ fun MinimalProgressSlider(
 fun LibrioProgressBar(
     progress: Float,
     modifier: Modifier = Modifier,
-    height: Dp = 3.dp,
+    height: Dp = 5.dp,
     activeColor: Color? = null,
     trackColor: Color? = null,
-    cornerRadius: Dp = 2.dp
+    cornerRadius: Dp = 3.dp
 ) {
     val palette = currentPalette()
     val fillColor = activeColor ?: palette.accent

@@ -11,6 +11,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -19,6 +20,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
 import com.librio.ui.theme.AppIcons
 import com.librio.ui.components.MinimalSlider
 import androidx.compose.material3.*
@@ -44,7 +48,9 @@ import androidx.compose.ui.unit.dp
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import androidx.compose.runtime.rememberCoroutineScope
 import com.librio.ui.theme.*
 import kotlin.math.roundToInt
 
@@ -125,6 +131,10 @@ fun ProfileScreen(
     // State for image cropping
     var pendingCropUri by remember { mutableStateOf<Uri?>(null) }
     var showCropDialog by remember { mutableStateOf(false) }
+    // Crop zoom and pan state
+    var cropScale by remember { mutableFloatStateOf(1f) }
+    var cropOffsetX by remember { mutableFloatStateOf(0f) }
+    var cropOffsetY by remember { mutableFloatStateOf(0f) }
 
     // Image picker launcher - use OpenDocument for persistable URI permissions
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -160,8 +170,50 @@ fun ProfileScreen(
     var customPrimaryG by remember(customPrimaryColor) { mutableStateOf((customPrimaryColor shr 8) and 0xFF) }
     var customPrimaryB by remember(customPrimaryColor) { mutableStateOf(customPrimaryColor and 0xFF) }
 
-    // Image Crop Dialog
+    // Image Crop Dialog with zoom and pan support
     if (showCropDialog && pendingCropUri != null) {
+        // Load the bitmap for cropping
+        val cropBitmap = remember(pendingCropUri) {
+            try {
+                pendingCropUri?.let { uri ->
+                    val inputStream = context.contentResolver.openInputStream(uri)
+                    inputStream?.use { stream ->
+                        val rawBitmap = BitmapFactory.decodeStream(stream)
+                        // Handle EXIF rotation
+                        try {
+                            val exifInputStream = context.contentResolver.openInputStream(uri)
+                            exifInputStream?.use { exifStream ->
+                                val exif = ExifInterface(exifStream)
+                                val orientation = exif.getAttributeInt(
+                                    ExifInterface.TAG_ORIENTATION,
+                                    ExifInterface.ORIENTATION_NORMAL
+                                )
+                                val matrix = Matrix()
+                                when (orientation) {
+                                    ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
+                                    ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
+                                    ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
+                                }
+                                if (matrix.isIdentity) rawBitmap
+                                else Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true)
+                            } ?: rawBitmap
+                        } catch (_: Exception) {
+                            rawBitmap
+                        }
+                    }
+                }
+            } catch (_: Exception) {
+                null
+            }
+        }
+
+        // Reset crop state when dialog opens with new image
+        LaunchedEffect(pendingCropUri) {
+            cropScale = 1f
+            cropOffsetX = 0f
+            cropOffsetY = 0f
+        }
+
         AlertDialog(
             onDismissRequest = {
                 showCropDialog = false
@@ -180,68 +232,45 @@ fun ProfileScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        "Position your image within the circle",
+                        "Pinch to zoom, drag to position",
                         style = MaterialTheme.typography.bodySmall,
                         color = palette.textMuted,
-                        modifier = Modifier.padding(bottom = 16.dp)
+                        modifier = Modifier.padding(bottom = 12.dp)
                     )
 
-                    // Crop preview area with circular mask overlay
+                    // Crop preview area with gesture handling
                     Box(
                         modifier = Modifier
-                            .size(200.dp)
+                            .size(240.dp)
                             .clip(CircleShape)
-                            .background(palette.surfaceMedium),
+                            .background(palette.surfaceMedium)
+                            .pointerInput(Unit) {
+                                detectTransformGestures { _, pan, zoom, _ ->
+                                    // Update scale with limits
+                                    val newScale = (cropScale * zoom).coerceIn(0.5f, 4f)
+                                    cropScale = newScale
+
+                                    // Update offset with bounds checking
+                                    val maxOffset = 200f * cropScale
+                                    cropOffsetX = (cropOffsetX + pan.x).coerceIn(-maxOffset, maxOffset)
+                                    cropOffsetY = (cropOffsetY + pan.y).coerceIn(-maxOffset, maxOffset)
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
-                        val bitmap = remember(pendingCropUri) {
-                            try {
-                                pendingCropUri?.let { uri ->
-                                    val inputStream = context.contentResolver.openInputStream(uri)
-                                    inputStream?.use { stream ->
-                                        val rawBitmap = BitmapFactory.decodeStream(stream)
-
-                                        // Handle EXIF rotation
-                                        try {
-                                            val exifInputStream = context.contentResolver.openInputStream(uri)
-                                            exifInputStream?.use { exifStream ->
-                                                val exif = ExifInterface(exifStream)
-                                                val orientation = exif.getAttributeInt(
-                                                    ExifInterface.TAG_ORIENTATION,
-                                                    ExifInterface.ORIENTATION_NORMAL
-                                                )
-                                                val matrix = Matrix()
-                                                when (orientation) {
-                                                    ExifInterface.ORIENTATION_ROTATE_90 -> matrix.postRotate(90f)
-                                                    ExifInterface.ORIENTATION_ROTATE_180 -> matrix.postRotate(180f)
-                                                    ExifInterface.ORIENTATION_ROTATE_270 -> matrix.postRotate(270f)
-                                                }
-                                                Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height, matrix, true)
-                                            }
-                                        } catch (e: Exception) {
-                                            rawBitmap
-                                        }
-                                    }
-                                }
-                            } catch (e: Exception) {
-                                null
-                            }
-                        }
-                        if (bitmap != null) {
-                            // Center-crop the image to square
-                            val croppedBitmap = remember(bitmap) {
-                                val size = minOf(bitmap.width, bitmap.height)
-                                val xOffset = (bitmap.width - size) / 2
-                                val yOffset = (bitmap.height - size) / 2
-                                Bitmap.createBitmap(bitmap, xOffset, yOffset, size, size)
-                            }
+                        if (cropBitmap != null) {
                             Image(
-                                bitmap = croppedBitmap.asImageBitmap(),
+                                bitmap = cropBitmap.asImageBitmap(),
                                 contentDescription = "Profile picture preview",
                                 contentScale = ContentScale.Crop,
                                 modifier = Modifier
                                     .fillMaxSize()
-                                    .clip(CircleShape)
+                                    .graphicsLayer(
+                                        scaleX = cropScale,
+                                        scaleY = cropScale,
+                                        translationX = cropOffsetX,
+                                        translationY = cropOffsetY
+                                    )
                             )
                         } else {
                             Column(
@@ -262,27 +291,86 @@ fun ProfileScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text(
-                        "Circular crop preview",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = palette.textMuted
-                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Reset button
+                    TextButton(
+                        onClick = {
+                            cropScale = 1f
+                            cropOffsetX = 0f
+                            cropOffsetY = 0f
+                        }
+                    ) {
+                        Icon(
+                            AppIcons.Refresh,
+                            contentDescription = "Reset",
+                            modifier = Modifier.size(16.dp),
+                            tint = palette.textMuted
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Reset", style = MaterialTheme.typography.labelSmall, color = palette.textMuted)
+                    }
                 }
             },
             confirmButton = {
+                val coroutineScope = rememberCoroutineScope()
                 TextButton(
                     onClick = {
                         activeProfile?.let { profile ->
-                            pendingCropUri?.let { uri ->
-                                onSetProfilePicture(profile, uri.toString())
+                            cropBitmap?.let { sourceBitmap ->
+                                coroutineScope.launch(Dispatchers.IO) {
+                                    try {
+                                        // Create a cropped bitmap based on zoom/pan settings
+                                        val outputSize = 512 // Output image size in pixels
+                                        val croppedBitmap = Bitmap.createBitmap(outputSize, outputSize, Bitmap.Config.ARGB_8888)
+                                        val canvas = android.graphics.Canvas(croppedBitmap)
+
+                                        // Calculate the visible region based on scale and offset
+                                        val paint = android.graphics.Paint().apply {
+                                            isAntiAlias = true
+                                            isFilterBitmap = true
+                                        }
+
+                                        // Center and apply transformations
+                                        canvas.translate(outputSize / 2f, outputSize / 2f)
+                                        canvas.scale(cropScale, cropScale)
+                                        canvas.translate(cropOffsetX / (240f / outputSize), cropOffsetY / (240f / outputSize))
+                                        canvas.translate(-sourceBitmap.width / 2f, -sourceBitmap.height / 2f)
+
+                                        // Scale source to fit the crop area
+                                        val scaleFactor = outputSize.toFloat() / minOf(sourceBitmap.width, sourceBitmap.height)
+                                        canvas.scale(scaleFactor, scaleFactor, sourceBitmap.width / 2f, sourceBitmap.height / 2f)
+
+                                        canvas.drawBitmap(sourceBitmap, 0f, 0f, paint)
+
+                                        // Save to app's private directory
+                                        val profileDir = java.io.File(context.filesDir, "profile_pictures")
+                                        profileDir.mkdirs()
+                                        val outputFile = java.io.File(profileDir, "${profile.id}_avatar.png")
+                                        java.io.FileOutputStream(outputFile).use { out ->
+                                            croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                                        }
+
+                                        val fileUri = Uri.fromFile(outputFile).toString()
+                                        withContext(Dispatchers.Main) {
+                                            onSetProfilePicture(profile, fileUri)
+                                        }
+                                    } catch (_: Exception) {
+                                        // Fallback to original URI if cropping fails
+                                        withContext(Dispatchers.Main) {
+                                            pendingCropUri?.let { uri ->
+                                                onSetProfilePicture(profile, uri.toString())
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                         showCropDialog = false
                         pendingCropUri = null
                     }
                 ) {
-                    Text("Use This Image", color = palette.primary)
+                    Text("Save", color = palette.primary)
                 }
             },
             dismissButton = {

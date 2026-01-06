@@ -270,7 +270,7 @@ fun ComicReaderScreen(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator(
                         color = palette.primary,
-                        strokeWidth = 4.dp
+                        strokeWidth = 5.dp
                     )
                     Spacer(modifier = Modifier.height(16.dp))
                     Text(

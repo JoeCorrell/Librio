@@ -456,7 +456,7 @@ fun MoviePlayerScreen(
                         CircularProgressIndicator(
                             color = palette.primary,
                             modifier = Modifier.size(48.dp),
-                            strokeWidth = 4.dp
+                            strokeWidth = 5.dp
                         )
                     }
                 }
