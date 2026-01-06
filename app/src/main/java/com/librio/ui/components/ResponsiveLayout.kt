@@ -119,22 +119,22 @@ fun rememberResponsiveDimens(denseGrid: Boolean = false): ResponsiveDimens {
     return remember(windowSize, heightSize, screenWidthDp, screenHeightDp, denseGrid) {
         when (windowSize) {
             WindowSizeClass.COMPACT -> {
-                // In dense grid mode (square corners), fit more tiles
-                val columns = if (denseGrid) 4 else 2
+                // In dense grid mode (square corners), fit 3 tiles instead of 2
+                val columns = if (denseGrid) 3 else 2
                 val cardWidth = if (denseGrid) {
-                    (screenWidthDp - 48.dp) / 4  // 4 cards with less padding
+                    (screenWidthDp - 56.dp) / 3  // 3 cards with moderate padding
                 } else {
                     (screenWidthDp - 68.dp) / 2  // 2 cards with padding
                 }
                 ResponsiveDimens(
                     cardWidth = cardWidth,
-                    cardHeight = if (denseGrid) 160.dp else if (isCompactHeight) 220.dp else 260.dp,
+                    cardHeight = if (denseGrid) 180.dp else if (isCompactHeight) 220.dp else 260.dp,
                     coverArtSize = if (denseGrid) cardWidth - 16.dp else (screenWidthDp - 68.dp) / 2 - 24.dp,
-                    horizontalPadding = if (denseGrid) 8.dp else 16.dp,
+                    horizontalPadding = if (denseGrid) 12.dp else 16.dp,
                     verticalPadding = if (isCompactHeight) 8.dp else 12.dp,
-                    titleTextSize = if (denseGrid) 11 else 14,
-                    bodyTextSize = if (denseGrid) 9 else 12,
-                    labelTextSize = if (denseGrid) 8 else 10,
+                    titleTextSize = if (denseGrid) 12 else 14,
+                    bodyTextSize = if (denseGrid) 10 else 12,
+                    labelTextSize = if (denseGrid) 9 else 10,
                     iconSize = 24.dp,
                     iconSizeSmall = 18.dp,
                     iconSizeLarge = 32.dp,
@@ -143,7 +143,7 @@ fun rememberResponsiveDimens(denseGrid: Boolean = false): ResponsiveDimens {
                     carouselHeight = minOf(if (isCompactHeight) 260.dp else 320.dp, screenHeightDp * 0.45f),
                     splashLogoSize = minOf(if (isCompactHeight) 120.dp else 160.dp, screenWidthDp * 0.4f),
                     columns = columns,
-                    spacing = if (denseGrid) 6.dp else if (isCompactHeight) 8.dp else 12.dp,
+                    spacing = if (denseGrid) 8.dp else if (isCompactHeight) 8.dp else 12.dp,
                     spacingSmall = if (isCompactHeight) 4.dp else 6.dp,
                     spacingLarge = if (isCompactHeight) 12.dp else 16.dp,
                     cornerRadius = 12.dp,
@@ -168,16 +168,16 @@ fun rememberResponsiveDimens(denseGrid: Boolean = false): ResponsiveDimens {
                 )
             }
             WindowSizeClass.MEDIUM -> {
-                val columns = if (denseGrid) 5 else 3
+                val columns = if (denseGrid) 4 else 3
                 ResponsiveDimens(
-                    cardWidth = if (denseGrid) 140.dp else 180.dp,
-                    cardHeight = if (denseGrid) 200.dp else 280.dp,
-                    coverArtSize = if (denseGrid) 116.dp else 156.dp,
-                    horizontalPadding = if (denseGrid) 12.dp else 20.dp,
+                    cardWidth = if (denseGrid) 160.dp else 180.dp,
+                    cardHeight = if (denseGrid) 220.dp else 280.dp,
+                    coverArtSize = if (denseGrid) 136.dp else 156.dp,
+                    horizontalPadding = if (denseGrid) 16.dp else 20.dp,
                     verticalPadding = 12.dp,
-                    titleTextSize = if (denseGrid) 12 else 15,
-                    bodyTextSize = if (denseGrid) 10 else 13,
-                    labelTextSize = if (denseGrid) 9 else 11,
+                    titleTextSize = if (denseGrid) 13 else 15,
+                    bodyTextSize = if (denseGrid) 11 else 13,
+                    labelTextSize = if (denseGrid) 10 else 11,
                     iconSize = 26.dp,
                     iconSizeSmall = 20.dp,
                     iconSizeLarge = 36.dp,
@@ -211,16 +211,16 @@ fun rememberResponsiveDimens(denseGrid: Boolean = false): ResponsiveDimens {
                 )
             }
             WindowSizeClass.EXPANDED -> {
-                val columns = if (denseGrid) 6 else 4
+                val columns = if (denseGrid) 5 else 4
                 ResponsiveDimens(
-                    cardWidth = if (denseGrid) 160.dp else 200.dp,
-                    cardHeight = if (denseGrid) 220.dp else 300.dp,
-                    coverArtSize = if (denseGrid) 136.dp else 176.dp,
-                    horizontalPadding = if (denseGrid) 16.dp else 24.dp,
+                    cardWidth = if (denseGrid) 180.dp else 200.dp,
+                    cardHeight = if (denseGrid) 250.dp else 300.dp,
+                    coverArtSize = if (denseGrid) 156.dp else 176.dp,
+                    horizontalPadding = if (denseGrid) 20.dp else 24.dp,
                     verticalPadding = 16.dp,
-                    titleTextSize = if (denseGrid) 13 else 16,
-                    bodyTextSize = if (denseGrid) 11 else 14,
-                    labelTextSize = if (denseGrid) 10 else 12,
+                    titleTextSize = if (denseGrid) 14 else 16,
+                    bodyTextSize = if (denseGrid) 12 else 14,
+                    labelTextSize = if (denseGrid) 11 else 12,
                     iconSize = 28.dp,
                     iconSizeSmall = 22.dp,
                     iconSizeLarge = 40.dp,
