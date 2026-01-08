@@ -90,17 +90,18 @@ fun OnboardingScreen(
 
     // Load profile picture bitmap
     LaunchedEffect(selectedImageUri) {
-        if (selectedImageUri != null) {
-            withContext(Dispatchers.IO) {
-                try {
-                    val inputStream = context.contentResolver.openInputStream(Uri.parse(selectedImageUri))
-                    profileBitmap = BitmapFactory.decodeStream(inputStream)
-                    inputStream?.close()
-                } catch (e: Exception) {
-                    profileBitmap = null
+        profileBitmap = null
+        val uriString = selectedImageUri ?: return@LaunchedEffect
+        val decoded = withContext(Dispatchers.IO) {
+            try {
+                context.contentResolver.openInputStream(Uri.parse(uriString))?.use { stream ->
+                    BitmapFactory.decodeStream(stream)
                 }
+            } catch (_: Exception) {
+                null
             }
         }
+        profileBitmap = decoded
     }
 
     fun goToNext() {

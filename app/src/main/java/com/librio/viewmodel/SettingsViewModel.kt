@@ -210,6 +210,9 @@ class SettingsViewModel : ViewModel() {
     val collapsedSeries: StateFlow<Set<String>>?
         get() = repository?.collapsedSeries
 
+    val selectedPlaylistsPerCategory: StateFlow<Map<String, String?>>?
+        get() = repository?.selectedPlaylistsPerCategory
+
     // UI Visibility settings
     val showBackButton: StateFlow<Boolean>?
         get() = repository?.showBackButton
@@ -702,6 +705,10 @@ class SettingsViewModel : ViewModel() {
 
     fun setCollapsedSeries(seriesIds: Set<String>) {
         repository?.setCollapsedSeries(seriesIds)
+    }
+
+    fun setSelectedPlaylistForCategory(category: String, playlistId: String?) {
+        repository?.setSelectedPlaylistForCategory(category, playlistId)
     }
 
     // UI Visibility setters

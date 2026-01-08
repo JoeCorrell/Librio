@@ -83,8 +83,26 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.ui.draw.scale
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalView
+import android.view.WindowManager
+import android.content.Context
+import android.content.ContextWrapper
+import android.app.Activity
 import com.librio.navigation.BottomNavItem
+
+// Helper extension to find Activity from Context
+private fun Context.findActivity(): Activity? {
+    var context = this
+    while (context is ContextWrapper) {
+        if (context is Activity) return context
+        context = context.baseContext
+    }
+    return null
+}
 
 /**
  * Main player screen showing cover art, playback controls, and audiobook info
@@ -133,6 +151,7 @@ fun PlayerScreen(
     showBackButton: Boolean = true,
     showSearchBar: Boolean = true,
     showPlaceholderIcons: Boolean = true,
+    keepScreenOn: Boolean = false,
     headerTitle: String = "Librio",
 ) {
     val palette = currentPalette()
@@ -141,6 +160,7 @@ fun PlayerScreen(
     val playbackState by player.playbackState.collectAsState()
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
+    val view = LocalView.current
     // No tab selected when in player screen - user navigates FROM library
     var selectedTab by remember { mutableStateOf<BottomNavItem?>(null) }
     var showSettings by remember { mutableStateOf(false) }
@@ -171,6 +191,19 @@ fun PlayerScreen(
     // Apply persisted playback speed on entry
     LaunchedEffect(playbackSpeed) {
         player.setPlaybackSpeed(playbackSpeed)
+    }
+
+    // Keep screen on when playing if setting is enabled
+    DisposableEffect(keepScreenOn, playbackState.isPlaying) {
+        val window = view.context.findActivity()?.window
+        if (keepScreenOn && playbackState.isPlaying) {
+            window?.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        } else {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+        onDispose {
+            window?.clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
     }
 
     Box(
@@ -271,12 +304,22 @@ fun PlayerScreen(
         },
         bottomBar = {
             // Full-width navigation bar matching header color with light icons
+            // Swipe up to open player settings
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .background(palette.headerGradient())
                     .padding(bottom = 8.dp)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            // Swipe up (negative dragAmount) opens settings
+                            if (dragAmount < -20 && !showSettings) {
+                                showSettings = true
+                                selectedTab = BottomNavItem.SETTINGS
+                            }
+                        }
+                    }
             ) {
                 Row(
                     modifier = Modifier
@@ -309,8 +352,14 @@ fun PlayerScreen(
                                         BottomNavItem.LIBRARY -> onNavigateToLibrary?.invoke()
                                         BottomNavItem.PROFILE -> onNavigateToProfile?.invoke()
                                         BottomNavItem.SETTINGS -> {
-                                            selectedTab = item
-                                            showSettings = true
+                                            // Toggle settings - close if already open
+                                            if (showSettings) {
+                                                showSettings = false
+                                                selectedTab = null
+                                            } else {
+                                                selectedTab = item
+                                                showSettings = true
+                                            }
                                         }
                                     }
                                 }
@@ -420,7 +469,12 @@ fun PlayerScreen(
             }
         }
 
-        if (showSettings) {
+        // Settings panel with slide animation
+        AnimatedVisibility(
+            visible = showSettings,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

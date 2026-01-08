@@ -545,12 +545,22 @@ fun ComicReaderScreen(
         }
 
         // Bottom navigation bar styled like the Library screen
+        // Swipe up to open settings
         Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .navigationBarsPadding()
                 .background(palette.headerGradient())
                 .padding(bottom = 8.dp)
+                .pointerInput(Unit) {
+                    detectVerticalDragGestures { _, dragAmount ->
+                        // Swipe up (negative dragAmount) opens settings
+                        if (dragAmount < -20 && !showSettings) {
+                            showSettings = true
+                            selectedNavItem = BottomNavItem.SETTINGS
+                        }
+                    }
+                }
         ) {
             Row(
                 modifier = Modifier
@@ -654,7 +664,7 @@ fun ComicReaderScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = settingsMaxHeight)
-                    .padding(bottom = 80.dp)
+                    .padding(bottom = 96.dp)
             ) {
                 Column(
                     modifier = Modifier
@@ -662,11 +672,20 @@ fun ComicReaderScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = settingsPadding, vertical = 10.dp)
                 ) {
-                    // Handle
+                    // Handle - swipe down to close
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 6.dp),
+                            .padding(bottom = 6.dp)
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures { _, dragAmount ->
+                                    // Swipe down (positive dragAmount) closes settings
+                                    if (dragAmount > 20) {
+                                        showSettings = false
+                                        selectedNavItem = null
+                                    }
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Box(

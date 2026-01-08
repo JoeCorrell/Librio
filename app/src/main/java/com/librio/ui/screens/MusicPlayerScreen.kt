@@ -8,7 +8,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -834,12 +836,22 @@ fun MusicPlayerScreen(
             }
 
             // Bottom navigation bar matching header color with light icons
+            // Swipe up to open player settings
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .navigationBarsPadding()
                     .background(palette.headerGradient())
                     .padding(bottom = 8.dp)
+                    .pointerInput(Unit) {
+                        detectVerticalDragGestures { _, dragAmount ->
+                            // Swipe up (negative dragAmount) opens settings
+                            if (dragAmount < -20 && !showSettings) {
+                                showSettings = true
+                                selectedNavItem = BottomNavItem.SETTINGS
+                            }
+                        }
+                    }
             ) {
                 Row(
                     modifier = Modifier
@@ -859,8 +871,14 @@ fun MusicPlayerScreen(
                             onNavigateToProfile()
                         },
                         BottomNavItem.SETTINGS to {
-                            selectedNavItem = BottomNavItem.SETTINGS
-                            showSettings = true
+                            // Toggle settings - close if already open
+                            if (showSettings) {
+                                showSettings = false
+                                selectedNavItem = null
+                            } else {
+                                selectedNavItem = BottomNavItem.SETTINGS
+                                showSettings = true
+                            }
                         }
                     ).forEach { (item, action) ->
                         val isSelected = selectedNavItem == item
@@ -925,7 +943,12 @@ fun MusicPlayerScreen(
             }
         }
 
-        if (showSettings) {
+        // Settings panel with slide animation
+        AnimatedVisibility(
+            visible = showSettings,
+            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+        ) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()

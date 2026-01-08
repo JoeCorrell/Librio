@@ -112,6 +112,8 @@ fun MainScreen(
     onSetMovieCoverArt: (String, String?) -> Unit = { _, _ -> },
     collapsedSeries: Set<String> = emptySet(),
     onCollapsedSeriesChange: (Set<String>) -> Unit = {},
+    selectedPlaylistPerCategory: Map<ContentType, String?> = emptyMap(),
+    onSelectedPlaylistChange: (ContentType, String?) -> Unit = { _, _ -> },
     libraryOwnerName: String,
     profiles: List<UserProfile>,
     onProfileSelect: (UserProfile) -> Unit,
@@ -491,6 +493,7 @@ fun MainScreen(
                             onEditMovie = onEditMovie,
                             onDeleteMovie = onDeleteMovie,
                             showPlaceholderIcons = showPlaceholderIcons,
+                            confirmBeforeDelete = confirmBeforeDelete,
                             defaultLibraryView = defaultLibraryView,
                             searchQuery = searchQuery,
                             onSearchQueryChange = onSearchQueryChange,
@@ -522,7 +525,9 @@ fun MainScreen(
                             onSetComicCoverArt = onSetComicCoverArt,
                             onSetMovieCoverArt = onSetMovieCoverArt,
                             collapsedSeries = collapsedSeries,
-                            onCollapsedSeriesChange = onCollapsedSeriesChange
+                            onCollapsedSeriesChange = onCollapsedSeriesChange,
+                            selectedPlaylistPerCategory = selectedPlaylistPerCategory,
+                            onSelectedPlaylistChange = onSelectedPlaylistChange
                         )
                     }
                     BottomNavItem.PROFILE -> {

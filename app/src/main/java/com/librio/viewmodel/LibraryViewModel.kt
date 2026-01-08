@@ -63,6 +63,17 @@ class LibraryViewModel : ViewModel() {
         )
 
         /**
+         * Clean file name by removing common number prefixes like "1_", "2_", "01_", "001_", etc.
+         * Also removes patterns like "1 - ", "01 - ", etc.
+         */
+        fun cleanFileName(fileName: String): String {
+            return fileName
+                .replace(Regex("^\\d+_\\s*"), "") // Remove "1_", "01_", "001_", etc.
+                .replace(Regex("^\\d+\\s*-\\s*"), "") // Remove "1 - ", "01 - ", etc.
+                .trim()
+        }
+
+        /**
          * Extract cover art from a media file with robust fallback handling.
          * Uses multiple approaches to handle device-specific codec issues:
          * 1. Try embedded picture with RGB_565 config (most compatible)
@@ -1293,7 +1304,7 @@ class LibraryViewModel : ViewModel() {
 
             title = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_TITLE)
                 ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUM)
-                ?: uri.lastPathSegment?.substringBeforeLast(".") ?: "Unknown Title"
+                ?: cleanFileName(uri.lastPathSegment?.substringBeforeLast(".") ?: "Unknown Title")
 
             author = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ARTIST)
                 ?: retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_ALBUMARTIST)
@@ -1962,7 +1973,7 @@ class LibraryViewModel : ViewModel() {
     private fun extractBookMetadata(context: Context, uri: Uri): LibraryBook {
         val fileName = uri.lastPathSegment?.substringAfterLast("/") ?: "Unknown"
         val extension = fileName.substringAfterLast(".", "txt").lowercase()
-        val title = fileName.substringBeforeLast(".")
+        val title = cleanFileName(fileName.substringBeforeLast("."))
 
         return LibraryBook(
             id = UUID.randomUUID().toString(),
@@ -2254,7 +2265,7 @@ class LibraryViewModel : ViewModel() {
                             val book = LibraryBook(
                                 id = UUID.randomUUID().toString(),
                                 uri = uri,
-                                title = file.nameWithoutExtension,
+                                title = cleanFileName(file.nameWithoutExtension),
                                 author = "Unknown Author",
                                 totalPages = 1, // Default to 1 page - will be updated when opened
                                 fileType = file.extension.lowercase(),
@@ -2338,7 +2349,7 @@ class LibraryViewModel : ViewModel() {
                             val book = LibraryBook(
                                 id = UUID.randomUUID().toString(),
                                 uri = uri,
-                                title = file.nameWithoutExtension,
+                                title = cleanFileName(file.nameWithoutExtension),
                                 author = "Unknown Author",
                                 totalPages = 1, // Default to 1 page - will be updated when opened
                                 fileType = file.extension.lowercase(),
@@ -2618,7 +2629,7 @@ class LibraryViewModel : ViewModel() {
         return LibraryMusic(
             id = UUID.randomUUID().toString(),
             uri = file.toUri(),
-            title = file.nameWithoutExtension,
+            title = cleanFileName(file.nameWithoutExtension),
             artist = "Loading...",
             album = null,
             coverArt = null,
@@ -2641,7 +2652,7 @@ class LibraryViewModel : ViewModel() {
         contentType: ContentType = ContentType.MUSIC
     ): LibraryMusic {
         val uri = file.toUri()
-        var title = file.nameWithoutExtension
+        var title = cleanFileName(file.nameWithoutExtension)
         var artist = "Unknown Artist"
         var album: String? = null
         var duration = 0L
@@ -2856,7 +2867,7 @@ class LibraryViewModel : ViewModel() {
         contentType: ContentType = ContentType.MUSIC
     ): LibraryMusic {
         val uri = file.toUri()
-        var title = file.nameWithoutExtension
+        var title = cleanFileName(file.nameWithoutExtension)
         var artist = "Unknown Artist"
         var album: String? = null
         var duration = 0L
@@ -2899,7 +2910,7 @@ class LibraryViewModel : ViewModel() {
      */
     private fun createComicFromFile(file: File, seriesId: String? = null): LibraryComic {
         val uri = file.toUri()
-        val title = file.nameWithoutExtension
+        val title = cleanFileName(file.nameWithoutExtension)
 
         return LibraryComic(
             id = UUID.randomUUID().toString(),
@@ -2915,7 +2926,7 @@ class LibraryViewModel : ViewModel() {
      */
     private fun createMovieFromFile(context: Context, file: File, seriesId: String? = null): LibraryMovie {
         val uri = file.toUri()
-        var title = file.nameWithoutExtension
+        var title = cleanFileName(file.nameWithoutExtension)
         var duration = 0L
 
         try {

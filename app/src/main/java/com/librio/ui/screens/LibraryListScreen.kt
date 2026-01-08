@@ -116,6 +116,7 @@ fun LibraryListScreen(
     onEditMovie: (LibraryMovie, String) -> Unit = { _, _ -> },
     onDeleteMovie: (LibraryMovie) -> Unit = {},
     showPlaceholderIcons: Boolean = true,
+    confirmBeforeDelete: Boolean = true,
     defaultLibraryView: String = "LIST",
     // Series management
     seriesList: List<LibrarySeries> = emptyList(),
@@ -137,6 +138,9 @@ fun LibraryListScreen(
     onSetMovieCoverArt: (String, String?) -> Unit = { _, _ -> },
     collapsedSeries: Set<String> = emptySet(),
     onCollapsedSeriesChange: (Set<String>) -> Unit = {},
+    // Playlist selection persistence per content type
+    selectedPlaylistPerCategory: Map<ContentType, String?> = emptyMap(),
+    onSelectedPlaylistChange: (ContentType, String?) -> Unit = { _, _ -> },
     modifier: Modifier = Modifier
 ) {
     val palette = currentPalette()
@@ -152,14 +156,22 @@ fun LibraryListScreen(
     var showEditMovieDialog by remember { mutableStateOf<LibraryMovie?>(null) }
     var showRenameSeriesDialog by remember { mutableStateOf<LibrarySeries?>(null) }
     var showCoverArtPickerForSeries by remember { mutableStateOf<LibrarySeries?>(null) }
-    var selectedPlaylistFilter by remember { mutableStateOf<String?>(null) } // null = "All"
+    // Use persisted playlist selection, falling back to null
+    var selectedPlaylistFilter by remember(selectedContentType) {
+        mutableStateOf(selectedPlaylistPerCategory[selectedContentType])
+    }
     var showAddPlaylistDialog by remember { mutableStateOf(false) }
     var showDeletePlaylistDialog by remember { mutableStateOf<LibrarySeries?>(null) }
     var newPlaylistName by remember { mutableStateOf("") }
 
-    // Reset playlist filter when content type changes
+    // Update persisted selection when playlist filter changes
+    LaunchedEffect(selectedPlaylistFilter) {
+        onSelectedPlaylistChange(selectedContentType, selectedPlaylistFilter)
+    }
+
+    // Restore playlist filter when content type changes
     LaunchedEffect(selectedContentType) {
-        selectedPlaylistFilter = null
+        selectedPlaylistFilter = selectedPlaylistPerCategory[selectedContentType]
     }
 
     // State for individual item cover art pickers
@@ -340,8 +352,13 @@ fun LibraryListScreen(
                 showCoverArtPickerForAudiobook = audiobook
             },
             onDelete = {
-                onDeleteAudiobook(audiobook)
-                showEditDialog = null
+                if (confirmBeforeDelete) {
+                    showDeleteDialog = audiobook
+                    showEditDialog = null
+                } else {
+                    onDeleteAudiobook(audiobook)
+                    showEditDialog = null
+                }
             },
             onAddSeries = onAddSeries,
             onDeleteSeries = onDeleteSeries
@@ -820,7 +837,7 @@ fun LibraryListScreen(
         LazyRow(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp),
+                .padding(top = 8.dp, bottom = 4.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
@@ -847,7 +864,7 @@ fun LibraryListScreen(
             }
         }
 
-        // Sort/Filter indicator button - full width with border
+        // Sort/Filter indicator button - full width
         val displayText = if (selectedPlaylistFilter != null) {
             val playlist = seriesList.find { it.id == selectedPlaylistFilter }
             playlist?.name ?: sortOption.displayName
@@ -858,14 +875,9 @@ fun LibraryListScreen(
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(vertical = 8.dp)
-                .border(
-                    width = 1.dp,
-                    color = palette.accent.copy(alpha = 0.3f),
-                    shape = RectangleShape
-                )
+                .padding(vertical = 2.dp)
                 .clickable { showSortMenu = true }
-                .padding(vertical = 12.dp),
+                .padding(vertical = 8.dp),
             contentAlignment = Alignment.Center
         ) {
             Row(
@@ -2129,7 +2141,7 @@ fun AudiobookListItem(
                         LibrioProgressBar(
                             progress = progress,
                             modifier = Modifier.weight(1f),
-                            height = 4.dp,
+                            height = 6.dp,
                             activeColor = palette.accent,
                             trackColor = palette.accent.copy(alpha = 0.2f)
                         )
@@ -2774,7 +2786,7 @@ fun BookListItem(
                         LibrioProgressBar(
                             progress = book.progress,
                             modifier = Modifier.weight(1f),
-                            height = 4.dp,
+                            height = 6.dp,
                             activeColor = palette.accent,
                             trackColor = palette.accent.copy(alpha = 0.2f)
                         )

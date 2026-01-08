@@ -55,12 +55,15 @@ class AudiobookPlayer(private val context: Context) {
     private var equalizerPreset: String = "DEFAULT"
     private var fadeOnPauseResume: Boolean = false
     private var showPlaybackNotification: Boolean = true
+    private var autoRewindSeconds: Int = 0
+    private var wasPaused: Boolean = false
+    private var pauseOnDisconnect: Boolean = true
     private val scopeJob = Job()
     private val scope = CoroutineScope(scopeJob + Dispatchers.Main)
-    
+
     private val _currentAudiobook = MutableStateFlow<Audiobook?>(null)
     val currentAudiobook: StateFlow<Audiobook?> = _currentAudiobook.asStateFlow()
-    
+
     private val _playbackState = MutableStateFlow(PlaybackState())
     val playbackState: StateFlow<PlaybackState> = _playbackState.asStateFlow()
 
@@ -73,9 +76,20 @@ class AudiobookPlayer(private val context: Context) {
         }
     }
 
+    private val headphoneDisconnectReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context?, intent: Intent?) {
+            if (intent?.action == android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY) {
+                if (pauseOnDisconnect && exoPlayer?.isPlaying == true) {
+                    pause()
+                }
+            }
+        }
+    }
+
     init {
         initializePlayer()
         registerChapterNavigationReceiver()
+        registerHeadphoneDisconnectReceiver()
     }
 
     private fun registerChapterNavigationReceiver() {
@@ -88,6 +102,16 @@ class AudiobookPlayer(private val context: Context) {
         } else {
             @Suppress("UnspecifiedRegisterReceiverFlag")
             context.registerReceiver(chapterNavigationReceiver, filter)
+        }
+    }
+
+    private fun registerHeadphoneDisconnectReceiver() {
+        val filter = IntentFilter(android.media.AudioManager.ACTION_AUDIO_BECOMING_NOISY)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            context.registerReceiver(headphoneDisconnectReceiver, filter, Context.RECEIVER_NOT_EXPORTED)
+        } else {
+            @Suppress("UnspecifiedRegisterReceiverFlag")
+            context.registerReceiver(headphoneDisconnectReceiver, filter)
         }
     }
     
@@ -452,6 +476,16 @@ class AudiobookPlayer(private val context: Context) {
     }
     
     fun play() {
+        // Apply auto-rewind if resuming from pause
+        if (wasPaused && autoRewindSeconds > 0) {
+            exoPlayer?.let { player ->
+                val currentPos = player.currentPosition
+                val newPos = (currentPos - (autoRewindSeconds * 1000)).coerceAtLeast(0)
+                player.seekTo(newPos)
+            }
+            wasPaused = false
+        }
+
         if (showPlaybackNotification) {
             PlaybackService.start(context)
         }
@@ -463,6 +497,7 @@ class AudiobookPlayer(private val context: Context) {
     }
 
     fun pause() {
+        wasPaused = true
         if (fadeOnPauseResume) {
             SharedMusicPlayer.pauseWithFade(context)
         } else {
@@ -486,6 +521,14 @@ class AudiobookPlayer(private val context: Context) {
         if (!enabled) {
             PlaybackService.stop(context)
         }
+    }
+
+    fun setAutoRewindSeconds(seconds: Int) {
+        autoRewindSeconds = seconds.coerceIn(0, 60)
+    }
+
+    fun setPauseOnDisconnect(enabled: Boolean) {
+        pauseOnDisconnect = enabled
     }
 
     fun seekTo(position: Long) {
@@ -661,9 +704,14 @@ class AudiobookPlayer(private val context: Context) {
         stopPositionUpdates()
         scopeJob.cancel()
 
-        // Unregister broadcast receiver
+        // Unregister broadcast receivers
         try {
             context.unregisterReceiver(chapterNavigationReceiver)
+        } catch (_: Exception) {
+            // Receiver may not be registered
+        }
+        try {
+            context.unregisterReceiver(headphoneDisconnectReceiver)
         } catch (_: Exception) {
             // Receiver may not be registered
         }

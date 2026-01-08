@@ -228,13 +228,15 @@ class MainActivity : ComponentActivity() {
             }
 
             // Apply profile audio effects to audiobook player
-            LaunchedEffect(profileNormalizeAudio, profileBassBoost, profileVolumeBoost, profileVolumeBoostLevel, profileEqualizer, fadeOnPauseResume, showPlaybackNotification) {
+            LaunchedEffect(profileNormalizeAudio, profileBassBoost, profileVolumeBoost, profileVolumeBoostLevel, profileEqualizer, fadeOnPauseResume, showPlaybackNotification, autoRewindSeconds, pauseOnDisconnect) {
                 player.setNormalizeAudio(profileNormalizeAudio)
                 player.setBassBoostLevel(profileBassBoost)
                 player.setVolumeBoost(profileVolumeBoost, profileVolumeBoostLevel)
                 player.setEqualizerPreset(profileEqualizer)
                 player.setFadeOnPauseResume(fadeOnPauseResume)
                 player.setShowPlaybackNotification(showPlaybackNotification)
+                player.setAutoRewindSeconds(autoRewindSeconds)
+                player.setPauseOnDisconnect(pauseOnDisconnect)
             }
 
             // Apply audio processing settings to shared music player
@@ -371,6 +373,7 @@ class MainActivity : ComponentActivity() {
                 settingsViewModel.setLastAudiobookState(book.id, position, audiobookActive)
                 if (!isMusicPlaying) {
                     settingsViewModel.setLastActiveType("AUDIOBOOK")
+                    PlaybackService.currentActiveType = "AUDIOBOOK"
                 }
             }
 
@@ -438,6 +441,13 @@ class MainActivity : ComponentActivity() {
             val savedContentType by settingsViewModel.selectedContentType?.collectAsState() ?: remember { mutableStateOf("AUDIOBOOK") }
             val savedCategoryId by settingsViewModel.selectedCategoryId?.collectAsState() ?: remember { mutableStateOf<String?>(null) }
             val collapsedSeries by settingsViewModel.collapsedSeries?.collectAsState() ?: remember { mutableStateOf(emptySet<String>()) }
+            val selectedPlaylistsPerCategoryRaw by settingsViewModel.selectedPlaylistsPerCategory?.collectAsState() ?: remember { mutableStateOf(emptyMap<String, String?>()) }
+            // Convert String keys to ContentType keys for LibraryListScreen
+            val selectedPlaylistPerCategory = remember(selectedPlaylistsPerCategoryRaw) {
+                selectedPlaylistsPerCategoryRaw.mapKeys { (key, _) ->
+                    try { ContentType.valueOf(key) } catch (_: Exception) { ContentType.AUDIOBOOK }
+                }
+            }
 
             // Restore filter state on startup
             LaunchedEffect(Unit) {
@@ -508,6 +518,7 @@ class MainActivity : ComponentActivity() {
                         isMusicPlaying = lastMusicPlaying
                         val activeType = "MUSIC"
                         settingsViewModel.setLastActiveType(activeType)
+                        PlaybackService.currentActiveType = activeType
                         musicExoPlayer.setMediaItem(buildMusicMediaItem(it))
                         musicExoPlayer.prepare()
                         musicExoPlayer.seekTo(lastMusicPosition)
@@ -537,6 +548,7 @@ class MainActivity : ComponentActivity() {
                         lastPlayedMusic = null
                         isAudiobookPlaying = lastAudiobookPlaying
                         settingsViewModel.setLastActiveType("AUDIOBOOK")
+                        PlaybackService.currentActiveType = "AUDIOBOOK"
                         CoroutineScope(Dispatchers.Main).launch {
                             player.loadAudiobook(book.uri, book.title, book.author)
                             player.seekTo(lastAudiobookPosition)
@@ -566,6 +578,7 @@ class MainActivity : ComponentActivity() {
                 settingsViewModel.setLastAudiobookState(match.id, position, musicExoPlayer.isPlaying)
                 if (musicExoPlayer.isPlaying) {
                     settingsViewModel.setLastActiveType("AUDIOBOOK")
+                    PlaybackService.currentActiveType = "AUDIOBOOK"
                 }
             }
 
@@ -640,6 +653,7 @@ class MainActivity : ComponentActivity() {
                                 lastPlayedMusic = nextTrack
                                 val activeType = "MUSIC"
                                 settingsViewModel.setLastActiveType(activeType)
+                                PlaybackService.currentActiveType = activeType
                                 libraryViewModel.selectMusic(nextTrack)
                                 libraryViewModel.incrementMusicPlayCount(nextTrack.id)
                                 musicCurrentPosition = 0L
@@ -715,9 +729,67 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
+                // Music navigation callbacks
+                PlaybackService.onNextMusic = {
+                    val musicList = if (latestCurrentMusicPlaylist.isNotEmpty()) latestCurrentMusicPlaylist else latestFilteredMusic
+                    if (musicList.isNotEmpty() && latestLastPlayedMusic != null) {
+                        val currentIdx = musicList.indexOfFirst { it.id == latestLastPlayedMusic?.id }
+                        val nextIdx = when {
+                            musicShuffleEnabled -> musicList.indices.random()
+                            currentIdx < musicList.size - 1 -> currentIdx + 1
+                            else -> 0 // Wrap to first
+                        }
+                        if (nextIdx >= 0 && nextIdx < musicList.size) {
+                            val nextTrack = musicList[nextIdx]
+                            lastPlayedMusic = nextTrack
+                            settingsViewModel.setLastActiveType("MUSIC")
+                            PlaybackService.currentActiveType = "MUSIC"
+                            libraryViewModel.selectMusic(nextTrack)
+                            libraryViewModel.incrementMusicPlayCount(nextTrack.id)
+                            musicPlaylistIndex = nextIdx
+                            currentMusicPlaylist = musicList
+                            musicExoPlayer.setMediaItem(buildMusicMediaItem(nextTrack))
+                            musicExoPlayer.prepare()
+                            musicExoPlayer.seekTo(0)
+                            musicExoPlayer.play()
+                            startPlaybackService()
+                        }
+                    }
+                }
+
+                PlaybackService.onPreviousMusic = {
+                    val musicList = if (latestCurrentMusicPlaylist.isNotEmpty()) latestCurrentMusicPlaylist else latestFilteredMusic
+                    if (musicList.isNotEmpty() && latestLastPlayedMusic != null) {
+                        val currentIdx = musicList.indexOfFirst { it.id == latestLastPlayedMusic?.id }
+                        val prevIdx = when {
+                            musicShuffleEnabled -> musicList.indices.random()
+                            currentIdx > 0 -> currentIdx - 1
+                            else -> musicList.size - 1 // Wrap to last
+                        }
+                        if (prevIdx >= 0 && prevIdx < musicList.size) {
+                            val prevTrack = musicList[prevIdx]
+                            lastPlayedMusic = prevTrack
+                            settingsViewModel.setLastActiveType("MUSIC")
+                            PlaybackService.currentActiveType = "MUSIC"
+                            libraryViewModel.selectMusic(prevTrack)
+                            libraryViewModel.incrementMusicPlayCount(prevTrack.id)
+                            musicPlaylistIndex = prevIdx
+                            currentMusicPlaylist = musicList
+                            musicExoPlayer.setMediaItem(buildMusicMediaItem(prevTrack))
+                            musicExoPlayer.prepare()
+                            musicExoPlayer.seekTo(0)
+                            musicExoPlayer.play()
+                            startPlaybackService()
+                        }
+                    }
+                }
+
                 onDispose {
                     PlaybackService.onNextAudiobook = null
                     PlaybackService.onPreviousAudiobook = null
+                    PlaybackService.onNextMusic = null
+                    PlaybackService.onPreviousMusic = null
+                    PlaybackService.currentActiveType = null
                 }
             }
 
@@ -1001,6 +1073,7 @@ class MainActivity : ComponentActivity() {
                                     lastPlayedAudiobook = audiobook
                                     isAudiobookPlaying = true
                                     settingsViewModel.setLastActiveType("AUDIOBOOK")
+                                    PlaybackService.currentActiveType = "AUDIOBOOK"
                                     libraryViewModel.selectAudiobook(audiobook)
                                     CoroutineScope(Dispatchers.Main).launch {
                                         player.loadAudiobook(audiobook.uri, audiobook.title, audiobook.author)
@@ -1030,6 +1103,7 @@ class MainActivity : ComponentActivity() {
                                     lastPlayedMusic = musicItem
                                     val activeType = "MUSIC"
                                     settingsViewModel.setLastActiveType(activeType)
+                                    PlaybackService.currentActiveType = activeType
                                     val playlistForSelection = if (musicItem.seriesId != null) {
                                         filteredMusic.filter { it.seriesId == musicItem.seriesId }
                                     } else {
@@ -1194,6 +1268,10 @@ class MainActivity : ComponentActivity() {
                                 collapsedSeries = collapsedSeries,
                                 onCollapsedSeriesChange = { updated ->
                                     settingsViewModel.setCollapsedSeries(updated)
+                                },
+                                selectedPlaylistPerCategory = selectedPlaylistPerCategory,
+                                onSelectedPlaylistChange = { contentType, playlistId ->
+                                    settingsViewModel.setSelectedPlaylistForCategory(contentType.name, playlistId)
                                 },
                                 libraryOwnerName = libraryOwnerName,
                                 profiles = profiles,
@@ -1393,6 +1471,7 @@ class MainActivity : ComponentActivity() {
                                                 lastPlayedMusic = nextMusic
                                                 val activeType = "MUSIC"
                                                 settingsViewModel.setLastActiveType(activeType)
+                                                PlaybackService.currentActiveType = activeType
                                                 libraryViewModel.selectMusic(nextMusic)
                                                 libraryViewModel.incrementMusicPlayCount(nextMusic.id)
                                                 // Play on shared player without navigating
@@ -1415,6 +1494,7 @@ class MainActivity : ComponentActivity() {
                                             lastPlayedMusic = prevMusic
                                             val activeType = "MUSIC"
                                             settingsViewModel.setLastActiveType(activeType)
+                                            PlaybackService.currentActiveType = activeType
                                             libraryViewModel.selectMusic(prevMusic)
                                             libraryViewModel.incrementMusicPlayCount(prevMusic.id)
                                             // Play on shared player without navigating
@@ -1500,6 +1580,7 @@ class MainActivity : ComponentActivity() {
                                         settingsViewModel.setLastAudiobookState(null, 0L, false)
                                     }
                                     settingsViewModel.setLastActiveType(null)
+                                    PlaybackService.currentActiveType = null
                                 }
                             )
                         }
@@ -1568,6 +1649,7 @@ class MainActivity : ComponentActivity() {
                                 showBackButton = showBackButton,
                                 showSearchBar = showSearchBar,
                                 showPlaceholderIcons = showPlaceholderIcons,
+                                keepScreenOn = keepScreenOn,
                                 headerTitle = profileHeaderTitle,
                                 modifier = Modifier.fillMaxSize()
                             )
@@ -1665,6 +1747,7 @@ class MainActivity : ComponentActivity() {
                                         lastPlayedMusic = newTrack
                                         val activeType = "MUSIC"
                                         settingsViewModel.setLastActiveType(activeType)
+                                        PlaybackService.currentActiveType = activeType
                                         if (currentMusicPlaylist.isEmpty()) {
                                             currentMusicPlaylist = activePlaylist
                                         }
@@ -1864,6 +1947,7 @@ class MainActivity : ComponentActivity() {
                     settingsViewModel.setLastAudiobookState(book.id, position, actuallyPlaying)
                     if (actuallyPlaying && lastActiveType != "AUDIOBOOK") {
                         settingsViewModel.setLastActiveType("AUDIOBOOK")
+                        PlaybackService.currentActiveType = "AUDIOBOOK"
                     }
                 }
             }

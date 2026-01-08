@@ -17,6 +17,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -712,6 +713,7 @@ fun MoviePlayerScreen(
             }
 
             // Bottom navigation bar - hidden in fullscreen mode
+            // Swipe up to open settings
             AnimatedVisibility(
                 visible = !isFullscreen,
                 enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
@@ -723,6 +725,15 @@ fun MoviePlayerScreen(
                         .navigationBarsPadding()
                         .background(palette.headerGradient())
                         .padding(bottom = 8.dp)
+                        .pointerInput(Unit) {
+                            detectVerticalDragGestures { _, dragAmount ->
+                                // Swipe up (negative dragAmount) opens settings
+                                if (dragAmount < -20 && !showSettings) {
+                                    showSettings = true
+                                    selectedNavItem = BottomNavItem.SETTINGS
+                                }
+                            }
+                        }
                 ) {
                     Row(
                         modifier = Modifier
@@ -837,11 +848,20 @@ fun MoviePlayerScreen(
                         .verticalScroll(rememberScrollState())
                         .padding(horizontal = settingsPadding, vertical = 10.dp)
                 ) {
-                    // Header with drag handle
+                    // Header with drag handle - swipe down to close
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(bottom = 6.dp),
+                            .padding(bottom = 6.dp)
+                            .pointerInput(Unit) {
+                                detectVerticalDragGestures { _, dragAmount ->
+                                    // Swipe down (positive dragAmount) closes settings
+                                    if (dragAmount > 20) {
+                                        showSettings = false
+                                        selectedNavItem = null
+                                    }
+                                }
+                            },
                         contentAlignment = Alignment.Center
                     ) {
                         Box(

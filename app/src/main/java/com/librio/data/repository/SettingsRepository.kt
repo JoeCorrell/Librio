@@ -446,6 +446,10 @@ class SettingsRepository(private val context: Context) {
     private val _collapsedSeries = MutableStateFlow(loadCollapsedSeries())
     val collapsedSeries: StateFlow<Set<String>> = _collapsedSeries.asStateFlow()
 
+    // Selected playlist per category (per-profile)
+    private val _selectedPlaylistsPerCategory = MutableStateFlow(loadSelectedPlaylistsPerCategory())
+    val selectedPlaylistsPerCategory: StateFlow<Map<String, String?>> = _selectedPlaylistsPerCategory.asStateFlow()
+
     // UI Visibility settings
     private val _showBackButton = MutableStateFlow(loadShowBackButton())
     val showBackButton: StateFlow<Boolean> = _showBackButton.asStateFlow()
@@ -983,6 +987,17 @@ class SettingsRepository(private val context: Context) {
         _useSquareCorners.value = settings.useSquareCorners
         _collapsedSeries.value = settings.collapsedSeries.toSet()
         _selectedContentType.value = settings.selectedContentType
+
+        // Update profile picture in the profiles list
+        val currentProfiles = _profiles.value.toMutableList()
+        val activeProfileIndex = currentProfiles.indexOfFirst { it.isActive }
+        if (activeProfileIndex >= 0 && settings.profilePicture != currentProfiles[activeProfileIndex].profilePicture) {
+            currentProfiles[activeProfileIndex] = currentProfiles[activeProfileIndex].copy(
+                profilePicture = settings.profilePicture
+            )
+            _profiles.value = currentProfiles
+            saveProfiles(currentProfiles)
+        }
 
         // Update custom theme colors
         updateCustomThemeColors()
@@ -1959,6 +1974,10 @@ class SettingsRepository(private val context: Context) {
             currentProfiles[index] = currentProfiles[index].copy(profilePicture = pictureUri)
             _profiles.value = currentProfiles
             saveProfiles(currentProfiles)
+            // Also save to JSON file if this is the active profile
+            if (profileId == _activeProfileId.value) {
+                saveProfileSettingsToFile()
+            }
         }
     }
 
@@ -2081,6 +2100,7 @@ class SettingsRepository(private val context: Context) {
         _selectedContentType.value = loadSelectedContentType()
         _selectedCategoryId.value = loadSelectedCategoryId()
         _collapsedSeries.value = loadCollapsedSeries()
+        _selectedPlaylistsPerCategory.value = loadSelectedPlaylistsPerCategory()
 
         // UI Visibility settings
         _showBackButton.value = loadShowBackButton()
@@ -2258,13 +2278,13 @@ class SettingsRepository(private val context: Context) {
             val profiles = profilesJson.split("|").mapNotNull { entry ->
                 // Try new format with ; delimiter first (handles URIs with colons)
                 val parts = if (entry.contains(";")) {
-                    entry.split(";", limit = 15) // Limit to 15 for all fields including audio settings and sleep timer
+                    entry.split(";", limit = 14) // Limit to 14 for all fields including audio settings and sleep timer
                 } else {
                     // Legacy format with : delimiter
                     entry.split(":")
                 }
                 when {
-                    parts.size >= 15 -> {
+                    parts.size >= 14 -> {
                         // Full format with all audio settings including sleep timer
                         UserProfile(
                             id = parts[0],
@@ -2278,13 +2298,13 @@ class SettingsRepository(private val context: Context) {
                             skipBackDuration = parts[7].toIntOrNull() ?: 10,
                             volumeBoostEnabled = parts[8].toBooleanStrictOrNull() ?: false,
                             volumeBoostLevel = parts[9].toFloatOrNull() ?: 1.0f,
-                            normalizeAudio = parts[11].toBooleanStrictOrNull() ?: false,
-                            bassBoostLevel = parts[12].toFloatOrNull() ?: 0f,
-                            equalizerPreset = normalizeEqualizerPreset(parts[13]),
-                            sleepTimerMinutes = parts[14].toIntOrNull() ?: 0
+                            normalizeAudio = parts[10].toBooleanStrictOrNull() ?: false,
+                            bassBoostLevel = parts[11].toFloatOrNull() ?: 0f,
+                            equalizerPreset = normalizeEqualizerPreset(parts[12]),
+                            sleepTimerMinutes = parts.getOrNull(13)?.toIntOrNull() ?: 0
                         )
                     }
-                    parts.size >= 14 -> {
+                    parts.size >= 13 -> {
                         // Format with audio settings but no sleep timer (migrate)
                         UserProfile(
                             id = parts[0],
@@ -2298,9 +2318,9 @@ class SettingsRepository(private val context: Context) {
                             skipBackDuration = parts[7].toIntOrNull() ?: 10,
                             volumeBoostEnabled = parts[8].toBooleanStrictOrNull() ?: false,
                             volumeBoostLevel = parts[9].toFloatOrNull() ?: 1.0f,
-                            normalizeAudio = parts[11].toBooleanStrictOrNull() ?: false,
-                            bassBoostLevel = parts[12].toFloatOrNull() ?: 0f,
-                            equalizerPreset = normalizeEqualizerPreset(parts[13])
+                            normalizeAudio = parts[10].toBooleanStrictOrNull() ?: false,
+                            bassBoostLevel = parts[11].toFloatOrNull() ?: 0f,
+                            equalizerPreset = normalizeEqualizerPreset(parts[12])
                         )
                     }
                     parts.size >= 5 -> {
@@ -2495,6 +2515,19 @@ class SettingsRepository(private val context: Context) {
         return raw.split("|").mapNotNull { it.ifBlank { null } }.toSet()
     }
 
+    private fun loadSelectedPlaylistsPerCategory(): Map<String, String?> {
+        val raw = prefs.getString(getProfileKey(KEY_SELECTED_PLAYLISTS_PER_CATEGORY), "") ?: ""
+        if (raw.isBlank()) return emptyMap()
+        return raw.split("|").mapNotNull { entry ->
+            val parts = entry.split(":", limit = 2)
+            if (parts.size == 2) {
+                val category = parts[0]
+                val playlistId = parts[1].ifBlank { null }
+                category to playlistId
+            } else null
+        }.toMap()
+    }
+
     // UI Visibility loaders (per-profile)
     private fun loadShowBackButton(): Boolean = prefs.getBoolean(getProfileKey(KEY_SHOW_BACK_BUTTON), true)
     private fun loadShowSearchBar(): Boolean = prefs.getBoolean(getProfileKey(KEY_SHOW_SEARCH_BAR), true)
@@ -2640,6 +2673,17 @@ class SettingsRepository(private val context: Context) {
         prefs.edit().putString(getProfileKey(KEY_COLLAPSED_SERIES), serialized).apply()
     }
 
+    fun setSelectedPlaylistForCategory(category: String, playlistId: String?) {
+        val current = _selectedPlaylistsPerCategory.value.toMutableMap()
+        current[category] = playlistId
+        _selectedPlaylistsPerCategory.value = current
+        // Serialize: "AUDIOBOOK:playlistId|MUSIC:playlistId2|..."
+        val serialized = current.entries.joinToString("|") { (cat, id) ->
+            "$cat:${id ?: ""}"
+        }
+        prefs.edit().putString(getProfileKey(KEY_SELECTED_PLAYLISTS_PER_CATEGORY), serialized).apply()
+    }
+
     // UI Visibility setters (per-profile)
     fun setShowBackButton(enabled: Boolean) {
         _showBackButton.value = enabled
@@ -2739,6 +2783,7 @@ class SettingsRepository(private val context: Context) {
         private const val KEY_SELECTED_CONTENT_TYPE = "selected_content_type"
         private const val KEY_SELECTED_CATEGORY_ID = "selected_category_id"
         private const val KEY_COLLAPSED_SERIES = "collapsed_series"
+        private const val KEY_SELECTED_PLAYLISTS_PER_CATEGORY = "selected_playlists_per_category"
 
         // UI Visibility keys
         private const val KEY_SHOW_BACK_BUTTON = "show_back_button"

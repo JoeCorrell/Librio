@@ -53,6 +53,7 @@ import kotlinx.coroutines.withContext
 import androidx.compose.runtime.rememberCoroutineScope
 import com.librio.ui.theme.*
 import kotlin.math.roundToInt
+import java.io.BufferedInputStream
 
 data class UserProfile(
     val id: String,
@@ -135,6 +136,7 @@ fun ProfileScreen(
     var cropScale by remember { mutableFloatStateOf(1f) }
     var cropOffsetX by remember { mutableFloatStateOf(0f) }
     var cropOffsetY by remember { mutableFloatStateOf(0f) }
+    val cropSaveScope = rememberCoroutineScope()
 
     // Image picker launcher - use OpenDocument for persistable URI permissions
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -313,76 +315,94 @@ fun ProfileScreen(
                 }
             },
             confirmButton = {
-                val coroutineScope = rememberCoroutineScope()
                 TextButton(
                     onClick = {
-                        activeProfile?.let { profile ->
-                            cropBitmap?.let { sourceBitmap ->
-                                coroutineScope.launch(Dispatchers.IO) {
-                                    try {
-                                        val outputSize = 512 // Output image size in pixels
-                                        val croppedBitmap = Bitmap.createBitmap(outputSize, outputSize, Bitmap.Config.ARGB_8888)
-                                        val canvas = android.graphics.Canvas(croppedBitmap)
+                        val fallbackUri = pendingCropUri
+                        val profile = activeProfile
+                        val sourceBitmap = cropBitmap
 
-                                        val paint = android.graphics.Paint().apply {
-                                            isAntiAlias = true
-                                            isFilterBitmap = true
-                                        }
+                        // Close dialog first
+                        showCropDialog = false
+                        pendingCropUri = null
 
-                                        // Fill with background color first
-                                        canvas.drawColor(android.graphics.Color.TRANSPARENT)
+                        // Then perform save in background
+                        if (profile != null && sourceBitmap != null) {
+                            cropSaveScope.launch(Dispatchers.IO) {
+                                try {
+                                    val outputSize = 512 // Output image size in pixels
+                                    val croppedBitmap = Bitmap.createBitmap(outputSize, outputSize, Bitmap.Config.ARGB_8888)
+                                    val canvas = android.graphics.Canvas(croppedBitmap)
 
-                                        // Calculate base scale to fit image in crop area
-                                        val previewSize = 240f // UI preview size
-                                        val baseScale = previewSize / minOf(sourceBitmap.width, sourceBitmap.height).toFloat()
-                                        val finalScale = baseScale * cropScale
+                                    val paint = android.graphics.Paint().apply {
+                                        isAntiAlias = true
+                                        isFilterBitmap = true
+                                    }
 
-                                        // Calculate the scaled image size
-                                        val scaledWidth = sourceBitmap.width * finalScale
-                                        val scaledHeight = sourceBitmap.height * finalScale
+                                    // Fill with background color first
+                                    canvas.drawColor(android.graphics.Color.TRANSPARENT)
 
-                                        // Calculate position: center of preview + offset
-                                        val centerX = previewSize / 2f + cropOffsetX
-                                        val centerY = previewSize / 2f + cropOffsetY
+                                    // Calculate base scale to fit image in crop area
+                                    val previewSize = 240f // UI preview size
+                                    val baseScale = previewSize / minOf(sourceBitmap.width, sourceBitmap.height).toFloat()
+                                    val finalScale = baseScale * cropScale
 
-                                        // Map from preview coordinates to output coordinates
-                                        val scaleToOutput = outputSize / previewSize
+                                    // Calculate the scaled image size
+                                    val scaledWidth = sourceBitmap.width * finalScale
+                                    val scaledHeight = sourceBitmap.height * finalScale
 
-                                        // Draw the bitmap scaled and positioned correctly
-                                        val srcRect = android.graphics.Rect(0, 0, sourceBitmap.width, sourceBitmap.height)
-                                        val dstRect = android.graphics.RectF(
-                                            (centerX - scaledWidth / 2f) * scaleToOutput,
-                                            (centerY - scaledHeight / 2f) * scaleToOutput,
-                                            (centerX + scaledWidth / 2f) * scaleToOutput,
-                                            (centerY + scaledHeight / 2f) * scaleToOutput
-                                        )
-                                        canvas.drawBitmap(sourceBitmap, srcRect, dstRect, paint)
+                                    // Calculate position: center of preview + offset
+                                    val centerX = previewSize / 2f + cropOffsetX
+                                    val centerY = previewSize / 2f + cropOffsetY
 
-                                        // Save to app's private directory
-                                        val profileDir = java.io.File(context.filesDir, "profile_pictures")
-                                        profileDir.mkdirs()
-                                        val outputFile = java.io.File(profileDir, "${profile.id}_avatar.png")
-                                        java.io.FileOutputStream(outputFile).use { out ->
-                                            croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
-                                        }
+                                    // Map from preview coordinates to output coordinates
+                                    val scaleToOutput = outputSize / previewSize
 
-                                        val fileUri = Uri.fromFile(outputFile).toString()
-                                        withContext(Dispatchers.Main) {
-                                            onSetProfilePicture(profile, fileUri)
-                                        }
-                                    } catch (_: Exception) {
-                                        // Fallback to original URI if cropping fails
-                                        withContext(Dispatchers.Main) {
-                                            pendingCropUri?.let { uri ->
-                                                onSetProfilePicture(profile, uri.toString())
-                                            }
+                                    // Draw the bitmap scaled and positioned correctly
+                                    val srcRect = android.graphics.Rect(0, 0, sourceBitmap.width, sourceBitmap.height)
+                                    val dstRect = android.graphics.RectF(
+                                        (centerX - scaledWidth / 2f) * scaleToOutput,
+                                        (centerY - scaledHeight / 2f) * scaleToOutput,
+                                        (centerX + scaledWidth / 2f) * scaleToOutput,
+                                        (centerY + scaledHeight / 2f) * scaleToOutput
+                                    )
+                                    canvas.drawBitmap(sourceBitmap, srcRect, dstRect, paint)
+
+                                    // Save to app's private directory with timestamp to ensure URI changes
+                                    val profileDir = java.io.File(context.filesDir, "profile_pictures")
+                                    profileDir.mkdirs()
+                                    // Add timestamp to filename to force cache refresh
+                                    val timestamp = System.currentTimeMillis()
+                                    val outputFile = java.io.File(profileDir, "${profile.id}_avatar_${timestamp}.png")
+
+                                    // Delete old profile pictures for this profile
+                                    profileDir.listFiles()?.filter {
+                                        it.name.startsWith("${profile.id}_avatar_") && it.name.endsWith(".png")
+                                    }?.forEach { it.delete() }
+
+                                    java.io.FileOutputStream(outputFile).use { out ->
+                                        croppedBitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                                    }
+
+                                    val fileUri = Uri.fromFile(outputFile).toString()
+
+                                    withContext(Dispatchers.Main) {
+                                        // Clear ALL cache entries before updating
+                                        ProfileAvatarCache.clearAll()
+                                        onSetProfilePicture(profile, fileUri)
+                                    }
+                                } catch (_: Exception) {
+                                    // Fallback to original URI if cropping fails
+                                    withContext(Dispatchers.Main) {
+                                        fallbackUri?.let { uri ->
+                                            onSetProfilePicture(profile, uri.toString())
                                         }
                                     }
                                 }
                             }
+                        } else if (profile != null && fallbackUri != null) {
+                            // If bitmap couldn't be loaded, use original URI as fallback
+                            onSetProfilePicture(profile, fallbackUri.toString())
                         }
-                        showCropDialog = false
-                        pendingCropUri = null
                     }
                 ) {
                     Text("Save", color = palette.primary)
@@ -1083,23 +1103,27 @@ fun ProfileScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     // Show profile picture if available (async loading)
+                    // Use key() to force recomposition when URI changes
                     val profilePicUri = activeProfile?.profilePicture
-                    val avatarBitmap by rememberAsyncProfileBitmap(profilePicUri, context, 256)
 
-                    if (avatarBitmap != null) {
-                        Image(
-                            bitmap = avatarBitmap!!.asImageBitmap(),
-                            contentDescription = "Profile picture",
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Text(
-                            text = currentProfileName.firstOrNull()?.uppercase() ?: "?",
-                            style = MaterialTheme.typography.headlineLarge,
-                            color = palette.onPrimary,
-                            fontWeight = FontWeight.Bold
-                        )
+                    key(profilePicUri) {
+                        val avatarBitmap by rememberAsyncProfileBitmap(profilePicUri, context, 256)
+
+                        if (avatarBitmap != null) {
+                            Image(
+                                bitmap = avatarBitmap!!.asImageBitmap(),
+                                contentDescription = "Profile picture",
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(
+                                text = currentProfileName.firstOrNull()?.uppercase() ?: "?",
+                                style = MaterialTheme.typography.headlineLarge,
+                                color = palette.onPrimary,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
                 }
 
@@ -1511,46 +1535,75 @@ private fun rememberAsyncProfileBitmap(
             state.value = it
             return@LaunchedEffect
         }
-        withContext(Dispatchers.IO) {
+        val loadedBitmap = withContext(Dispatchers.IO) {
             try {
                 val uri = Uri.parse(uriString)
+                // Helper to open input stream for file paths and content URIs.
+                fun openStream(): java.io.InputStream? {
+                    val localPath = when (uri.scheme) {
+                        "file", null, "" -> uri.path
+                        else -> null
+                    }
+                    return if (!localPath.isNullOrBlank()) {
+                        java.io.FileInputStream(localPath)
+                    } else {
+                        context.contentResolver.openInputStream(uri)
+                    }
+                }
+
                 // First decode bounds to compute sample size
-                context.contentResolver.openInputStream(uri)?.use { stream ->
+                openStream()?.use { stream ->
                     val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeStream(stream, null, opts)
                     val maxDim = maxOf(opts.outWidth, opts.outHeight).coerceAtLeast(1)
                     val sample = (maxDim / targetSizePx).coerceAtLeast(1)
                     val decodeOpts = BitmapFactory.Options().apply { inSampleSize = sample }
-                    context.contentResolver.openInputStream(uri)?.use { dataStream ->
+                    openStream()?.use { dataStream ->
                         val decoded = BitmapFactory.decodeStream(dataStream, null, decodeOpts)
                         if (decoded != null) {
-                            // Apply EXIF rotation if needed
-                            val rotated = context.contentResolver.openInputStream(uri)?.use { exifStream ->
-                                val exif = ExifInterface(exifStream)
-                                val orientation = exif.getAttributeInt(
-                                    ExifInterface.TAG_ORIENTATION,
+                            // Apply EXIF rotation when available, but don't fail the load if EXIF can't be read.
+                            val rotation = if (uri.scheme != "file") {
+                                try {
+                                    openStream()?.use { exifStream ->
+                                        val buffered = BufferedInputStream(exifStream)
+                                        val exif = ExifInterface(buffered)
+                                        exif.getAttributeInt(
+                                            ExifInterface.TAG_ORIENTATION,
+                                            ExifInterface.ORIENTATION_NORMAL
+                                        )
+                                    } ?: ExifInterface.ORIENTATION_NORMAL
+                                } catch (_: Exception) {
                                     ExifInterface.ORIENTATION_NORMAL
-                                )
-                                val rotation = when (orientation) {
-                                    ExifInterface.ORIENTATION_ROTATE_90 -> 90f
-                                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                                    else -> 0f
                                 }
-                                if (rotation != 0f) {
-                                    val matrix = Matrix().apply { postRotate(rotation) }
+                            } else {
+                                ExifInterface.ORIENTATION_NORMAL
+                            }
+                            val rotated = when (rotation) {
+                                ExifInterface.ORIENTATION_ROTATE_90 -> {
+                                    val matrix = Matrix().apply { postRotate(90f) }
                                     Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
-                                } else decoded
-                            } ?: decoded
+                                }
+                                ExifInterface.ORIENTATION_ROTATE_180 -> {
+                                    val matrix = Matrix().apply { postRotate(180f) }
+                                    Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+                                }
+                                ExifInterface.ORIENTATION_ROTATE_270 -> {
+                                    val matrix = Matrix().apply { postRotate(270f) }
+                                    Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+                                }
+                                else -> decoded
+                            }
                             ProfileAvatarCache.put(uriString, rotated)
-                            state.value = rotated
+                            return@withContext rotated
                         }
                     }
                 }
+                null
             } catch (_: Exception) {
-                state.value = null
+                null
             }
         }
+        state.value = loadedBitmap
     }
     return state
 }
@@ -1559,6 +1612,8 @@ private object ProfileAvatarCache {
     private val cache = mutableMapOf<String, Bitmap?>()
     fun get(uri: String): Bitmap? = cache[uri]
     fun put(uri: String, bitmap: Bitmap?) { cache[uri] = bitmap }
+    fun clear(uri: String) { cache.remove(uri) }
+    fun clearAll() { cache.clear() }
 }
 
 @Composable
@@ -1605,50 +1660,53 @@ private fun ProfileChip(
     val palette = currentPalette()
     val context = LocalContext.current
 
-    val bitmap by rememberAsyncProfileBitmap(profile.profilePicture, context, 128)
+    // Use key to force recomposition when profile picture URI changes
+    key(profile.id, profile.profilePicture) {
+        val bitmap by rememberAsyncProfileBitmap(profile.profilePicture, context, 128)
 
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.combinedClickable(
-            onClick = onClick,
-            onLongClick = onLongClick
-        )
-    ) {
-        Box(
-            modifier = Modifier
-                .size(56.dp)
-                .clip(CircleShape)
-                .background(
-                    if (isSelected) palette.accentGradient()
-                    else Brush.linearGradient(listOf(palette.shade5.copy(alpha = 0.5f), palette.shade6.copy(alpha = 0.4f)))
-                )
-                .then(
-                    if (isSelected) Modifier.border(3.dp, palette.primaryLight, CircleShape)
-                    else Modifier.border(2.dp, palette.shade4, CircleShape)
-                ),
-            contentAlignment = Alignment.Center
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick
+            )
         ) {
-            if (bitmap != null) {
-                Image(
-                    bitmap = bitmap!!.asImageBitmap(),
-                    contentDescription = "Profile picture",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                Text(
-                    text = profile.name.firstOrNull()?.uppercase() ?: "?",
-                    style = MaterialTheme.typography.titleLarge,
-                    color = if (isSelected) palette.onPrimary else palette.textPrimary,
-                    fontWeight = FontWeight.Bold
-                )
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (isSelected) palette.accentGradient()
+                        else Brush.linearGradient(listOf(palette.shade5.copy(alpha = 0.5f), palette.shade6.copy(alpha = 0.4f)))
+                    )
+                    .then(
+                        if (isSelected) Modifier.border(3.dp, palette.primaryLight, CircleShape)
+                        else Modifier.border(2.dp, palette.shade4, CircleShape)
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                if (bitmap != null) {
+                    Image(
+                        bitmap = bitmap!!.asImageBitmap(),
+                        contentDescription = "Profile picture",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    Text(
+                        text = profile.name.firstOrNull()?.uppercase() ?: "?",
+                        style = MaterialTheme.typography.titleLarge,
+                        color = if (isSelected) palette.onPrimary else palette.textPrimary,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
             }
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = profile.name,
+                style = MaterialTheme.typography.labelSmall,
+                color = if (isSelected) palette.primary else palette.primary.copy(alpha = 0.5f)
+            )
         }
-        Spacer(modifier = Modifier.height(4.dp))
-        Text(
-            text = profile.name,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) palette.primary else palette.primary.copy(alpha = 0.5f)
-        )
     }
 }

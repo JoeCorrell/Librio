@@ -44,6 +44,13 @@ class PlaybackService : Service() {
         var onNextAudiobook: (() -> Unit)? = null
         var onPreviousAudiobook: (() -> Unit)? = null
 
+        // Callbacks for music playlist navigation
+        var onNextMusic: (() -> Unit)? = null
+        var onPreviousMusic: (() -> Unit)? = null
+
+        // Track what type of content is currently active
+        var currentActiveType: String? = null // "AUDIOBOOK" or "MUSIC"
+
         fun start(context: Context) {
             val intent = Intent(context, PlaybackService::class.java)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -117,12 +124,21 @@ class PlaybackService : Service() {
                         if (player.hasPreviousMediaItem()) {
                             player.seekToPreviousMediaItem()
                         } else {
-                            // Single media item (audiobook) - use callback for playlist navigation
-                            onPreviousAudiobook?.invoke()
-                            // Also send chapter broadcast for AudiobookPlayer chapter handling
-                            sendBroadcast(Intent(BROADCAST_PREVIOUS_CHAPTER).apply {
-                                setPackage(packageName)
-                            })
+                            // No previous media item - use callback based on active type
+                            when (currentActiveType) {
+                                "MUSIC" -> onPreviousMusic?.invoke()
+                                "AUDIOBOOK" -> {
+                                    onPreviousAudiobook?.invoke()
+                                    // Also send chapter broadcast for AudiobookPlayer chapter handling
+                                    sendBroadcast(Intent(BROADCAST_PREVIOUS_CHAPTER).apply {
+                                        setPackage(packageName)
+                                    })
+                                }
+                                else -> {
+                                    // Fallback: try audiobook callback
+                                    onPreviousAudiobook?.invoke()
+                                }
+                            }
                         }
                         updateNotification(player)
                     }
@@ -131,12 +147,21 @@ class PlaybackService : Service() {
                         if (player.hasNextMediaItem()) {
                             player.seekToNextMediaItem()
                         } else {
-                            // Single media item (audiobook) - use callback for playlist navigation
-                            onNextAudiobook?.invoke()
-                            // Also send chapter broadcast for AudiobookPlayer chapter handling
-                            sendBroadcast(Intent(BROADCAST_NEXT_CHAPTER).apply {
-                                setPackage(packageName)
-                            })
+                            // No next media item - use callback based on active type
+                            when (currentActiveType) {
+                                "MUSIC" -> onNextMusic?.invoke()
+                                "AUDIOBOOK" -> {
+                                    onNextAudiobook?.invoke()
+                                    // Also send chapter broadcast for AudiobookPlayer chapter handling
+                                    sendBroadcast(Intent(BROADCAST_NEXT_CHAPTER).apply {
+                                        setPackage(packageName)
+                                    })
+                                }
+                                else -> {
+                                    // Fallback: try audiobook callback
+                                    onNextAudiobook?.invoke()
+                                }
+                            }
                         }
                         updateNotification(player)
                     }
