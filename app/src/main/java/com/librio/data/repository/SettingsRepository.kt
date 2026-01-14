@@ -1,7 +1,7 @@
 package com.librio.data.repository
 
 import android.content.Context
-import android.os.Environment
+import com.librio.LibrioApplication
 import com.librio.data.ProfileFileManager
 import com.librio.model.AudioSettings
 import com.librio.model.ComicSettings
@@ -95,8 +95,8 @@ class SettingsRepository(private val context: Context) {
     }
 
     // Profile folder structure
-    private val librioRoot = File(Environment.getExternalStorageDirectory(), "Librio")
-    private val profilesRoot = File(librioRoot, "Profiles")
+    private val librioRootFolder: File get() = LibrioApplication.getLibrioRoot()
+    private val profilesRoot: File get() = File(librioRootFolder, "Profiles")
     private val contentFolders = listOf("Audiobooks", "Books", "Music", "Comics", "Movies")
 
     /**
@@ -449,6 +449,10 @@ class SettingsRepository(private val context: Context) {
     // Selected playlist per category (per-profile)
     private val _selectedPlaylistsPerCategory = MutableStateFlow(loadSelectedPlaylistsPerCategory())
     val selectedPlaylistsPerCategory: StateFlow<Map<String, String?>> = _selectedPlaylistsPerCategory.asStateFlow()
+
+    // Deleted series names per content type (per-profile) - to prevent auto-recreation during sync
+    private val _deletedSeriesNames = MutableStateFlow(loadDeletedSeriesNames())
+    val deletedSeriesNames: StateFlow<Map<String, Set<String>>> = _deletedSeriesNames.asStateFlow()
 
     // UI Visibility settings
     private val _showBackButton = MutableStateFlow(loadShowBackButton())
@@ -923,7 +927,7 @@ class SettingsRepository(private val context: Context) {
      * Exposed for BackupManager access.
      */
     fun getLibrioRoot(): File {
-        return File(android.os.Environment.getExternalStorageDirectory(), "Librio")
+        return LibrioApplication.getLibrioRoot()
     }
 
     /**
@@ -2101,6 +2105,7 @@ class SettingsRepository(private val context: Context) {
         _selectedCategoryId.value = loadSelectedCategoryId()
         _collapsedSeries.value = loadCollapsedSeries()
         _selectedPlaylistsPerCategory.value = loadSelectedPlaylistsPerCategory()
+        _deletedSeriesNames.value = loadDeletedSeriesNames()
 
         // UI Visibility settings
         _showBackButton.value = loadShowBackButton()
@@ -2528,6 +2533,24 @@ class SettingsRepository(private val context: Context) {
         }.toMap()
     }
 
+    private fun loadDeletedSeriesNames(): Map<String, Set<String>> {
+        val raw = prefs.getString(getProfileKey(KEY_DELETED_SERIES_NAMES), "") ?: ""
+        if (raw.isBlank()) return emptyMap()
+        val result = mutableMapOf<String, MutableSet<String>>()
+        // Format: contentType:name1,name2,name3|contentType2:name4,name5
+        raw.split("|").forEach { entry ->
+            val parts = entry.split(":", limit = 2)
+            if (parts.size == 2) {
+                val contentType = parts[0]
+                val names = parts[1].split(",").mapNotNull { it.ifBlank { null } }.toMutableSet()
+                if (names.isNotEmpty()) {
+                    result[contentType] = names
+                }
+            }
+        }
+        return result
+    }
+
     // UI Visibility loaders (per-profile)
     private fun loadShowBackButton(): Boolean = prefs.getBoolean(getProfileKey(KEY_SHOW_BACK_BUTTON), true)
     private fun loadShowSearchBar(): Boolean = prefs.getBoolean(getProfileKey(KEY_SHOW_SEARCH_BAR), true)
@@ -2684,6 +2707,52 @@ class SettingsRepository(private val context: Context) {
         prefs.edit().putString(getProfileKey(KEY_SELECTED_PLAYLISTS_PER_CATEGORY), serialized).apply()
     }
 
+    /**
+     * Add a series name to the deleted list for a content type
+     * This prevents the series from being auto-recreated during folder sync
+     */
+    fun addDeletedSeriesName(contentType: String, seriesName: String) {
+        val current = _deletedSeriesNames.value.toMutableMap()
+        val namesForType = current.getOrPut(contentType) { mutableSetOf() }.toMutableSet()
+        namesForType.add(seriesName)
+        current[contentType] = namesForType
+        _deletedSeriesNames.value = current
+        saveDeletedSeriesNames(current)
+    }
+
+    /**
+     * Remove a series name from the deleted list (e.g., when user manually creates it again)
+     */
+    fun removeDeletedSeriesName(contentType: String, seriesName: String) {
+        val current = _deletedSeriesNames.value.toMutableMap()
+        val namesForType = current[contentType]?.toMutableSet()
+        if (namesForType != null) {
+            namesForType.remove(seriesName)
+            if (namesForType.isEmpty()) {
+                current.remove(contentType)
+            } else {
+                current[contentType] = namesForType
+            }
+            _deletedSeriesNames.value = current
+            saveDeletedSeriesNames(current)
+        }
+    }
+
+    /**
+     * Check if a series name is in the deleted list for a content type
+     */
+    fun isSeriesDeleted(contentType: String, seriesName: String): Boolean {
+        return _deletedSeriesNames.value[contentType]?.contains(seriesName) == true
+    }
+
+    private fun saveDeletedSeriesNames(data: Map<String, Set<String>>) {
+        // Format: contentType:name1,name2,name3|contentType2:name4,name5
+        val serialized = data.entries.joinToString("|") { (contentType, names) ->
+            "$contentType:${names.joinToString(",")}"
+        }
+        prefs.edit().putString(getProfileKey(KEY_DELETED_SERIES_NAMES), serialized).apply()
+    }
+
     // UI Visibility setters (per-profile)
     fun setShowBackButton(enabled: Boolean) {
         _showBackButton.value = enabled
@@ -2784,6 +2853,7 @@ class SettingsRepository(private val context: Context) {
         private const val KEY_SELECTED_CATEGORY_ID = "selected_category_id"
         private const val KEY_COLLAPSED_SERIES = "collapsed_series"
         private const val KEY_SELECTED_PLAYLISTS_PER_CATEGORY = "selected_playlists_per_category"
+        private const val KEY_DELETED_SERIES_NAMES = "deleted_series_names"
 
         // UI Visibility keys
         private const val KEY_SHOW_BACK_BUTTON = "show_back_button"

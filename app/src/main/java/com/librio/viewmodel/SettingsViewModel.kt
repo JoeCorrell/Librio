@@ -213,6 +213,9 @@ class SettingsViewModel : ViewModel() {
     val selectedPlaylistsPerCategory: StateFlow<Map<String, String?>>?
         get() = repository?.selectedPlaylistsPerCategory
 
+    val deletedSeriesNames: StateFlow<Map<String, Set<String>>>?
+        get() = repository?.deletedSeriesNames
+
     // UI Visibility settings
     val showBackButton: StateFlow<Boolean>?
         get() = repository?.showBackButton
@@ -338,10 +341,9 @@ class SettingsViewModel : ViewModel() {
 
             // Check and perform migration if needed
             performMigrationIfNeeded()
-
-            // Check if onboarding is needed (first launch)
-            _showOnboarding.value = !repository!!.isOnboardingComplete()
         }
+        // Always check if onboarding is needed (first launch)
+        _showOnboarding.value = !repository!!.isOnboardingComplete()
     }
 
     /**
@@ -709,6 +711,18 @@ class SettingsViewModel : ViewModel() {
 
     fun setSelectedPlaylistForCategory(category: String, playlistId: String?) {
         repository?.setSelectedPlaylistForCategory(category, playlistId)
+    }
+
+    fun addDeletedSeriesName(contentType: String, seriesName: String) {
+        repository?.addDeletedSeriesName(contentType, seriesName)
+    }
+
+    fun removeDeletedSeriesName(contentType: String, seriesName: String) {
+        repository?.removeDeletedSeriesName(contentType, seriesName)
+    }
+
+    fun isSeriesDeleted(contentType: String, seriesName: String): Boolean {
+        return repository?.isSeriesDeleted(contentType, seriesName) ?: false
     }
 
     // UI Visibility setters

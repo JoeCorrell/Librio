@@ -10,6 +10,7 @@ import android.content.Intent
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import androidx.media3.common.ForwardingPlayer
 import androidx.media3.common.Player
 import androidx.media3.session.MediaSession
 import com.librio.MainActivity
@@ -70,12 +71,37 @@ class PlaybackService : Service() {
         super.onCreate()
         createNotificationChannel()
 
-        // Get the shared player and create media session
-        val player = SharedMusicPlayer.acquire(applicationContext)
-        mediaSession = MediaSession.Builder(this, player).build()
+        // Get the shared player and wrap it with ForwardingPlayer to handle skip commands
+        val actualPlayer = SharedMusicPlayer.acquire(applicationContext)
+
+        // ForwardingPlayer intercepts skip commands from headphones/Bluetooth and handles them
+        val forwardingPlayer = object : ForwardingPlayer(actualPlayer) {
+            override fun seekToNext() {
+                // Override to use our custom handler for skip next
+                handleNextAction(wrappedPlayer)
+            }
+
+            override fun seekToPrevious() {
+                // Override to use our custom handler for skip previous
+                handlePreviousAction(wrappedPlayer)
+            }
+
+            override fun seekToNextMediaItem() {
+                // Also handle seekToNextMediaItem for full compatibility
+                handleNextAction(wrappedPlayer)
+            }
+
+            override fun seekToPreviousMediaItem() {
+                // Also handle seekToPreviousMediaItem for full compatibility
+                handlePreviousAction(wrappedPlayer)
+            }
+        }
+
+        // Create media session with the forwarding player
+        mediaSession = MediaSession.Builder(this, forwardingPlayer).build()
 
         // Start as foreground service
-        startForeground(notificationId, createNotification(player))
+        startForeground(notificationId, createNotification(actualPlayer))
 
         // Listen for playback state changes to update notification
         val listener = object : Player.Listener {
@@ -92,7 +118,7 @@ class PlaybackService : Service() {
                 updateNotification(currentPlayer)
             }
         }
-        player.addListener(listener)
+        actualPlayer.addListener(listener)
         playerListener = listener
     }
 
@@ -119,52 +145,8 @@ class PlaybackService : Service() {
                         }
                         updateNotification(player)
                     }
-                    ACTION_PREVIOUS -> {
-                        // For music playlists (multiple items): use ExoPlayer's built-in navigation
-                        if (player.hasPreviousMediaItem()) {
-                            player.seekToPreviousMediaItem()
-                        } else {
-                            // No previous media item - use callback based on active type
-                            when (currentActiveType) {
-                                "MUSIC" -> onPreviousMusic?.invoke()
-                                "AUDIOBOOK" -> {
-                                    onPreviousAudiobook?.invoke()
-                                    // Also send chapter broadcast for AudiobookPlayer chapter handling
-                                    sendBroadcast(Intent(BROADCAST_PREVIOUS_CHAPTER).apply {
-                                        setPackage(packageName)
-                                    })
-                                }
-                                else -> {
-                                    // Fallback: try audiobook callback
-                                    onPreviousAudiobook?.invoke()
-                                }
-                            }
-                        }
-                        updateNotification(player)
-                    }
-                    ACTION_NEXT -> {
-                        // For music playlists (multiple items): use ExoPlayer's built-in navigation
-                        if (player.hasNextMediaItem()) {
-                            player.seekToNextMediaItem()
-                        } else {
-                            // No next media item - use callback based on active type
-                            when (currentActiveType) {
-                                "MUSIC" -> onNextMusic?.invoke()
-                                "AUDIOBOOK" -> {
-                                    onNextAudiobook?.invoke()
-                                    // Also send chapter broadcast for AudiobookPlayer chapter handling
-                                    sendBroadcast(Intent(BROADCAST_NEXT_CHAPTER).apply {
-                                        setPackage(packageName)
-                                    })
-                                }
-                                else -> {
-                                    // Fallback: try audiobook callback
-                                    onNextAudiobook?.invoke()
-                                }
-                            }
-                        }
-                        updateNotification(player)
-                    }
+                    ACTION_PREVIOUS -> handlePreviousAction(player)
+                    ACTION_NEXT -> handleNextAction(player)
                     ACTION_STOP -> {
                         player.pause()
                         stopSelf()
@@ -322,6 +304,68 @@ class PlaybackService : Service() {
                 intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+        }
+    }
+
+    /**
+     * Handle next action from notification buttons or headphone media buttons
+     */
+    private fun handleNextAction(player: Player) {
+        try {
+            // For music playlists (multiple items): use ExoPlayer's built-in navigation
+            if (player.hasNextMediaItem()) {
+                player.seekToNextMediaItem()
+            } else {
+                // No next media item - use callback based on active type
+                when (currentActiveType) {
+                    "MUSIC" -> onNextMusic?.invoke()
+                    "AUDIOBOOK" -> {
+                        onNextAudiobook?.invoke()
+                        // Also send chapter broadcast for AudiobookPlayer chapter handling
+                        sendBroadcast(Intent(BROADCAST_NEXT_CHAPTER).apply {
+                            setPackage(packageName)
+                        })
+                    }
+                    else -> {
+                        // Fallback: try audiobook callback
+                        onNextAudiobook?.invoke()
+                    }
+                }
+            }
+            updateNotification(player)
+        } catch (_: Exception) {
+            // Player may be in invalid state
+        }
+    }
+
+    /**
+     * Handle previous action from notification buttons or headphone media buttons
+     */
+    private fun handlePreviousAction(player: Player) {
+        try {
+            // For music playlists (multiple items): use ExoPlayer's built-in navigation
+            if (player.hasPreviousMediaItem()) {
+                player.seekToPreviousMediaItem()
+            } else {
+                // No previous media item - use callback based on active type
+                when (currentActiveType) {
+                    "MUSIC" -> onPreviousMusic?.invoke()
+                    "AUDIOBOOK" -> {
+                        onPreviousAudiobook?.invoke()
+                        // Also send chapter broadcast for AudiobookPlayer chapter handling
+                        sendBroadcast(Intent(BROADCAST_PREVIOUS_CHAPTER).apply {
+                            setPackage(packageName)
+                        })
+                    }
+                    else -> {
+                        // Fallback: try audiobook callback
+                        onPreviousAudiobook?.invoke()
+                    }
+                }
+            }
+            updateNotification(player)
+        } catch (_: Exception) {
+            // Player may be in invalid state
         }
     }
 }

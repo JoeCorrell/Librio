@@ -1,6 +1,6 @@
 package com.librio.data
 
-import android.os.Environment
+import com.librio.LibrioApplication
 import com.librio.model.ContentType
 import com.librio.model.DiscoveredPlaylist
 import kotlinx.coroutines.Dispatchers
@@ -13,7 +13,7 @@ import java.io.File
  */
 class PlaylistFolderManager {
 
-    private val librioRoot = File(Environment.getExternalStorageDirectory(), "Librio")
+    private val librioRoot: File get() = LibrioApplication.getLibrioRoot()
     private val profilesRoot = File(librioRoot, "Profiles")
 
     /**

@@ -2,6 +2,7 @@ package com.librio.data
 
 import android.content.Context
 import android.content.SharedPreferences
+import com.librio.LibrioApplication
 import com.librio.model.AudioSettings
 import com.librio.model.ComicSettings
 import com.librio.model.ContentType
@@ -365,7 +366,7 @@ class MigrationManager(
      * These are no longer used since content is now per-profile
      */
     suspend fun deleteLegacyGlobalFolders(): Boolean = withContext(Dispatchers.IO) {
-        val librioRoot = java.io.File(android.os.Environment.getExternalStorageDirectory(), "Librio")
+        val librioRoot = LibrioApplication.getLibrioRoot()
         val legacyFolders = listOf("Audiobooks", "Books", "Music", "Comics", "Videos")
         var allDeleted = true
 

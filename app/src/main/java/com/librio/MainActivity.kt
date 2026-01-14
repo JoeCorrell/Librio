@@ -9,8 +9,6 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.os.Environment
-import android.provider.Settings
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -282,13 +280,34 @@ class MainActivity : ComponentActivity() {
             var musicBassBoost by remember { mutableStateOf<android.media.audiofx.BassBoost?>(null) }
             var musicEqualizer by remember { mutableStateOf<android.media.audiofx.Equalizer?>(null) }
             var musicAudioSessionId by remember { mutableIntStateOf(androidx.media3.common.C.AUDIO_SESSION_ID_UNSET) }
+            var musicEffectsSessionId by remember { mutableIntStateOf(androidx.media3.common.C.AUDIO_SESSION_ID_UNSET) }
 
-            LaunchedEffect(profileNormalizeAudio, profileBassBoost, profileVolumeBoost, profileVolumeBoostLevel, profileEqualizer, musicExoPlayer.audioSessionId) {
-                val audioSessionId = musicExoPlayer.audioSessionId
+            DisposableEffect(musicExoPlayer) {
+                val listener = object : Player.Listener {
+                    override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                        if (audioSessionId != androidx.media3.common.C.AUDIO_SESSION_ID_UNSET && audioSessionId != 0) {
+                            musicAudioSessionId = audioSessionId
+                        }
+                    }
+                }
+                musicExoPlayer.addListener(listener)
+
+                val initialSessionId = musicExoPlayer.audioSessionId
+                if (initialSessionId != androidx.media3.common.C.AUDIO_SESSION_ID_UNSET && initialSessionId != 0) {
+                    musicAudioSessionId = initialSessionId
+                }
+
+                onDispose {
+                    musicExoPlayer.removeListener(listener)
+                }
+            }
+
+            LaunchedEffect(profileNormalizeAudio, profileBassBoost, profileVolumeBoost, profileVolumeBoostLevel, profileEqualizer, musicAudioSessionId) {
+                val audioSessionId = musicAudioSessionId
                 if (audioSessionId == androidx.media3.common.C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0) return@LaunchedEffect
 
-                if (audioSessionId != musicAudioSessionId) {
-                    musicAudioSessionId = audioSessionId
+                if (audioSessionId != musicEffectsSessionId) {
+                    musicEffectsSessionId = audioSessionId
                     // Release existing effects
                     try { musicLoudnessEnhancer?.release() } catch (_: Exception) { }
                     try { musicBassBoost?.release() } catch (_: Exception) { }
@@ -1957,46 +1976,14 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun requestPermissions() {
-        val permissionsToRequest = mutableListOf<String>()
-
-        // Request "All Files Access" for Android 11+ to scan device storage
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                try {
-                    val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                    intent.data = Uri.parse("package:$packageName")
-                    startActivity(intent)
-                } catch (e: Exception) {
-                    val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                    startActivity(intent)
-                }
-            }
-        }
-
+        // Only need notification permission since we use app's data folder (no storage permissions needed)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            if (ContextCompat.checkSelfPermission(
-                    this, Manifest.permission.READ_MEDIA_AUDIO
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissionsToRequest.add(Manifest.permission.READ_MEDIA_AUDIO)
-            }
             if (ContextCompat.checkSelfPermission(
                     this, Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
-                permissionsToRequest.add(Manifest.permission.POST_NOTIFICATIONS)
+                requestPermissionLauncher.launch(arrayOf(Manifest.permission.POST_NOTIFICATIONS))
             }
-        } else {
-            if (ContextCompat.checkSelfPermission(
-                    this, Manifest.permission.READ_EXTERNAL_STORAGE
-                ) != PackageManager.PERMISSION_GRANTED
-            ) {
-                permissionsToRequest.add(Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
-        }
-
-        if (permissionsToRequest.isNotEmpty()) {
-            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
         }
     }
 

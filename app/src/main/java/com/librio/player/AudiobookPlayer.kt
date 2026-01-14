@@ -140,6 +140,11 @@ class AudiobookPlayer(private val context: Context) {
                 }
             }
 
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0) return
+                applyAudioEffects(audioSessionId)
+            }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 val currentUri = player.currentMediaItem?.localConfiguration?.uri
                 val audiobookUri = _currentAudiobook.value?.uri

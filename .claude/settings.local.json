@@ -76,7 +76,9 @@
       "Bash(xargs ls:*)",
       "Bash(sort:*)",
       "Bash(wc:*)",
-      "Bash(JAVA_HOME=\"/c/Program Files/Microsoft/jdk-17.0.17.10-hotspot\" ANDROID_HOME=\"/c/Users/Administrator/Android/Sdk\" PATH=\"$JAVA_HOME/bin:$PATH\" ./gradlew.bat assembleRelease:*)"
+      "Bash(JAVA_HOME=\"/c/Program Files/Microsoft/jdk-17.0.17.10-hotspot\" ANDROID_HOME=\"/c/Users/Administrator/Android/Sdk\" PATH=\"$JAVA_HOME/bin:$PATH\" ./gradlew.bat assembleRelease:*)",
+      "Bash(gradlew.bat:*)",
+      "Bash(./gradlew:*)"
     ]
   }
 }

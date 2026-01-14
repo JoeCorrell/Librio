@@ -5,8 +5,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
-import android.os.Environment
 import androidx.core.net.toUri
+import com.librio.LibrioApplication
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.librio.data.ContentFingerprint
@@ -51,8 +51,8 @@ class LibraryViewModel : ViewModel() {
     companion object {
         // Dedicated Librio folder structure - only root and Profiles folder
         // Content folders are now per-profile inside Librio/Profiles/{ProfileName}/
-        val LIBRIO_ROOT = File(Environment.getExternalStorageDirectory(), "Librio")
-        val LIBRIO_PROFILES = File(LIBRIO_ROOT, "Profiles")
+        val LIBRIO_ROOT: File get() = LibrioApplication.getLibrioRoot()
+        val LIBRIO_PROFILES: File get() = File(LIBRIO_ROOT, "Profiles")
 
         // Cover art fallback filenames to look for in the same directory
         private val COVER_ART_FILENAMES = listOf(
@@ -696,7 +696,8 @@ class LibraryViewModel : ViewModel() {
 
                     // Sync playlist folders with series - discover new folders and create series entries
                     val originalSeriesCount = savedSeries.size
-                    savedSeries = repo.syncPlaylistFoldersWithSeries(savedSeries)
+                    val deletedSeriesNames = settingsRepository?.deletedSeriesNames?.value ?: emptyMap()
+                    savedSeries = repo.syncPlaylistFoldersWithSeries(savedSeries, deletedSeriesNames)
 
                     // Save series if new ones were discovered from folder sync
                     if (savedSeries.size > originalSeriesCount) {
@@ -3586,6 +3587,9 @@ class LibraryViewModel : ViewModel() {
         _libraryState.value = _libraryState.value.copy(series = currentSeries)
         saveSeries()
 
+        // Remove from deleted series list if it was previously deleted (user is recreating it)
+        settingsRepository?.removeDeletedSeriesName(contentType.name, name.trim())
+
         // Create playlist folder for the new series
         viewModelScope.launch {
             repository?.createPlaylistFolder(contentType, name.trim())
@@ -3605,6 +3609,11 @@ class LibraryViewModel : ViewModel() {
         // Clear seriesId from all items that had this series
         clearSeriesFromItems(seriesId)
         saveSeries()
+
+        // Add to deleted series names to prevent auto-recreation during sync
+        if (seriesToDelete != null) {
+            settingsRepository?.addDeletedSeriesName(seriesToDelete.contentType.name, seriesToDelete.name)
+        }
 
         // Optionally delete the playlist folder (only if empty by default)
         if (deleteFolder && seriesToDelete != null) {
@@ -3737,7 +3746,8 @@ class LibraryViewModel : ViewModel() {
         viewModelScope.launch {
             val repo = repository ?: return@launch
             val currentSeries = _libraryState.value.series
-            val updatedSeries = repo.syncPlaylistFoldersWithSeries(currentSeries)
+            val deletedSeriesNames = settingsRepository?.deletedSeriesNames?.value ?: emptyMap()
+            val updatedSeries = repo.syncPlaylistFoldersWithSeries(currentSeries, deletedSeriesNames)
 
             if (updatedSeries.size != currentSeries.size) {
                 _libraryState.value = _libraryState.value.copy(series = updatedSeries)
@@ -3759,7 +3769,8 @@ class LibraryViewModel : ViewModel() {
                 withContext(Dispatchers.IO) {
                     val repo = repository ?: return@withContext
                     val currentSeries = _libraryState.value.series
-                    val updatedSeries = repo.syncPlaylistFoldersWithSeries(currentSeries)
+                    val deletedSeriesNames = settingsRepository?.deletedSeriesNames?.value ?: emptyMap()
+                    val updatedSeries = repo.syncPlaylistFoldersWithSeries(currentSeries, deletedSeriesNames)
                     if (updatedSeries.size != currentSeries.size) {
                         withContext(Dispatchers.Main) {
                             _libraryState.value = _libraryState.value.copy(series = updatedSeries)

@@ -47,6 +47,10 @@ import androidx.media3.common.AudioAttributes
 import androidx.media3.common.C
 import androidx.media3.common.PlaybackParameters
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.DefaultRenderersFactory
+import androidx.media3.exoplayer.audio.AudioOffloadSupport
+import androidx.media3.exoplayer.audio.DefaultAudioSink
+import android.content.Context
 import android.media.audiofx.Equalizer
 import com.librio.player.applyEqualizerPreset
 import com.librio.player.normalizeEqPresetName
@@ -182,7 +186,20 @@ fun MusicPlayerScreen(
     // Use external player if provided, otherwise create local one
     val isExternalPlayer = externalExoPlayer != null
     val exoPlayer = externalExoPlayer ?: remember {
-        ExoPlayer.Builder(context)
+        val audioSink = DefaultAudioSink.Builder(context)
+            // Disable audio offload so AudioEffect APIs (equalizer, bass, loudness) can attach reliably.
+            .setAudioOffloadSupportProvider { _, _ -> AudioOffloadSupport.DEFAULT_UNSUPPORTED }
+            .build()
+        val renderersFactory = object : DefaultRenderersFactory(context) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioTrackPlaybackParams: Boolean
+            ): androidx.media3.exoplayer.audio.AudioSink {
+                return audioSink
+            }
+        }
+        ExoPlayer.Builder(context, renderersFactory)
             .setAudioAttributes(
                 AudioAttributes.Builder()
                     .setUsage(C.USAGE_MEDIA)
@@ -227,6 +244,18 @@ fun MusicPlayerScreen(
         // Sync initial loading state with existing player (important when returning to the screen)
         isLoading = exoPlayer.playbackState == Player.STATE_BUFFERING
 
+        fun setupAudioEffects(audioSessionId: Int) {
+            if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0 || audioSessionId == currentAudioSessionId) return
+            currentAudioSessionId = audioSessionId
+            try { equalizer?.release() } catch (_: Exception) { }
+            equalizer = runCatching { Equalizer(0, audioSessionId) }.getOrNull()
+            try { loudnessEnhancer?.release() } catch (_: Exception) { }
+            loudnessEnhancer = runCatching { LoudnessEnhancer(audioSessionId) }.getOrNull()
+            try { bassBoost?.release() } catch (_: Exception) { }
+            bassBoost = runCatching { BassBoost(0, audioSessionId) }.getOrNull()
+            equalizer?.let { applyEqualizerPreset(it, equalizerPreset) }
+        }
+
         // Only load if this is a different track or player was reset
         if (needsLoad) {
             isLoading = true
@@ -254,16 +283,7 @@ fun MusicPlayerScreen(
                         // Set up effects after player is ready
                         try {
                             val audioSessionId = exoPlayer.audioSessionId
-                            if (audioSessionId != C.AUDIO_SESSION_ID_UNSET && audioSessionId != 0 && audioSessionId != currentAudioSessionId) {
-                                currentAudioSessionId = audioSessionId
-                                try { equalizer?.release() } catch (_: Exception) { }
-                                equalizer = runCatching { Equalizer(0, audioSessionId) }.getOrNull()
-                                try { loudnessEnhancer?.release() } catch (_: Exception) { }
-                                loudnessEnhancer = runCatching { LoudnessEnhancer(audioSessionId) }.getOrNull()
-                                try { bassBoost?.release() } catch (_: Exception) { }
-                                bassBoost = runCatching { BassBoost(0, audioSessionId) }.getOrNull()
-                                equalizer?.let { applyEqualizerPreset(it, equalizerPreset) }
-                            }
+                            setupAudioEffects(audioSessionId)
                             applyAudioEffects(
                                 loudnessEnhancer,
                                 bassBoost,
@@ -304,6 +324,20 @@ fun MusicPlayerScreen(
                         else -> { }
                     }
                 }
+            }
+
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (!manageEffectsLocally) return
+                setupAudioEffects(audioSessionId)
+                applyAudioEffects(
+                    loudnessEnhancer,
+                    bassBoost,
+                    volumeBoostEnabled,
+                    volumeBoostLevel,
+                    normalizeAudio,
+                    bassBoostLevel,
+                    equalizerPreset
+                )
             }
 
             override fun onIsPlayingChanged(playing: Boolean) {

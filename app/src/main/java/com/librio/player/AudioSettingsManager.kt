@@ -19,6 +19,7 @@ import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.audio.SilenceSkippingAudioProcessor
 import androidx.media3.exoplayer.audio.DefaultAudioSink
 import androidx.media3.common.AudioAttributes
+import androidx.media3.exoplayer.audio.AudioOffloadSupport
 import com.librio.player.applyEqualizerPreset
 import com.librio.player.normalizeEqPresetName
 
@@ -97,6 +98,8 @@ class AudioSettingsManager(private val context: Context) {
         // Create custom audio sink with our processors
         val audioSink = DefaultAudioSink.Builder(context)
             .setAudioProcessors(arrayOf(newSilenceProcessor))
+            // Disable audio offload so AudioEffect APIs (equalizer, bass, loudness) can attach reliably.
+            .setAudioOffloadSupportProvider { _, _ -> AudioOffloadSupport.DEFAULT_UNSUPPORTED }
             .build()
 
         // Create renderers factory with custom audio sink
@@ -139,6 +142,13 @@ class AudioSettingsManager(private val context: Context) {
                             applyAudioEffects(sessionId)
                         }
                     }
+                }
+            }
+
+            override fun onAudioSessionIdChanged(audioSessionId: Int) {
+                if (audioSessionId == C.AUDIO_SESSION_ID_UNSET || audioSessionId == 0) return
+                if (audioSessionId != lastAudioSessionId || equalizer == null || bassBoost == null || loudnessEnhancer == null) {
+                    applyAudioEffects(audioSessionId)
                 }
             }
         }

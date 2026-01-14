@@ -1,6 +1,6 @@
 package com.librio.data
 
-import android.os.Environment
+import com.librio.LibrioApplication
 import com.librio.model.AudioSettings
 import com.librio.model.ComicSettings
 import com.librio.model.MovieSettings
@@ -31,7 +31,7 @@ class ProfileFileManager {
         private const val PROFILE_BACKUP_IMPORTED_FOLDER = "Imported"
     }
 
-    private val librioRoot = File(Environment.getExternalStorageDirectory(), "Librio")
+    private val librioRoot: File get() = LibrioApplication.getLibrioRoot()
     private val profilesRoot = File(librioRoot, "Profiles")
 
     /**

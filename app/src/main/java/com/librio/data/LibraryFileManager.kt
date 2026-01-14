@@ -1,7 +1,7 @@
 package com.librio.data
 
 import android.net.Uri
-import android.os.Environment
+import com.librio.LibrioApplication
 import com.librio.model.Category
 import com.librio.model.ContentType
 import com.librio.model.LibraryAudiobook
@@ -28,7 +28,7 @@ class LibraryFileManager {
         const val LIBRARY_VERSION = 1
     }
 
-    private val librioRoot = File(Environment.getExternalStorageDirectory(), "Librio")
+    private val librioRoot: File get() = LibrioApplication.getLibrioRoot()
     private val profilesRoot = File(librioRoot, "Profiles")
 
     /**

@@ -206,21 +206,23 @@ fun OnboardingScreen(
             }
         }
 
-        // Progress indicators at bottom
+        // Progress indicators at bottom - positioned above buttons
+        val configuration = LocalConfiguration.current
+        val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         Row(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 32.dp),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                .padding(bottom = if (isLandscape) 70.dp else 120.dp),
+            horizontalArrangement = Arrangement.spacedBy(6.dp)
         ) {
             repeat(totalSteps) { index ->
                 Box(
                     modifier = Modifier
-                        .size(if (index == currentStep) 24.dp else 8.dp, 8.dp)
-                        .clip(RoundedCornerShape(4.dp))
+                        .size(if (index == currentStep) 20.dp else 6.dp, 6.dp)
+                        .clip(RoundedCornerShape(3.dp))
                         .background(
                             if (index == currentStep) palette.accent
-                            else Color.White.copy(alpha = 0.3f)
+                            else palette.shade1.copy(alpha = 0.4f)
                         )
                         .animateContentSize()
                 )
@@ -239,33 +241,25 @@ private fun PermissionsStep(
     val shape12 = cornerRadius(12.dp)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isSmallScreen = configuration.screenHeightDp < 700
 
-    val topSpacing = if (isLandscape) 16.dp else 48.dp
-    val cardPadding = if (isLandscape) 12.dp else 16.dp
+    val topSpacing = when {
+        isLandscape -> 8.dp
+        isSmallScreen -> 24.dp
+        else -> 40.dp
+    }
+    val cardPadding = if (isLandscape || isSmallScreen) 12.dp else 16.dp
 
-    // Permission states
-    var storageGranted by remember { mutableStateOf(false) }
+    // Permission states - only notification permission needed now since we use app's data folder
     var notificationGranted by remember { mutableStateOf(false) }
 
     // Check current permission status
     LaunchedEffect(Unit) {
-        storageGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_MEDIA_AUDIO) == PackageManager.PERMISSION_GRANTED
-        } else {
-            ContextCompat.checkSelfPermission(context, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
-        }
         notificationGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
         } else {
             true // Not needed on older Android
         }
-    }
-
-    // Permission launchers
-    val storagePermissionLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        storageGranted = permissions.values.any { it }
     }
 
     val notificationPermissionLauncher = rememberLauncherForActivityResult(
@@ -275,27 +269,6 @@ private fun PermissionsStep(
     }
 
     val permissions = listOf(
-        PermissionItem(
-            icon = AppIcons.Storage,
-            title = "Storage Access",
-            description = "Required to read your audiobooks, e-books, music, and videos from your device",
-            isGranted = storageGranted,
-            onRequest = {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    storagePermissionLauncher.launch(
-                        arrayOf(
-                            Manifest.permission.READ_MEDIA_AUDIO,
-                            Manifest.permission.READ_MEDIA_VIDEO,
-                            Manifest.permission.READ_MEDIA_IMAGES
-                        )
-                    )
-                } else {
-                    storagePermissionLauncher.launch(
-                        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE)
-                    )
-                }
-            }
-        ),
         PermissionItem(
             icon = AppIcons.Notifications,
             title = "Notifications",
@@ -310,46 +283,52 @@ private fun PermissionsStep(
         )
     )
 
+    val iconSize = when {
+        isLandscape -> 48.dp
+        isSmallScreen -> 60.dp
+        else -> 72.dp
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = topSpacing, bottom = 140.dp),
+                .padding(top = topSpacing, bottom = if (isLandscape) 100.dp else 130.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Icon
             Box(
                 modifier = Modifier
-                    .size(if (isLandscape) 56.dp else 80.dp)
+                    .size(iconSize)
                     .clip(CircleShape)
-                    .background(palette.accent.copy(alpha = 0.2f)),
+                    .background(palette.accent.copy(alpha = 0.25f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = AppIcons.Extension,
                     contentDescription = null,
-                    modifier = Modifier.size(if (isLandscape) 28.dp else 40.dp),
+                    modifier = Modifier.size(iconSize * 0.5f),
                     tint = palette.accent
                 )
             }
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 24.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape || isSmallScreen) 12.dp else 20.dp))
 
             Text(
                 text = "Permissions",
-                style = if (isLandscape) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
+                style = if (isLandscape || isSmallScreen) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = palette.shade1
             )
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 12.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
 
             Text(
                 text = "Librio needs a few permissions to work properly",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f),
+                color = palette.shade2,
                 textAlign = TextAlign.Center
             )
 
@@ -358,14 +337,14 @@ private fun PermissionsStep(
             // Permission cards
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(if (isSmallScreen) 8.dp else 12.dp)
             ) {
                 permissions.forEach { permission ->
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                         shape = shape12,
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.1f)
+                            containerColor = palette.shade1.copy(alpha = 0.1f)
                         )
                     ) {
                         Row(
@@ -376,19 +355,19 @@ private fun PermissionsStep(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(if (isLandscape) 36.dp else 44.dp)
+                                    .size(if (isLandscape || isSmallScreen) 36.dp else 44.dp)
                                     .clip(CircleShape)
                                     .background(
-                                        if (permission.isGranted) palette.accent.copy(alpha = 0.3f)
-                                        else Color.White.copy(alpha = 0.1f)
+                                        if (permission.isGranted) palette.accent.copy(alpha = 0.35f)
+                                        else palette.shade1.copy(alpha = 0.15f)
                                     ),
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
                                     imageVector = if (permission.isGranted) AppIcons.Check else permission.icon,
                                     contentDescription = null,
-                                    modifier = Modifier.size(if (isLandscape) 18.dp else 22.dp),
-                                    tint = if (permission.isGranted) palette.accent else Color.White
+                                    modifier = Modifier.size(if (isLandscape || isSmallScreen) 18.dp else 22.dp),
+                                    tint = if (permission.isGranted) palette.accent else palette.shade1
                                 )
                             }
                             Spacer(modifier = Modifier.width(12.dp))
@@ -398,21 +377,21 @@ private fun PermissionsStep(
                                         text = permission.title,
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White
+                                        color = palette.shade1
                                     )
                                     if (permission.isOptional) {
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
                                             text = "Optional",
                                             style = MaterialTheme.typography.labelSmall,
-                                            color = Color.White.copy(alpha = 0.5f)
+                                            color = palette.shade3
                                         )
                                     }
                                 }
                                 Text(
                                     text = permission.description,
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = Color.White.copy(alpha = 0.7f)
+                                    color = palette.shade2
                                 )
                             }
                             Spacer(modifier = Modifier.width(8.dp))
@@ -431,13 +410,13 @@ private fun PermissionsStep(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(if (isSmallScreen) 8.dp else 16.dp))
 
             // Info text
             Text(
                 text = "You can change these permissions later in your device settings",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color.White.copy(alpha = 0.5f),
+                color = palette.shade3,
                 textAlign = TextAlign.Center,
                 modifier = Modifier.padding(horizontal = 16.dp)
             )
@@ -454,12 +433,12 @@ private fun PermissionsStep(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = if (isLandscape) 16.dp else 60.dp)
-                .height(if (isLandscape) 44.dp else 52.dp),
+                .padding(bottom = if (isLandscape) 16.dp else 56.dp)
+                .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
             shape = shape16
         ) {
             Text(
-                text = if (storageGranted) "Continue" else "Continue Anyway",
+                text = "Continue",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
@@ -494,6 +473,7 @@ private fun WelcomeStep(
     val shape24 = cornerRadius(24.dp)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isSmallScreen = configuration.screenHeightDp < 700
 
     // Use OpenDocument for persistable URI permissions
     val imagePickerLauncher = rememberLauncherForActivityResult(
@@ -513,25 +493,36 @@ private fun WelcomeStep(
         }
     }
 
+    val topPadding = when {
+        isLandscape -> 8.dp
+        isSmallScreen -> 20.dp
+        else -> 36.dp
+    }
+    val appIconSize = when {
+        isLandscape -> 64.dp
+        isSmallScreen -> 72.dp
+        else -> 88.dp
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = if (isLandscape) 16.dp else 48.dp, bottom = 140.dp),
+                .padding(top = topPadding, bottom = if (isLandscape) 100.dp else 130.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
 
         // App icon
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(appIconSize)
                 .shadow(8.dp, CircleShape)
                 .clip(CircleShape)
                 .background(
                     brush = Brush.linearGradient(
-                        colors = listOf(palette.shade3, palette.shade4, palette.shade5)
+                        colors = listOf(palette.accent, palette.shade3, palette.shade4)
                     )
                 ),
             contentAlignment = Alignment.Center
@@ -539,76 +530,79 @@ private fun WelcomeStep(
             Icon(
                 imageVector = AppIcons.Library,
                 contentDescription = null,
-                modifier = Modifier.size(48.dp),
+                modifier = Modifier.size(appIconSize * 0.48f),
                 tint = Color.White
             )
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 20.dp))
 
         Text(
             text = "Welcome to",
-            style = MaterialTheme.typography.titleLarge,
-            color = palette.shade3
+            style = if (isSmallScreen) MaterialTheme.typography.titleMedium else MaterialTheme.typography.titleLarge,
+            color = palette.shade2
         )
 
         Text(
             text = "LIBRIO",
-            style = MaterialTheme.typography.displaySmall.copy(
+            style = (if (isSmallScreen) MaterialTheme.typography.headlineMedium else MaterialTheme.typography.displaySmall).copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = 4.sp
             ),
             color = palette.shade1
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = "Your personal media library",
-            style = MaterialTheme.typography.bodyLarge,
-            color = palette.shade4
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.shade2
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 24.dp))
 
         // Feature highlights
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            FeatureChip(icon = AppIcons.Audiobook, label = "Audiobooks")
-            FeatureChip(icon = AppIcons.Book, label = "E-books")
-            FeatureChip(icon = AppIcons.Music, label = "Music")
+            FeatureChip(icon = AppIcons.Audiobook, label = "Audiobooks", isSmall = isSmallScreen)
+            FeatureChip(icon = AppIcons.Book, label = "E-books", isSmall = isSmallScreen)
+            FeatureChip(icon = AppIcons.Music, label = "Music", isSmall = isSmallScreen)
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 24.dp))
 
         // Profile setup card
+        val profilePicSize = if (isSmallScreen) 80.dp else 100.dp
+        val cardPadding = if (isSmallScreen) 16.dp else 24.dp
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             shape = shape24,
-            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.95f)),
+            colors = CardDefaults.cardColors(containerColor = palette.shade1.copy(alpha = 0.95f)),
             elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(24.dp),
+                    .padding(cardPadding),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
                     text = "Set up your profile",
                     style = MaterialTheme.typography.titleMedium,
-                    color = palette.shade2,
+                    color = palette.shade9,
                     fontWeight = FontWeight.SemiBold
                 )
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(if (isSmallScreen) 12.dp else 20.dp))
 
                 // Profile picture
                 Box(
                     modifier = Modifier
-                        .size(100.dp)
+                        .size(profilePicSize)
                         .shadow(4.dp, CircleShape)
                         .clip(CircleShape)
                         .background(palette.shade10)
@@ -634,27 +628,27 @@ private fun WelcomeStep(
                             Icon(
                                 imageVector = AppIcons.Add,
                                 contentDescription = null,
-                                modifier = Modifier.size(32.dp),
+                                modifier = Modifier.size(if (isSmallScreen) 24.dp else 32.dp),
                                 tint = palette.accent
                             )
                             Text(
                                 text = "Add photo",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = palette.shade4
+                                color = palette.shade6
                             )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.height(20.dp))
+                Spacer(modifier = Modifier.height(if (isSmallScreen) 12.dp else 20.dp))
 
                 Text(
                     text = "What should we call you?",
                     style = MaterialTheme.typography.bodyMedium,
-                    color = palette.shade3
+                    color = palette.shade7
                 )
 
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 OutlinedTextField(
                     value = profileName,
@@ -664,8 +658,8 @@ private fun WelcomeStep(
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = palette.accent,
                         unfocusedBorderColor = palette.shade8,
-                        focusedTextColor = palette.shade1,
-                        unfocusedTextColor = palette.shade2,
+                        focusedTextColor = palette.shade10,
+                        unfocusedTextColor = palette.shade9,
                         cursorColor = palette.accent,
                         focusedContainerColor = Color.Transparent,
                         unfocusedContainerColor = Color.Transparent
@@ -676,7 +670,7 @@ private fun WelcomeStep(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(if (isSmallScreen) 12.dp else 20.dp))
             }
         }
         }
@@ -687,16 +681,16 @@ private fun WelcomeStep(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = if (isLandscape) 16.dp else 60.dp),
+                .padding(bottom = if (isLandscape) 16.dp else 56.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.shade1)
             ) {
                 Icon(AppIcons.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -711,7 +705,7 @@ private fun WelcomeStep(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16
             ) {
                 Text("Next")
@@ -732,6 +726,9 @@ private fun ThemePickerStep(
     val palette = currentPalette()
     val shape10 = cornerRadius(10.dp)
     val shape16 = cornerRadius(16.dp)
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isSmallScreen = configuration.screenHeightDp < 700
 
     // Cache theme palettes
     val cachedThemes = remember { AppTheme.entries.filter { it != AppTheme.CUSTOM }.toList() }
@@ -739,48 +736,59 @@ private fun ThemePickerStep(
         cachedThemes.associateWith { theme -> getThemePalette(theme) }
     }
 
+    val topSpacing = when {
+        isLandscape -> 8.dp
+        isSmallScreen -> 20.dp
+        else -> 36.dp
+    }
+    val iconSize = when {
+        isLandscape -> 40.dp
+        isSmallScreen -> 48.dp
+        else -> 56.dp
+    }
+    val gridColumns = if (isLandscape) 7 else 5
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .padding(horizontal = 24.dp)
+            .padding(top = topSpacing, bottom = if (isLandscape) 16.dp else 56.dp),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Spacer(modifier = Modifier.height(48.dp))
-
         Icon(
             imageVector = AppIcons.Palette,
             contentDescription = null,
-            modifier = Modifier.size(64.dp),
+            modifier = Modifier.size(iconSize),
             tint = palette.accent
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(if (isSmallScreen) 8.dp else 12.dp))
 
         Text(
             text = "Pick Your Theme",
-            style = MaterialTheme.typography.headlineMedium,
+            style = if (isSmallScreen) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White
+            color = palette.shade1
         )
 
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(4.dp))
 
         Text(
             text = "Choose a color scheme that suits you",
-            style = MaterialTheme.typography.bodyLarge,
-            color = Color.White.copy(alpha = 0.7f)
+            style = MaterialTheme.typography.bodyMedium,
+            color = palette.shade2
         )
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(if (isSmallScreen) 16.dp else 24.dp))
 
         // Theme grid
         LazyVerticalGrid(
-            columns = GridCells.Fixed(5),
+            columns = GridCells.Fixed(gridColumns),
             modifier = Modifier
                 .weight(1f)
                 .fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            horizontalArrangement = Arrangement.spacedBy(if (isSmallScreen) 8.dp else 10.dp),
+            verticalArrangement = Arrangement.spacedBy(if (isSmallScreen) 8.dp else 10.dp)
         ) {
             items(cachedThemes) { theme ->
                 val themePalette = cachedPalettes[theme] ?: getThemePalette(theme)
@@ -793,14 +801,14 @@ private fun ThemePickerStep(
                         .background(
                             Brush.linearGradient(
                                 colors = listOf(
-                                    themePalette.shade1,
+                                    themePalette.accent,
                                     themePalette.shade3,
                                     themePalette.shade5
                                 )
                             )
                         )
                         .then(
-                            if (isSelected) Modifier.border(3.dp, Color.White, shape10)
+                            if (isSelected) Modifier.border(3.dp, palette.shade1, shape10)
                             else Modifier
                         )
                         .clickable { onThemeChange(theme) },
@@ -811,14 +819,14 @@ private fun ThemePickerStep(
                             AppIcons.Check,
                             contentDescription = "Selected",
                             tint = Color.White,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(if (isSmallScreen) 18.dp else 22.dp)
                         )
                     }
                 }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(if (isSmallScreen) 12.dp else 20.dp))
 
         // Navigation buttons
         Row(
@@ -829,11 +837,11 @@ private fun ThemePickerStep(
                 onClick = onBack,
                 modifier = Modifier
                     .weight(1f)
-                    .height(52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.shade1)
             ) {
-                Icon(AppIcons.ArrowBack, contentDescription = null)
+                Icon(AppIcons.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
                 Text("Back")
             }
@@ -846,16 +854,14 @@ private fun ThemePickerStep(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .height(52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16
             ) {
                 Text("Next")
                 Spacer(modifier = Modifier.width(8.dp))
-                Icon(AppIcons.ArrowForward, contentDescription = null)
+                Icon(AppIcons.ArrowForward, contentDescription = null, modifier = Modifier.size(18.dp))
             }
         }
-
-        Spacer(modifier = Modifier.height(60.dp))
     }
 }
 
@@ -934,12 +940,20 @@ private fun WalkthroughStep(
     val shape12 = cornerRadius(12.dp)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isSmallScreen = configuration.screenHeightDp < 700
 
-    // Adjust sizes for landscape
-    val iconSize = if (isLandscape) 56.dp else 80.dp
-    val iconInnerSize = if (isLandscape) 28.dp else 40.dp
-    val topSpacing = if (isLandscape) 16.dp else 48.dp
-    val cardPadding = if (isLandscape) 12.dp else 16.dp
+    // Adjust sizes for screen size
+    val iconSize = when {
+        isLandscape -> 48.dp
+        isSmallScreen -> 56.dp
+        else -> 68.dp
+    }
+    val topSpacing = when {
+        isLandscape -> 8.dp
+        isSmallScreen -> 20.dp
+        else -> 36.dp
+    }
+    val cardPadding = if (isLandscape || isSmallScreen) 10.dp else 14.dp
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -947,7 +961,7 @@ private fun WalkthroughStep(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = topSpacing, bottom = 140.dp),
+                .padding(top = topSpacing, bottom = if (isLandscape) 100.dp else 130.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Icon in circle
@@ -955,56 +969,56 @@ private fun WalkthroughStep(
                 modifier = Modifier
                     .size(iconSize)
                     .clip(CircleShape)
-                    .background(palette.accent.copy(alpha = 0.2f)),
+                    .background(palette.accent.copy(alpha = 0.25f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(iconInnerSize),
+                    modifier = Modifier.size(iconSize * 0.5f),
                     tint = palette.accent
                 )
             }
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 24.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape || isSmallScreen) 10.dp else 18.dp))
 
             Text(
                 text = title,
-                style = if (isLandscape) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
+                style = if (isLandscape || isSmallScreen) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = palette.shade1
             )
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 12.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
 
             Text(
                 text = description,
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f),
+                color = palette.shade2,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(horizontal = 16.dp)
+                modifier = Modifier.padding(horizontal = 8.dp)
             )
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 16.dp else 32.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape || isSmallScreen) 12.dp else 24.dp))
 
             // Feature list - use grid for landscape
             if (isLandscape && features.size > 2) {
                 // Two-column grid for landscape
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     features.chunked(2).forEach { rowFeatures ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             rowFeatures.forEach { (featureTitle, featureDesc) ->
                                 Card(
                                     modifier = Modifier.weight(1f),
                                     shape = shape12,
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color.White.copy(alpha = 0.1f)
+                                        containerColor = palette.shade1.copy(alpha = 0.1f)
                                     )
                                 ) {
                                     Row(
@@ -1025,12 +1039,12 @@ private fun WalkthroughStep(
                                                 text = featureTitle,
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = Color.White
+                                                color = palette.shade1
                                             )
                                             Text(
                                                 text = featureDesc,
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = Color.White.copy(alpha = 0.7f),
+                                                color = palette.shade2,
                                                 maxLines = 2
                                             )
                                         }
@@ -1048,14 +1062,14 @@ private fun WalkthroughStep(
                 // Single column for portrait
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(if (isSmallScreen) 8.dp else 10.dp)
                 ) {
                     features.forEach { (featureTitle, featureDesc) ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = shape12,
                             colors = CardDefaults.cardColors(
-                                containerColor = Color.White.copy(alpha = 0.1f)
+                                containerColor = palette.shade1.copy(alpha = 0.1f)
                             )
                         ) {
                             Row(
@@ -1066,22 +1080,22 @@ private fun WalkthroughStep(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(8.dp)
+                                        .size(7.dp)
                                         .clip(CircleShape)
                                         .background(palette.accent)
                                 )
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
                                         text = featureTitle,
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White
+                                        color = palette.shade1
                                     )
                                     Text(
                                         text = featureDesc,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        color = palette.shade2
                                     )
                                 }
                             }
@@ -1097,16 +1111,16 @@ private fun WalkthroughStep(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = if (isLandscape) 16.dp else 60.dp),
+                .padding(bottom = if (isLandscape) 16.dp else 56.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.shade1)
             ) {
                 Icon(AppIcons.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1121,7 +1135,7 @@ private fun WalkthroughStep(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16
             ) {
                 Text("Next")
@@ -1142,9 +1156,19 @@ private fun GettingStartedStep(
     val shape12 = cornerRadius(12.dp)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isSmallScreen = configuration.screenHeightDp < 700
 
-    val topSpacing = if (isLandscape) 16.dp else 48.dp
-    val cardPadding = if (isLandscape) 12.dp else 16.dp
+    val topSpacing = when {
+        isLandscape -> 8.dp
+        isSmallScreen -> 20.dp
+        else -> 36.dp
+    }
+    val cardPadding = if (isLandscape || isSmallScreen) 10.dp else 14.dp
+    val iconSize = when {
+        isLandscape -> 48.dp
+        isSmallScreen -> 56.dp
+        else -> 68.dp
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -1152,48 +1176,48 @@ private fun GettingStartedStep(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = topSpacing, bottom = 140.dp),
+                .padding(top = topSpacing, bottom = if (isLandscape) 100.dp else 130.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Icon
             Box(
                 modifier = Modifier
-                    .size(if (isLandscape) 56.dp else 80.dp)
+                    .size(iconSize)
                     .clip(CircleShape)
-                    .background(palette.accent.copy(alpha = 0.2f)),
+                    .background(palette.accent.copy(alpha = 0.25f)),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = AppIcons.FolderOpen,
                     contentDescription = null,
-                    modifier = Modifier.size(if (isLandscape) 28.dp else 40.dp),
+                    modifier = Modifier.size(iconSize * 0.5f),
                     tint = palette.accent
                 )
             }
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 24.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape || isSmallScreen) 10.dp else 18.dp))
 
             Text(
                 text = "Getting Started",
-                style = if (isLandscape) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
+                style = if (isLandscape || isSmallScreen) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = palette.shade1
             )
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 8.dp else 12.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape) 4.dp else 8.dp))
 
             Text(
                 text = "Adding your media is simple!",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.8f),
+                color = palette.shade2,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 16.dp else 32.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape || isSmallScreen) 12.dp else 24.dp))
 
             // Instructions
             val instructions = listOf(
-                Triple(AppIcons.Folder, "Find Your Folder", "Each profile has its own Librio folder in your device storage"),
+                Triple(AppIcons.Folder, "Find Your Folder", "Look in Android/data/com.librio.android/files/Librio/Profiles/{YourName}/"),
                 Triple(AppIcons.Add, "Drop Your Files", "Copy audiobooks, e-books, music, movies, or comics into the folder"),
                 Triple(AppIcons.Refresh, "Auto Updates", "The app automatically detects new files and updates your library"),
                 Triple(AppIcons.Person, "Per-Profile Data", "All content, progress, and settings are saved separately for each profile")
@@ -1203,19 +1227,19 @@ private fun GettingStartedStep(
                 // Two-column grid for landscape
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
                     instructions.chunked(2).forEach { rowItems ->
                         Row(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             rowItems.forEach { (icon, title, desc) ->
                                 Card(
                                     modifier = Modifier.weight(1f),
                                     shape = shape12,
                                     colors = CardDefaults.cardColors(
-                                        containerColor = Color.White.copy(alpha = 0.1f)
+                                        containerColor = palette.shade1.copy(alpha = 0.1f)
                                     )
                                 ) {
                                     Row(
@@ -1226,16 +1250,16 @@ private fun GettingStartedStep(
                                     ) {
                                         Box(
                                             modifier = Modifier
-                                                .size(32.dp)
+                                                .size(28.dp)
                                                 .clip(CircleShape)
-                                                .background(palette.accent.copy(alpha = 0.3f)),
+                                                .background(palette.accent.copy(alpha = 0.35f)),
                                             contentAlignment = Alignment.Center
                                         ) {
                                             Icon(
                                                 imageVector = icon,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(16.dp),
-                                                tint = Color.White
+                                                modifier = Modifier.size(14.dp),
+                                                tint = palette.shade1
                                             )
                                         }
                                         Spacer(modifier = Modifier.width(8.dp))
@@ -1244,12 +1268,12 @@ private fun GettingStartedStep(
                                                 text = title,
                                                 style = MaterialTheme.typography.labelMedium,
                                                 fontWeight = FontWeight.SemiBold,
-                                                color = Color.White
+                                                color = palette.shade1
                                             )
                                             Text(
                                                 text = desc,
                                                 style = MaterialTheme.typography.bodySmall,
-                                                color = Color.White.copy(alpha = 0.7f),
+                                                color = palette.shade2,
                                                 maxLines = 2
                                             )
                                         }
@@ -1266,14 +1290,14 @@ private fun GettingStartedStep(
                 // Single column for portrait
                 Column(
                     modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(if (isSmallScreen) 8.dp else 10.dp)
                 ) {
                     instructions.forEach { (icon, title, desc) ->
                         Card(
                             modifier = Modifier.fillMaxWidth(),
                             shape = shape12,
                             colors = CardDefaults.cardColors(
-                                containerColor = Color.White.copy(alpha = 0.1f)
+                                containerColor = palette.shade1.copy(alpha = 0.1f)
                             )
                         ) {
                             Row(
@@ -1284,30 +1308,30 @@ private fun GettingStartedStep(
                             ) {
                                 Box(
                                     modifier = Modifier
-                                        .size(40.dp)
+                                        .size(if (isSmallScreen) 32.dp else 36.dp)
                                         .clip(CircleShape)
-                                        .background(palette.accent.copy(alpha = 0.3f)),
+                                        .background(palette.accent.copy(alpha = 0.35f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Icon(
                                         imageVector = icon,
                                         contentDescription = null,
-                                        modifier = Modifier.size(20.dp),
-                                        tint = Color.White
+                                        modifier = Modifier.size(if (isSmallScreen) 16.dp else 18.dp),
+                                        tint = palette.shade1
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(12.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
                                         text = title,
                                         style = MaterialTheme.typography.titleSmall,
                                         fontWeight = FontWeight.SemiBold,
-                                        color = Color.White
+                                        color = palette.shade1
                                     )
                                     Text(
                                         text = desc,
                                         style = MaterialTheme.typography.bodySmall,
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        color = palette.shade2
                                     )
                                 }
                             }
@@ -1323,16 +1347,16 @@ private fun GettingStartedStep(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = if (isLandscape) 16.dp else 60.dp),
+                .padding(bottom = if (isLandscape) 16.dp else 56.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.shade1)
             ) {
                 Icon(AppIcons.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1347,7 +1371,7 @@ private fun GettingStartedStep(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16
             ) {
                 Text("Next")
@@ -1368,6 +1392,14 @@ private fun SwipeGestureStep(
     val shape12 = cornerRadius(12.dp)
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val isSmallScreen = configuration.screenHeightDp < 700
+
+    val topSpacing = when {
+        isLandscape -> 8.dp
+        isSmallScreen -> 16.dp
+        else -> 28.dp
+    }
+    val cardPadding = if (isLandscape || isSmallScreen) 10.dp else 14.dp
 
     // Animation for horizontal swipe hint
     val infiniteTransition = rememberInfiniteTransition(label = "swipe")
@@ -1408,14 +1440,14 @@ private fun SwipeGestureStep(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 24.dp)
-                .padding(top = if (isLandscape) 16.dp else 32.dp, bottom = 140.dp),
+                .padding(top = topSpacing, bottom = if (isLandscape) 100.dp else 130.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
                 text = "Swipe Gestures",
-                style = if (isLandscape) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
+                style = if (isLandscape || isSmallScreen) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
-                color = Color.White
+                color = palette.shade1
             )
 
             Spacer(modifier = Modifier.height(4.dp))
@@ -1423,28 +1455,28 @@ private fun SwipeGestureStep(
             Text(
                 text = "Quick navigation with simple gestures",
                 style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.7f)
+                color = palette.shade2
             )
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 16.dp))
+            Spacer(modifier = Modifier.height(if (isLandscape || isSmallScreen) 10.dp else 16.dp))
 
             // Horizontal swipe section
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = shape12,
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.1f)
+                    containerColor = palette.shade1.copy(alpha = 0.1f)
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(if (isLandscape) 12.dp else 16.dp),
+                    modifier = Modifier.padding(cardPadding),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Horizontal arrows animation
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (isLandscape) 48.dp else 64.dp),
+                            .height(if (isLandscape || isSmallScreen) 44.dp else 56.dp),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1452,20 +1484,20 @@ private fun SwipeGestureStep(
                             imageVector = AppIcons.ChevronLeft,
                             contentDescription = null,
                             modifier = Modifier
-                                .size(if (isLandscape) 32.dp else 40.dp)
+                                .size(if (isLandscape || isSmallScreen) 28.dp else 36.dp)
                                 .alpha(arrowAlpha),
                             tint = palette.accent
                         )
                         Row(
                             modifier = Modifier.graphicsLayer { translationX = horizontalSwipeOffset },
-                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
                             listOf(AppIcons.Audiobook, AppIcons.Book, AppIcons.Music, AppIcons.Movie).forEach { icon ->
                                 Icon(
                                     imageVector = icon,
                                     contentDescription = null,
-                                    modifier = Modifier.size(if (isLandscape) 20.dp else 24.dp),
-                                    tint = Color.White.copy(alpha = 0.7f)
+                                    modifier = Modifier.size(if (isLandscape || isSmallScreen) 18.dp else 22.dp),
+                                    tint = palette.shade2
                                 )
                             }
                         }
@@ -1473,13 +1505,13 @@ private fun SwipeGestureStep(
                             imageVector = AppIcons.ChevronRight,
                             contentDescription = null,
                             modifier = Modifier
-                                .size(if (isLandscape) 32.dp else 40.dp)
+                                .size(if (isLandscape || isSmallScreen) 28.dp else 36.dp)
                                 .alpha(arrowAlpha),
                             tint = palette.accent
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1487,20 +1519,20 @@ private fun SwipeGestureStep(
                     ) {
                         Text(
                             text = "Swipe Left / Right",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = if (isSmallScreen) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = palette.accent
                         )
                         Box(
                             modifier = Modifier
                                 .clip(cornerRadius(4.dp))
-                                .background(palette.accent.copy(alpha = 0.3f))
+                                .background(palette.accent.copy(alpha = 0.35f))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "1 Finger",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
+                                color = palette.shade1,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -1508,30 +1540,30 @@ private fun SwipeGestureStep(
                     Text(
                         text = "Switch between categories",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.shade2
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(if (isSmallScreen) 8.dp else 10.dp))
 
             // Vertical swipe section
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 shape = shape12,
                 colors = CardDefaults.cardColors(
-                    containerColor = Color.White.copy(alpha = 0.1f)
+                    containerColor = palette.shade1.copy(alpha = 0.1f)
                 )
             ) {
                 Column(
-                    modifier = Modifier.padding(if (isLandscape) 12.dp else 16.dp),
+                    modifier = Modifier.padding(cardPadding),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     // Vertical arrows animation
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(if (isLandscape) 48.dp else 64.dp),
+                            .height(if (isLandscape || isSmallScreen) 44.dp else 56.dp),
                         horizontalArrangement = Arrangement.Center,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -1542,20 +1574,20 @@ private fun SwipeGestureStep(
                                 imageVector = AppIcons.ExpandLess,
                                 contentDescription = null,
                                 modifier = Modifier
-                                    .size(if (isLandscape) 28.dp else 32.dp)
+                                    .size(if (isLandscape || isSmallScreen) 24.dp else 28.dp)
                                     .alpha(arrowAlpha),
                                 tint = palette.accent
                             )
                             Column(
                                 modifier = Modifier.graphicsLayer { translationY = verticalSwipeOffset },
-                                verticalArrangement = Arrangement.spacedBy(4.dp),
+                                verticalArrangement = Arrangement.spacedBy(2.dp),
                                 horizontalAlignment = Alignment.CenterHorizontally
                             ) {
                                 listOf("All", "Playlist 1", "Playlist 2").forEach { label ->
                                     Text(
                                         text = label,
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = Color.White.copy(alpha = 0.7f)
+                                        color = palette.shade2
                                     )
                                 }
                             }
@@ -1563,14 +1595,14 @@ private fun SwipeGestureStep(
                                 imageVector = AppIcons.ExpandMore,
                                 contentDescription = null,
                                 modifier = Modifier
-                                    .size(if (isLandscape) 28.dp else 32.dp)
+                                    .size(if (isLandscape || isSmallScreen) 24.dp else 28.dp)
                                     .alpha(arrowAlpha),
                                 tint = palette.accent
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
 
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1578,20 +1610,20 @@ private fun SwipeGestureStep(
                     ) {
                         Text(
                             text = "Swipe Up / Down",
-                            style = MaterialTheme.typography.titleMedium,
+                            style = if (isSmallScreen) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
                             fontWeight = FontWeight.SemiBold,
                             color = palette.accent
                         )
                         Box(
                             modifier = Modifier
                                 .clip(cornerRadius(4.dp))
-                                .background(palette.accent.copy(alpha = 0.3f))
+                                .background(palette.accent.copy(alpha = 0.35f))
                                 .padding(horizontal = 6.dp, vertical = 2.dp)
                         ) {
                             Text(
                                 text = "2 Fingers",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = Color.White,
+                                color = palette.shade1,
                                 fontWeight = FontWeight.Medium
                             )
                         }
@@ -1599,17 +1631,95 @@ private fun SwipeGestureStep(
                     Text(
                         text = "Switch between playlists",
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.7f)
+                        color = palette.shade2
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(if (isLandscape) 12.dp else 20.dp))
+            Spacer(modifier = Modifier.height(if (isSmallScreen) 8.dp else 10.dp))
+
+            // Player settings swipe section
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                shape = shape12,
+                colors = CardDefaults.cardColors(
+                    containerColor = palette.shade1.copy(alpha = 0.1f)
+                )
+            ) {
+                Column(
+                    modifier = Modifier.padding(cardPadding),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Settings icon animation
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(if (isLandscape || isSmallScreen) 36.dp else 44.dp),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Icon(
+                                imageVector = AppIcons.ExpandLess,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(if (isLandscape || isSmallScreen) 20.dp else 24.dp)
+                                    .alpha(arrowAlpha),
+                                tint = palette.accent
+                            )
+                            Icon(
+                                imageVector = AppIcons.Settings,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(if (isLandscape || isSmallScreen) 18.dp else 22.dp)
+                                    .graphicsLayer { translationY = -verticalSwipeOffset * 0.5f },
+                                tint = palette.shade2
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(6.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Text(
+                            text = "Swipe Up on Navbar",
+                            style = if (isSmallScreen) MaterialTheme.typography.titleSmall else MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = palette.accent
+                        )
+                        Box(
+                            modifier = Modifier
+                                .clip(cornerRadius(4.dp))
+                                .background(palette.accent.copy(alpha = 0.35f))
+                                .padding(horizontal = 6.dp, vertical = 2.dp)
+                        ) {
+                            Text(
+                                text = "In Players",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = palette.shade1,
+                                fontWeight = FontWeight.Medium
+                            )
+                        }
+                    }
+                    Text(
+                        text = "Open player settings quickly",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = palette.shade2
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(if (isLandscape || isSmallScreen) 8.dp else 12.dp))
 
             Text(
-                text = "2-finger vertical swipes won't\ninterfere with normal scrolling",
-                style = MaterialTheme.typography.bodyMedium,
-                color = Color.White.copy(alpha = 0.6f),
+                text = "Swipe down on settings to close them",
+                style = MaterialTheme.typography.bodySmall,
+                color = palette.shade3,
                 textAlign = TextAlign.Center
             )
         }
@@ -1620,16 +1730,16 @@ private fun SwipeGestureStep(
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .padding(horizontal = 24.dp)
-                .padding(bottom = if (isLandscape) 16.dp else 60.dp),
+                .padding(bottom = if (isLandscape) 16.dp else 56.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedButton(
                 onClick = onBack,
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White)
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = palette.shade1)
             ) {
                 Icon(AppIcons.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
                 Spacer(modifier = Modifier.width(8.dp))
@@ -1644,7 +1754,7 @@ private fun SwipeGestureStep(
                 ),
                 modifier = Modifier
                     .weight(1f)
-                    .height(if (isLandscape) 44.dp else 52.dp),
+                    .height(if (isLandscape || isSmallScreen) 44.dp else 50.dp),
                 shape = shape16
             ) {
                 Text("Get Started")
@@ -1658,31 +1768,35 @@ private fun SwipeGestureStep(
 @Composable
 private fun FeatureChip(
     icon: ImageVector,
-    label: String
+    label: String,
+    isSmall: Boolean = false
 ) {
     val palette = currentPalette()
+    val chipSize = if (isSmall) 40.dp else 48.dp
+    val iconSize = if (isSmall) 20.dp else 24.dp
+
     Column(
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Box(
             modifier = Modifier
-                .size(48.dp)
+                .size(chipSize)
                 .clip(CircleShape)
-                .background(Color.White.copy(alpha = 0.2f)),
+                .background(palette.shade1.copy(alpha = 0.2f)),
             contentAlignment = Alignment.Center
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                tint = Color.White
+                modifier = Modifier.size(iconSize),
+                tint = palette.shade1
             )
         }
-        Spacer(modifier = Modifier.height(6.dp))
+        Spacer(modifier = Modifier.height(if (isSmall) 4.dp else 6.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White.copy(alpha = 0.9f)
+            color = palette.shade2
         )
     }
 }

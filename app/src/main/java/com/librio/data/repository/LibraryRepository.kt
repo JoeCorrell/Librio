@@ -519,8 +519,12 @@ class LibraryRepository(private val context: Context) {
      * Discover playlist folders and sync them with the series list
      * This creates LibrarySeries entries for any new folders found
      * AND creates folders for any existing series that don't have folders
+     * @param deletedSeriesNames Map of content type name to set of deleted series names to exclude
      */
-    suspend fun syncPlaylistFoldersWithSeries(existingSeries: List<LibrarySeries>): List<LibrarySeries> = withContext(Dispatchers.IO) {
+    suspend fun syncPlaylistFoldersWithSeries(
+        existingSeries: List<LibrarySeries>,
+        deletedSeriesNames: Map<String, Set<String>> = emptyMap()
+    ): List<LibrarySeries> = withContext(Dispatchers.IO) {
         val allDiscovered: Map<ContentType, List<DiscoveredPlaylist>> = playlistFolderManager.discoverAllPlaylistFolders(currentProfileName)
         val updatedSeries = existingSeries.toMutableList()
         var maxOrder = existingSeries.maxOfOrNull { it.order } ?: -1
@@ -537,7 +541,15 @@ class LibraryRepository(private val context: Context) {
 
         // Second: For each content type, check for new folders and create series entries
         for ((contentType, discoveredPlaylists) in allDiscovered) {
+            // Get the deleted names for this content type
+            val deletedNames = deletedSeriesNames[contentType.name] ?: emptySet()
+
             for (discovered in discoveredPlaylists) {
+                // Skip if this folder name is in the deleted list (case-insensitive check)
+                if (deletedNames.any { it.equals(discovered.folderName, ignoreCase = true) }) {
+                    continue
+                }
+
                 // Check if a series with this name and content type already exists
                 val existingMatch = updatedSeries.find {
                     it.name.equals(discovered.folderName, ignoreCase = true) &&
